@@ -18,7 +18,10 @@ export const CashFlowChart = () => {
       withdrawalAmount: 0,
     },
     ...monthlySummaries.map((m) => {
-      const isDeficit = m.monthBalance < 0;
+      // Retirada necessária da reserva: ocorre quando o saldo acumulado fica negativo (< 0),
+      // pois o dinheiro já existente em conta absorve parte ou todo o déficit do mês.
+      const needsReserveWithdrawal = m.accumulatedBalance < 0;
+      const withdrawalAmount = needsReserveWithdrawal ? Math.abs(m.accumulatedBalance) : 0;
       return {
         label: m.month.shortName,
         sublabel: m.month.name,
@@ -26,8 +29,8 @@ export const CashFlowChart = () => {
         income: m.income,
         expenses: m.totalExpenses,
         monthBalance: m.monthBalance,
-        needsReserveWithdrawal: isDeficit,
-        withdrawalAmount: isDeficit ? Math.abs(m.monthBalance) : 0,
+        needsReserveWithdrawal,
+        withdrawalAmount,
       };
     }),
   ];
@@ -94,8 +97,8 @@ export const CashFlowChart = () => {
           <span className="text-base shrink-0">💡</span>
           <div className="leading-snug">
             <strong>Retirada da Reserva:</strong> Em{' '}
-            <strong>{deficitMonths.map((m) => m.label).join(', ')}</strong> você terá um déficit de gastos de{' '}
-            <strong className="font-mono">{formatBRL(totalWithdrawal)}</strong> que precisará ser retirado da sua reserva para cobrir as contas. Nos demais meses, o fluxo fecha com sobra!
+            <strong>{deficitMonths.map((m) => m.label).join(', ')}</strong> você precisará retirar{' '}
+            <strong className="font-mono">{formatBRL(totalWithdrawal)}</strong> da reserva para não deixar a conta no vermelho (o saldo que você já tinha em conta cobre o restante do déficit). Nos demais meses, o fluxo fecha positivo sem tocar na reserva!
           </div>
         </div>
       ) : (
@@ -250,7 +253,11 @@ export const CashFlowChart = () => {
               {currentHover.label !== 'Hoje' && (
                 currentHover.needsReserveWithdrawal ? (
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300">
-                    ⚠️ Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para cobrir gastos
+                    ⚠️ Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para não negativar (déficit do mês: {formatBRL(Math.abs(currentHover.monthBalance))}, amortizado pelo saldo em conta)
+                  </span>
+                ) : currentHover.monthBalance < 0 ? (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-300">
+                    ℹ️ Gastos acima da renda em {formatBRL(Math.abs(currentHover.monthBalance))}, mas coberto 100% pelo saldo em conta (sem tocar na reserva)
                   </span>
                 ) : (
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300">
