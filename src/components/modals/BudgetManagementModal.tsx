@@ -39,7 +39,7 @@ export const BudgetManagementModal = ({
   const {
     state,
     monthlySummaries,
-    addItem,
+    addTransaction,
     removeItem,
     restoreItem,
     updateItemName,
@@ -82,25 +82,16 @@ export const BudgetManagementModal = ({
     const finalName = (nameToAdd || newItemName).trim();
     if (!finalName) return;
 
-    addItem(activeTab, finalName);
+    // Despesas fixas e renda por padrão são recorrentes para os meses seguintes
+    const shouldRepeat = activeTab === 'fixas' || activeTab === 'renda';
 
-    // Se tiver valor definido, atualiza para o mês selecionado
-    if (newItemValue > 0) {
-      setTimeout(() => {
-        // Encontra o item recém adicionado e atualiza
-        const latestItems =
-          activeTab === 'renda'
-            ? state.incomes
-            : state.lists[activeTab as ExpenseCategoryKey] || [];
-        const added = latestItems.find((i) => i.name === finalName);
-        if (added) {
-          updateItemValue(activeTab, added.id, selectedMonthId, newItemValue);
-          if (activeTab === 'fixas' || activeTab === 'renda') {
-            repeatValueForward(activeTab, added.id, selectedMonthId);
-          }
-        }
-      }, 50);
-    }
+    addTransaction({
+      category: activeTab,
+      name: finalName,
+      value: newItemValue,
+      monthId: selectedMonthId,
+      repeatForward: shouldRepeat,
+    });
 
     setNewItemName('');
     setNewItemValue(0);
@@ -268,7 +259,13 @@ export const BudgetManagementModal = ({
         </div>
 
         {/* ── Seção Adicionar Novo Item ── */}
-        <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl space-y-2.5">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddNewItem();
+          }}
+          className="p-3 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl space-y-2.5"
+        >
           <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
             <span>+ Adicionar Novo em {activeDef.label}</span>
           </div>
@@ -278,12 +275,6 @@ export const BudgetManagementModal = ({
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddNewItem();
-                }
-              }}
               placeholder={`Ex: ${suggestions[0] || 'Nova conta'}`}
               className="flex-1 min-w-[140px] px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0e6b7a]"
             />
@@ -291,13 +282,19 @@ export const BudgetManagementModal = ({
               <CurrencyInput
                 value={newItemValue}
                 onChange={setNewItemValue}
+                debounceMs={0}
                 placeholder="R$ 0,00"
                 ariaLabel="Valor do novo item"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddNewItem();
+                  }
+                }}
               />
             </div>
             <button
-              type="button"
-              onClick={() => handleAddNewItem()}
+              type="submit"
               className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-[#0e6b7a] hover:bg-[#09525e] text-white transition-colors cursor-pointer shrink-0 shadow-xs"
             >
               Adicionar
@@ -320,7 +317,7 @@ export const BudgetManagementModal = ({
               ))}
             </div>
           )}
-        </div>
+        </form>
 
         {/* ── Impacto Global em Tempo Real (Rodapé do Modal) ── */}
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">

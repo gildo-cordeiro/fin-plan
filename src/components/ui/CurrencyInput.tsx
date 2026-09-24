@@ -8,6 +8,8 @@ interface CurrencyInputProps {
   disabled?: boolean;
   prefix?: string;
   ariaLabel?: string;
+  debounceMs?: number;
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export const CurrencyInput = ({
@@ -18,16 +20,23 @@ export const CurrencyInput = ({
   disabled = false,
   prefix,
   ariaLabel,
+  debounceMs = 350,
+  onKeyDown,
 }: CurrencyInputProps) => {
   const [localStr, setLocalStr] = useState<string>(() => (value ? value.toString() : ''));
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevValueRef = useRef(value);
 
-  // Sincroniza estado local quando o valor externo muda (apenas se o campo não estiver em foco)
+  // Sincroniza estado local quando o valor externo muda
+  // Se não estiver em foco OU se o valor externo foi resetado para 0, atualiza o texto local
   useEffect(() => {
-    if (!isFocused) {
-      setLocalStr(value === 0 ? '' : value.toString());
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value;
+      if (!isFocused || value === 0) {
+        setLocalStr(value === 0 ? '' : value.toString());
+      }
     }
   }, [value, isFocused]);
 
@@ -44,6 +53,7 @@ export const CurrencyInput = ({
     const normalized = rawString.replace(',', '.');
     const num = parseFloat(normalized);
     const cleanNum = isNaN(num) ? 0 : num;
+    prevValueRef.current = cleanNum;
     onChange(cleanNum);
     return cleanNum;
   };
@@ -53,14 +63,17 @@ export const CurrencyInput = ({
     raw = raw.replace(/[^\d.,-]/g, '');
     setLocalStr(raw);
 
-    // Debounce de 350ms para evitar recálculo de todo o orçamento a cada dígito digitado
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
-    debounceTimerRef.current = setTimeout(() => {
+    if (debounceMs === 0) {
       commitValue(raw);
-    }, 350);
+    } else {
+      debounceTimerRef.current = setTimeout(() => {
+        commitValue(raw);
+      }, debounceMs);
+    }
   };
 
   const handleBlur = () => {
@@ -74,8 +87,15 @@ export const CurrencyInput = ({
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.currentTarget.blur();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      commitValue(localStr);
+      if (!onKeyDown) {
+        e.currentTarget.blur();
+      }
     }
+    onKeyDown?.(e);
   };
 
   const handleFocus = () => {

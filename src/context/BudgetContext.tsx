@@ -602,6 +602,40 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       targetMonthId: isOneTime ? monthId : undefined,
     };
 
+    if (category === ExpenseCategory.Mud) {
+      if (numVal > 0) {
+        const rowId = SheetIdGenerator.oneTime(cleanName);
+        recordPendingPatch(rowId, {
+          id: rowId,
+          tipo: 'mudanca',
+          categoria: 'mud',
+          nome: cleanName,
+          valor: numVal,
+          mes_referencia: monthId,
+          status: 'ativo',
+        });
+      }
+    } else {
+      state.months.forEach((m) => {
+        const val = values[m.id] ?? 0;
+        if (val > 0) {
+          const rowId =
+            category === BudgetCategory.Renda
+              ? SheetIdGenerator.income(cleanName, m.id)
+              : SheetIdGenerator.expense(category as ExpenseCategoryKey, cleanName, m.id);
+          recordPendingPatch(rowId, {
+            id: rowId,
+            tipo: category === BudgetCategory.Renda ? 'renda' : 'despesa',
+            categoria: category,
+            nome: cleanName,
+            valor: val,
+            mes_referencia: m.id,
+            status: 'ativo',
+          });
+        }
+      });
+    }
+
     setState((prev) => {
       if (category === BudgetCategory.Renda) {
         return { ...prev, incomes: [...prev.incomes, newItem] };
