@@ -146,10 +146,10 @@ export const CashFlowChart = () => {
               const cy = getY(pt.value);
               const isHovered = hoveredIdx === idx;
               const color =
-                pt.value < reserva && reserva > 0
+                pt.value < 0
+                  ? '#e11d48'
+                  : reserva > 0 && pt.value < reserva
                   ? '#c09420'
-                  : pt.value < 0
-                  ? '#c53030'
                   : '#0e6b7a';
 
               return (
@@ -206,12 +206,26 @@ export const CashFlowChart = () => {
               {currentHover.sublabel}:
             </span>
             <div className="flex items-center gap-3">
-              <span className="font-mono font-bold text-[#0e6b7a] dark:text-[#4ec2d3]">
+              <span
+                className={`font-mono font-bold ${
+                  currentHover.value < 0
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-[#0e6b7a] dark:text-[#4ec2d3]'
+                }`}
+              >
                 {formatBRL(currentHover.value)}
               </span>
               {reserva > 0 && currentHover.value < reserva && (
-                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                  ⚠️ Invade a reserva em {formatBRL(reserva - currentHover.value)}
+                <span
+                  className={`text-[10px] font-medium ${
+                    currentHover.value < 0
+                      ? 'text-rose-600 dark:text-rose-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  }`}
+                >
+                  {currentHover.value < 0
+                    ? `⚠️ Saldo no vermelho (${formatBRL(Math.abs(currentHover.value))}) • Faltam ${formatBRL(reserva - currentHover.value)} para atingir a reserva`
+                    : `⚠️ Abaixo da reserva protegida (faltam ${formatBRL(reserva - currentHover.value)})`}
                 </span>
               )}
             </div>
