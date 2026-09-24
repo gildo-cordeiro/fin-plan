@@ -9,22 +9,33 @@ export const CashFlowChart = () => {
   const dataPoints = [
     {
       label: 'Hoje',
-      sublabel: 'Saldo Inicial',
+      sublabel: 'Saldo Inicial em Caixa',
       value: state.simulation.initialBalance,
       income: 0,
       expenses: 0,
+      monthBalance: 0,
+      needsReserveWithdrawal: false,
+      withdrawalAmount: 0,
     },
-    ...monthlySummaries.map((m) => ({
-      label: m.month.shortName,
-      sublabel: m.month.name,
-      value: m.accumulatedBalance,
-      income: m.income,
-      expenses: m.totalExpenses,
-    })),
+    ...monthlySummaries.map((m) => {
+      const isDeficit = m.monthBalance < 0;
+      return {
+        label: m.month.shortName,
+        sublabel: m.month.name,
+        value: m.accumulatedBalance,
+        income: m.income,
+        expenses: m.totalExpenses,
+        monthBalance: m.monthBalance,
+        needsReserveWithdrawal: isDeficit,
+        withdrawalAmount: isDeficit ? Math.abs(m.monthBalance) : 0,
+      };
+    }),
   ];
 
-  const reserva = state.simulation.emergencyReserve;
-  const values = dataPoints.map((p) => p.value).concat([0, reserva]);
+  const deficitMonths = dataPoints.filter((p) => p.needsReserveWithdrawal);
+  const totalWithdrawal = deficitMonths.reduce((acc, p) => acc + p.withdrawalAmount, 0);
+
+  const values = dataPoints.map((p) => p.value).concat([0]);
   const minVal = Math.min(...values);
   const maxVal = Math.max(...values);
   const valSpan = maxVal - minVal || 1;
@@ -41,9 +52,8 @@ export const CashFlowChart = () => {
   const getY = (val: number) => padTop + (1 - (val - minVal) / valSpan) * (H - padTop - padBottom);
 
   const zeroY = getY(0);
-  const reservaY = getY(reserva);
 
-  // Caminho da linha
+  // Caminho da linha de saldo acumulado
   const linePath = dataPoints
     .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx).toFixed(1)} ${getY(p.value).toFixed(1)}`)
     .join(' ');
@@ -54,25 +64,50 @@ export const CashFlowChart = () => {
   const currentHover = hoveredIdx !== null ? dataPoints[hoveredIdx] : null;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-          Trajetória do Saldo Acumulado
-        </h3>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+      {/* Cabeçalho & Legenda */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Trajetória do Saldo Acumulado
+          </h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+            Evolução do dinheiro disponível na conta ao longo dos meses.
+          </p>
+        </div>
+
         <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0e6b7a] inline-block"></span>
             Saldo acumulado
           </span>
-          {reserva > 0 && (
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-0.5 border-t border-dashed border-[#c09420] inline-block"></span>
-              Reserva protegida
-            </span>
-          )}
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-900 inline-block"></span>
+            Retirada da reserva (déficit)
+          </span>
         </div>
       </div>
 
+      {/* Banner explicativo de necessidade de retirada da reserva */}
+      {deficitMonths.length > 0 ? (
+        <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200">
+          <span className="text-base shrink-0">💡</span>
+          <div className="leading-snug">
+            <strong>Retirada da Reserva:</strong> Em{' '}
+            <strong>{deficitMonths.map((m) => m.label).join(', ')}</strong> você terá um déficit de gastos de{' '}
+            <strong className="font-mono">{formatBRL(totalWithdrawal)}</strong> que precisará ser retirado da sua reserva para cobrir as contas. Nos demais meses, o fluxo fecha com sobra!
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300">
+          <span>✨</span>
+          <span>
+            <strong>Fluxo Autossustentável:</strong> Suas receitas cobrem todas as despesas em todos os meses. Nenhuma retirada da reserva será necessária!
+          </span>
+        </div>
+      )}
+
+      {/* Gráfico SVG */}
       <div className="overflow-x-auto pb-1">
         <div style={{ minWidth: W }} className="relative select-none">
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block">
@@ -83,49 +118,27 @@ export const CashFlowChart = () => {
               </linearGradient>
             </defs>
 
-            {/* Linha Zero (Base Neutra) */}
+            {/* Linha Zero (Equilíbrio de Caixa) */}
             <line
               x1={padLeft}
               y1={zeroY}
               x2={W - padRight}
               y2={zeroY}
-              stroke="#dbe3e9"
+              stroke="#cbd5e1"
               className="dark:stroke-slate-700"
-              strokeWidth="1"
+              strokeDasharray="3 3"
+              strokeWidth="1.2"
             />
-
-            {/* Faixa / Banda da Reserva de Emergência (Alerta se cair abaixo) */}
-            {reserva > 0 && (
-              <>
-                <rect
-                  x={padLeft}
-                  y={Math.min(zeroY, reservaY)}
-                  width={W - padLeft - padRight}
-                  height={Math.abs(zeroY - reservaY)}
-                  fill="#c09420"
-                  fillOpacity="0.06"
-                />
-                <line
-                  x1={padLeft}
-                  y1={reservaY}
-                  x2={W - padRight}
-                  y2={reservaY}
-                  stroke="#c09420"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 3"
-                />
-                <text
-                  x={W - padRight + 4}
-                  y={reservaY + 3}
-                  fontSize="9"
-                  fill="#c09420"
-                  fontWeight="600"
-                  className="font-mono"
-                >
-                  Reserva
-                </text>
-              </>
-            )}
+            <text
+              x={W - padRight + 4}
+              y={zeroY + 3}
+              fontSize="9"
+              fill="#94a3b8"
+              fontWeight="600"
+              className="font-mono"
+            >
+              R$ 0
+            </text>
 
             {/* Área sombreada sob a curva */}
             <path d={areaPath} fill="url(#cashGradient)" />
@@ -145,12 +158,14 @@ export const CashFlowChart = () => {
               const cx = getX(idx);
               const cy = getY(pt.value);
               const isHovered = hoveredIdx === idx;
-              const color =
-                pt.value < 0
-                  ? '#e11d48'
-                  : reserva > 0 && pt.value < reserva
-                  ? '#c09420'
-                  : '#0e6b7a';
+              const hasDeficit = pt.needsReserveWithdrawal;
+              const isNegative = pt.value < 0;
+
+              const dotColor = isNegative
+                ? '#e11d48'
+                : hasDeficit
+                ? '#f59e0b'
+                : '#0e6b7a';
 
               return (
                 <g
@@ -171,11 +186,25 @@ export const CashFlowChart = () => {
                     />
                   )}
 
+                  {/* Anel de alerta caso necessite retirada da reserva */}
+                  {hasDeficit && (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isHovered ? 9 : 7}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth={1.5}
+                      strokeOpacity={0.6}
+                      className="animate-pulse"
+                    />
+                  )}
+
                   <circle
                     cx={cx}
                     cy={cy}
                     r={isHovered ? 6.5 : 4}
-                    fill={color}
+                    fill={dotColor}
                     stroke="#ffffff"
                     strokeWidth={1.5}
                   />
@@ -199,13 +228,13 @@ export const CashFlowChart = () => {
       </div>
 
       {/* Tooltip de detalhes compacto e fixo abaixo */}
-      <div className="mt-2 h-7 px-2.5 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+      <div className="min-h-8 px-3 py-2 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300">
         {currentHover ? (
-          <div className="w-full flex items-center justify-between">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {currentHover.sublabel}:
-            </span>
-            <div className="flex items-center gap-3">
+          <div className="w-full flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                {currentHover.sublabel}:
+              </span>
               <span
                 className={`font-mono font-bold ${
                   currentHover.value < 0
@@ -213,26 +242,27 @@ export const CashFlowChart = () => {
                     : 'text-[#0e6b7a] dark:text-[#4ec2d3]'
                 }`}
               >
-                {formatBRL(currentHover.value)}
+                Saldo acumulado: {formatBRL(currentHover.value)}
               </span>
-              {reserva > 0 && currentHover.value < reserva && (
-                <span
-                  className={`text-[10px] font-medium ${
-                    currentHover.value < 0
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-amber-600 dark:text-amber-400'
-                  }`}
-                >
-                  {currentHover.value < 0
-                    ? `⚠️ Saldo no vermelho (${formatBRL(Math.abs(currentHover.value))}) • Faltam ${formatBRL(reserva - currentHover.value)} para atingir a reserva`
-                    : `⚠️ Abaixo da reserva protegida (faltam ${formatBRL(reserva - currentHover.value)})`}
-                </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {currentHover.label !== 'Hoje' && (
+                currentHover.needsReserveWithdrawal ? (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300">
+                    ⚠️ Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para cobrir gastos
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                    🟢 Sobra de <strong className="font-mono">{formatBRL(currentHover.monthBalance)}</strong> no mês (dinheiro livre)
+                  </span>
+                )
               )}
             </div>
           </div>
         ) : (
           <span className="text-slate-400 text-[11px]">
-            Passe o mouse ou toque nos pontos do gráfico para inspecionar os valores exatos.
+            Passe o mouse ou toque nos pontos do gráfico para ver a sobra do mês ou o valor a retirar da reserva.
           </span>
         )}
       </div>
