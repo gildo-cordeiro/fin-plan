@@ -8,6 +8,7 @@ import { HorizonView } from './components/budget/HorizonView';
 import { GoalsSection } from './components/goals/GoalsSection';
 import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
 import { SimulationPanel } from './components/simulation/SimulationPanel';
+import { BudgetManagementModal } from './components/modals/BudgetManagementModal';
 import { useBudget } from './context/BudgetContext';
 
 export const BudgetAppContent = () => {
@@ -15,6 +16,7 @@ export const BudgetAppContent = () => {
 
   const [tab, setTab] = useState<TabId>('mes');
   const [activeMonthId, setActiveMonthId] = useState(state.months[0]?.id || '');
+  const [isInitialSetupOpen, setIsInitialSetupOpen] = useState(false);
 
   // Manter activeMonthId válido quando a lista de meses é atualizada
   useEffect(() => {
@@ -76,6 +78,14 @@ export const BudgetAppContent = () => {
               >
                 <span>📥</span>
                 <span>Recarregar da Planilha</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsInitialSetupOpen(true)}
+                className="text-xs px-3.5 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <span>⚙️</span>
+                <span>Cadastrar Rendas & Despesas</span>
               </button>
             </div>
           </div>
@@ -139,6 +149,14 @@ export const BudgetAppContent = () => {
         <footer className="pt-4 pb-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
           FinPlan — Planejador Financeiro Pessoal • Dados sincronizados com Google Sheets
         </footer>
+
+        {/* Modal de Configuração Inicial de Orçamento */}
+        <BudgetManagementModal
+          isOpen={isInitialSetupOpen}
+          onClose={() => setIsInitialSetupOpen(false)}
+          monthId={activeMonthId}
+          defaultCategory="renda"
+        />
       </main>
     </div>
   );

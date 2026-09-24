@@ -8,6 +8,7 @@ import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
 import { SimulationPanel } from '../simulation/SimulationPanel';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
+import { BudgetManagementModal } from '../modals/BudgetManagementModal';
 import type { BudgetItem, ExpenseCategoryKey } from '../../types/budget';
 
 interface MonthBudgetViewProps {
@@ -34,9 +35,14 @@ export const MonthBudgetView = ({
     updateItemValue,
   } = useBudget();
 
+  // Modais de Edição e Lançamentos
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [budgetModalCategory, setBudgetModalCategory] = useState<ExpenseCategoryKey | 'renda'>('renda');
   const [isNewTxModalOpen, setIsNewTxModalOpen] = useState(false);
   const [modalDefaultCategory, setModalDefaultCategory] = useState<ExpenseCategoryKey | 'renda'>('fixas');
 
+  // Controles de Visualização Rápida
+  const [showInlineLists, setShowInlineLists] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar');
   const [showSim, setShowSim] = useState(false);
@@ -71,6 +77,11 @@ export const MonthBudgetView = ({
   const handleOpenAddModal = (cat: ExpenseCategoryKey | 'renda' = 'fixas') => {
     setModalDefaultCategory(cat);
     setIsNewTxModalOpen(true);
+  };
+
+  const handleOpenBudgetModal = (cat: ExpenseCategoryKey | 'renda' = 'renda') => {
+    setBudgetModalCategory(cat);
+    setIsBudgetModalOpen(true);
   };
 
   const renderItems = (
@@ -134,7 +145,7 @@ export const MonthBudgetView = ({
                     });
                   }
                 }}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
                 title="Remover conta"
                 aria-label={`Remover ${item.name}`}
               >
@@ -148,7 +159,7 @@ export const MonthBudgetView = ({
           <button
             type="button"
             onClick={() => handleOpenAddModal(category)}
-            className="text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:underline px-2 py-1 rounded-lg hover:bg-[#0e6b7a]/5 transition-colors"
+            className="text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:underline px-2 py-1 rounded-lg hover:bg-[#0e6b7a]/5 transition-colors cursor-pointer"
           >
             + Adicionar em {category === 'renda' ? 'Rendas' : category === 'cartoes' ? 'Cartões' : category === 'fixas' ? 'Fixas' : 'Variáveis'}
           </button>
@@ -158,10 +169,10 @@ export const MonthBudgetView = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* ── Card Hero Principal do Mês ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        {/* Top: Status & Ação Rápida */}
+        {/* Top: Status & Ações Principais */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -184,14 +195,26 @@ export const MonthBudgetView = ({
             <span className="text-xs text-slate-400">em {month.name}</span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleOpenAddModal('fixas')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0e6b7a] hover:bg-[#09525e] text-white shadow-sm hover:shadow transition-all"
-          >
-            <span>+</span>
-            <span>Novo Lançamento</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Botão de Destaque para abrir o Modal de Edição Orçamentária */}
+            <button
+              type="button"
+              onClick={() => handleOpenBudgetModal('renda')}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0e6b7a] hover:bg-[#09525e] text-white shadow-xs hover:shadow transition-all cursor-pointer"
+            >
+              <span>⚙️</span>
+              <span>Editar Orçamento</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenAddModal('fixas')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+            >
+              <span>+</span>
+              <span>Novo Item</span>
+            </button>
+          </div>
         </div>
 
         {/* 3 Blocos de Valor */}
@@ -264,7 +287,7 @@ export const MonthBudgetView = ({
               <button
                 type="button"
                 onClick={onNavigateToGoals}
-                className="font-bold underline hover:opacity-80 shrink-0"
+                className="font-bold underline hover:opacity-80 shrink-0 cursor-pointer"
               >
                 Destinar para Metas / Mudança →
               </button>
@@ -281,116 +304,242 @@ export const MonthBudgetView = ({
         </div>
       </div>
 
-      {/* ── Categorias de Despesas e Entradas (Cards Colapsáveis) ── */}
+      {/* ── Cards Resumidos das 4 Bases do Orçamento (Clicáveis para abrir o Modal) ── */}
       <div className="space-y-2">
-        <CollapsibleSection
-          title="Rendas & Entradas"
-          icon="💰"
-          total={formatBRL(rawIncome)}
-          totalColorClass="text-emerald-600 dark:text-emerald-400"
-          defaultOpen
-        >
-          {renderItems(state.incomes, 'renda', false)}
-        </CollapsibleSection>
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Valores Base do Sistema (Alimentação dos Cálculos)
+          </span>
+          <button
+            type="button"
+            onClick={() => handleOpenBudgetModal('renda')}
+            className="text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:underline cursor-pointer"
+          >
+            Abrir Central de Edição ↗
+          </button>
+        </div>
 
-        <CollapsibleSection
-          title="Cartões de Crédito"
-          icon="💳"
-          total={formatBRL(rawCards)}
-          totalColorClass="text-orange-600 dark:text-orange-400"
-          defaultOpen
-        >
-          {renderItems(state.lists.cartoes, 'cartoes', true)}
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Despesas Fixas (Recorrentes)"
-          icon="🏠"
-          total={formatBRL(rawFixed)}
-          totalColorClass="text-blue-600 dark:text-blue-400"
-          defaultOpen
-        >
-          {renderItems(state.lists.fixas, 'fixas', true)}
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title={
-            state.simulation.varsPercent !== 0
-              ? `Despesas Variáveis (Estimativas) — ${state.simulation.varsPercent > 0 ? '+' : ''}${state.simulation.varsPercent}% simulado`
-              : 'Despesas Variáveis (Estimativas)'
-          }
-          icon="🛒"
-          total={
-            state.simulation.varsPercent !== 0
-              ? formatBRL(summary.variable)
-              : formatBRL(rawVars)
-          }
-          totalColorClass={
-            state.simulation.varsPercent !== 0
-              ? 'text-amber-600 dark:text-amber-400 font-bold'
-              : 'text-amber-600 dark:text-amber-400'
-          }
-          defaultOpen
-        >
-          {state.simulation.varsPercent !== 0 && (
-            <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
-              <span>
-                ⚡ <strong>Simulação ativa ({state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* Card Renda */}
+          <div
+            onClick={() => handleOpenBudgetModal('renda')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>💰</span>
+                <span>Renda & Entradas</span>
+              </span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 group-hover:underline font-semibold">
+                Editar ✏️
               </span>
             </div>
-          )}
-          {renderItems(state.lists.vars, 'vars', true)}
-        </CollapsibleSection>
-
-        {/* ── CUSTOS DA MUDANÇA AGENDADOS PARA ESTE MÊS (EX: DEZEMBRO) ── */}
-        {oneTime > 0 && (
-          <CollapsibleSection
-            title={`Custos da Mudança / Evento (Neste Mês)`}
-            icon="🚚"
-            total={formatBRL(oneTime)}
-            totalColorClass="text-purple-600 dark:text-purple-400"
-            defaultOpen
-          >
-            <div className="space-y-2 pt-2">
-              <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
-                <span>
-                  ✓ Estes custos foram agendados para cair no orçamento deste mês (<strong>{month.name}</strong>).
-                </span>
-                {onNavigateToGoals && (
-                  <button
-                    type="button"
-                    onClick={onNavigateToGoals}
-                    className="font-bold underline hover:opacity-80 shrink-0 ml-2"
-                  >
-                    Gerenciar na aba Metas →
-                  </button>
-                )}
-              </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {monthMudItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
-                    <span className="text-slate-800 dark:text-slate-200 font-medium">
-                      {item.name}
-                    </span>
-                    <strong className="font-mono text-purple-700 dark:text-purple-300">
-                      {formatBRL(item.oneTimeValue || 0)}
-                    </strong>
-                  </div>
-                ))}
-              </div>
+            <div>
+              <span className="font-mono text-lg font-bold text-emerald-700 dark:text-emerald-400 block tabular-nums">
+                {formatBRL(rawIncome)}
+              </span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {state.incomes.filter((i) => !i.off).length} fontes ativas
+              </span>
             </div>
-          </CollapsibleSection>
+          </div>
+
+          {/* Card Cartões */}
+          <div
+            onClick={() => handleOpenBudgetModal('cartoes')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-orange-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>💳</span>
+                <span>Cartões de Crédito</span>
+              </span>
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 group-hover:underline font-semibold">
+                Editar ✏️
+              </span>
+            </div>
+            <div>
+              <span className="font-mono text-lg font-bold text-orange-600 dark:text-orange-400 block tabular-nums">
+                {formatBRL(rawCards)}
+              </span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {state.lists.cartoes.filter((i) => !i.off).length} faturas ativas
+              </span>
+            </div>
+          </div>
+
+          {/* Card Fixas */}
+          <div
+            onClick={() => handleOpenBudgetModal('fixas')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>🏠</span>
+                <span>Despesas Fixas</span>
+              </span>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 group-hover:underline font-semibold">
+                Editar ✏️
+              </span>
+            </div>
+            <div>
+              <span className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400 block tabular-nums">
+                {formatBRL(rawFixed)}
+              </span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {state.lists.fixas.filter((i) => !i.off).length} contas recorrentes
+              </span>
+            </div>
+          </div>
+
+          {/* Card Variáveis */}
+          <div
+            onClick={() => handleOpenBudgetModal('vars')}
+            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <span>🛒</span>
+                <span>Despesas Variáveis</span>
+              </span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 group-hover:underline font-semibold">
+                Editar ✏️
+              </span>
+            </div>
+            <div>
+              <span className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400 block tabular-nums">
+                {state.simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
+              </span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                {state.lists.vars.filter((i) => !i.off).length} estimativas de consumo
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Toggle opcional para inspecionar os itens na própria página ── */}
+      <div className="pt-1">
+        <button
+          type="button"
+          onClick={() => setShowInlineLists(!showInlineLists)}
+          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1.5 py-1 font-medium cursor-pointer"
+        >
+          <span>{showInlineLists ? '▲ Ocultar listas detalhadas na página' : '▼ Inspecionar todos os lançamentos nesta página'}</span>
+        </button>
+
+        {showInlineLists && (
+          <div className="space-y-2 pt-2 animate-in fade-in duration-200">
+            <CollapsibleSection
+              title="Rendas & Entradas"
+              icon="💰"
+              total={formatBRL(rawIncome)}
+              totalColorClass="text-emerald-600 dark:text-emerald-400"
+              defaultOpen
+            >
+              {renderItems(state.incomes, 'renda', false)}
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Cartões de Crédito"
+              icon="💳"
+              total={formatBRL(rawCards)}
+              totalColorClass="text-orange-600 dark:text-orange-400"
+              defaultOpen
+            >
+              {renderItems(state.lists.cartoes, 'cartoes', true)}
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title="Despesas Fixas (Recorrentes)"
+              icon="🏠"
+              total={formatBRL(rawFixed)}
+              totalColorClass="text-blue-600 dark:text-blue-400"
+              defaultOpen
+            >
+              {renderItems(state.lists.fixas, 'fixas', true)}
+            </CollapsibleSection>
+
+            <CollapsibleSection
+              title={
+                state.simulation.varsPercent !== 0
+                  ? `Despesas Variáveis (Estimativas) — ${state.simulation.varsPercent > 0 ? '+' : ''}${state.simulation.varsPercent}% simulado`
+                  : 'Despesas Variáveis (Estimativas)'
+              }
+              icon="🛒"
+              total={
+                state.simulation.varsPercent !== 0
+                  ? formatBRL(summary.variable)
+                  : formatBRL(rawVars)
+              }
+              totalColorClass={
+                state.simulation.varsPercent !== 0
+                  ? 'text-amber-600 dark:text-amber-400 font-bold'
+                  : 'text-amber-600 dark:text-amber-400'
+              }
+              defaultOpen
+            >
+              {state.simulation.varsPercent !== 0 && (
+                <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                  <span>
+                    ⚡ <strong>Simulação ativa ({state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
+                  </span>
+                </div>
+              )}
+              {renderItems(state.lists.vars, 'vars', true)}
+            </CollapsibleSection>
+          </div>
         )}
       </div>
 
-      {/* ── Seção Inferior: Gráficos e Simulações (Expandíveis) ── */}
+      {/* ── CUSTOS DA MUDANÇA AGENDADOS PARA ESTE MÊS (EX: DEZEMBRO) ── */}
+      {oneTime > 0 && (
+        <CollapsibleSection
+          title={`Custos da Mudança / Evento (Neste Mês)`}
+          icon="🚚"
+          total={formatBRL(oneTime)}
+          totalColorClass="text-purple-600 dark:text-purple-400"
+          defaultOpen
+        >
+          <div className="space-y-2 pt-2">
+            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
+              <span>
+                ✓ Estes custos foram agendados para cair no orçamento deste mês (<strong>{month.name}</strong>).
+              </span>
+              {onNavigateToGoals && (
+                <button
+                  type="button"
+                  onClick={onNavigateToGoals}
+                  className="font-bold underline hover:opacity-80 shrink-0 ml-2 cursor-pointer"
+                >
+                  Gerenciar na aba Metas →
+                </button>
+              )}
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {monthMudItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
+                  <span className="text-slate-800 dark:text-slate-200 font-medium">
+                    {item.name}
+                  </span>
+                  <strong className="font-mono text-purple-700 dark:text-purple-300">
+                    {formatBRL(item.oneTimeValue || 0)}
+                  </strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* ── Seção Inferior: Atalhos de Gráficos e Simulações (Expandíveis) ── */}
       <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {!showCharts ? (
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setShowCharts(true)}
-              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
+              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <span>📈</span>
               <span>Gráficos Rápidos</span>
@@ -401,7 +550,7 @@ export const MonthBudgetView = ({
                 onClick={onNavigateToHorizon}
                 title="Abrir Visão Anual Completa & Gráficos"
                 aria-label="Abrir Visão Anual Completa"
-                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all"
+                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all cursor-pointer"
               >
                 <span>↗ 12 Meses</span>
               </button>
@@ -414,7 +563,7 @@ export const MonthBudgetView = ({
                 <button
                   type="button"
                   onClick={() => setChartMode('bar')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                     chartMode === 'bar'
                       ? 'bg-[#0e6b7a] text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:text-slate-900'
@@ -425,7 +574,7 @@ export const MonthBudgetView = ({
                 <button
                   type="button"
                   onClick={() => setChartMode('line')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                     chartMode === 'line'
                       ? 'bg-[#0e6b7a] text-white shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:text-slate-900'
@@ -437,7 +586,7 @@ export const MonthBudgetView = ({
               <button
                 type="button"
                 onClick={() => setShowCharts(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 Ocultar ✕
               </button>
@@ -451,7 +600,7 @@ export const MonthBudgetView = ({
             <button
               type="button"
               onClick={() => setShowSim(true)}
-              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
+              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
             >
               <span>🔮</span>
               <span>Simulador Rápido</span>
@@ -462,7 +611,7 @@ export const MonthBudgetView = ({
                 onClick={onNavigateToSimulations}
                 title="Abrir Painel Completo de Simulação"
                 aria-label="Abrir Painel Completo de Simulação"
-                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all"
+                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all cursor-pointer"
               >
                 <span>↗ Simulações</span>
               </button>
@@ -477,7 +626,7 @@ export const MonthBudgetView = ({
               <button
                 type="button"
                 onClick={() => setShowSim(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 Ocultar ✕
               </button>
@@ -487,12 +636,20 @@ export const MonthBudgetView = ({
         )}
       </div>
 
-      {/* ── Modal de Novo Lançamento ── */}
+      {/* ── Modal de Lançamento Avulso Rápido ── */}
       <NewTransactionModal
         isOpen={isNewTxModalOpen}
         onClose={() => setIsNewTxModalOpen(false)}
         defaultMonthId={monthId}
         defaultCategory={modalDefaultCategory}
+      />
+
+      {/* ── Modal de Gerenciamento Centralizado do Orçamento ── */}
+      <BudgetManagementModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        defaultCategory={budgetModalCategory}
+        monthId={monthId}
       />
     </div>
   );

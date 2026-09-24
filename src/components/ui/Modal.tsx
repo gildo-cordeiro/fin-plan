@@ -6,7 +6,7 @@ export interface ModalProps {
   title: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
-  maxWidth?: 'max-w-sm' | 'max-w-md' | 'max-w-lg' | 'max-w-xl' | 'max-w-2xl';
+  maxWidth?: 'max-w-sm' | 'max-w-md' | 'max-w-lg' | 'max-w-xl' | 'max-w-2xl' | 'max-w-3xl' | 'max-w-4xl';
   showCloseButton?: boolean;
 }
 
