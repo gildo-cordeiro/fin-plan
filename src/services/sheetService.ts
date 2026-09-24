@@ -142,10 +142,29 @@ export function rowsToBudgetState(rows: SheetRowRecord[]): BudgetState {
 
     // Metas (Deduplicadas por ID ou Nome)
     if (tipo === RowType.Meta || categoria === 'metas') {
-      const obs = row.observacao || '';
-      const emojiMatch = obs.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\S+)\s*(.*)$/);
-      const icon = emojiMatch ? emojiMatch[1] : '🎯';
-      const description = emojiMatch ? emojiMatch[2] : obs;
+      const obs = (row.observacao || '').trim();
+      // Regex estrita para emojis unicode reais (sem capturar palavras como 'Meta' ou 'Reserva')
+      const emojiMatch = obs.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Extended_Pictographic})\s*(.*)$/u);
+
+      let icon = '🎯';
+      let description = obs;
+
+      if (emojiMatch) {
+        icon = emojiMatch[1];
+        description = emojiMatch[2] || '';
+      } else {
+        const lower = nome.toLowerCase();
+        if (lower.includes('reserva') || lower.includes('emergencia')) icon = '🛡️';
+        else if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) icon = '📦';
+        else if (lower.includes('viagem') || lower.includes('ferias')) icon = '✈️';
+        else if (lower.includes('carro') || lower.includes('veiculo')) icon = '🚗';
+      }
+
+      // Sanitiza caso o ícone salvo tenha letras (ex: 'Meta' ou 'Reserva')
+      if (/[a-zA-Z0-9]/.test(icon) || icon.length > 4) {
+        icon = nome.toLowerCase().includes('reserva') ? '🛡️' : '🎯';
+      }
+
       const goalId = rowId || SheetIdGenerator.goal(nome);
 
       goalsMap.set(goalId, {
