@@ -1,4 +1,5 @@
 import { useBudget } from '../../context/BudgetContext';
+import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 
@@ -13,10 +14,12 @@ export const CategorySection = ({
   title,
   hint,
 }: CategorySectionProps) => {
+  const { showToast } = useToast();
   const {
     state,
     addItem,
     removeItem,
+    restoreItem,
     updateItemName,
     toggleItemActive,
     updateItemValue,
@@ -141,15 +144,27 @@ export const CategorySection = ({
                         type="button"
                         onClick={() => repeatFirstMonthAcrossAll(categoryKey, item.id)}
                         title="Repetir o 1º mês em todos"
-                        className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                        aria-label={`Repetir valor do 1º mês de ${item.name} em todos os meses`}
+                        className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
                         ⇥
                       </button>
                       <button
                         type="button"
-                        onClick={() => removeItem(categoryKey, item.id)}
-                        title="Remover"
-                        className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                        onClick={() => {
+                          const removed = removeItem(categoryKey, item.id);
+                          if (removed) {
+                            showToast(`Item "${removed.name}" removido`, {
+                              action: {
+                                label: 'Desfazer',
+                                onClick: () => restoreItem(categoryKey, removed),
+                              },
+                            });
+                          }
+                        }}
+                        title="Remover conta"
+                        aria-label={`Remover ${item.name}`}
+                        className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                       >
                         ✕
                       </button>

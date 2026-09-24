@@ -62,6 +62,7 @@ export const StorageKey = {
   LegacyAppData: 'finplan-app-data-v3',
   Theme: 'finplan-theme',
   SheetUrl: 'finplan-sheetdb-url',
+  PendingPatches: 'finplan-pending-patches',
 } as const;
 
 export type StorageKey = (typeof StorageKey)[keyof typeof StorageKey];

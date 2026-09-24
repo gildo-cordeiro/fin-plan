@@ -1,12 +1,15 @@
 import { useBudget } from '../../context/BudgetContext';
+import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 
 export const OneTimeCostsSection = () => {
+  const { showToast } = useToast();
   const {
     state,
     addItem,
     removeItem,
+    restoreItem,
     updateItemName,
     toggleItemActive,
     updateOneTimeValue,
@@ -217,9 +220,20 @@ export const OneTimeCostsSection = () => {
 
             <button
               type="button"
-              onClick={() => removeItem('mud', item.id)}
+              onClick={() => {
+                const removed = removeItem('mud', item.id);
+                if (removed) {
+                  showToast(`Custo "${removed.name}" removido`, {
+                    action: {
+                      label: 'Desfazer',
+                      onClick: () => restoreItem('mud', removed),
+                    },
+                  });
+                }
+              }}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors"
               title="Remover custo"
+              aria-label={`Remover ${item.name}`}
             >
               ✕
             </button>

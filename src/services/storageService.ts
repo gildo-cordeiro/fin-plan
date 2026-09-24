@@ -133,3 +133,51 @@ export function parseImportedJson(jsonString: string): BudgetState {
 
   return migrateState(parsed);
 }
+
+/**
+ * Salva patches pendentes de envio à planilha no LocalStorage (resiliência offline)
+ */
+export function savePendingPatches(patches: Array<[string, Record<string, unknown>]>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (patches.length === 0) {
+      localStorage.removeItem(StorageKey.PendingPatches);
+    } else {
+      localStorage.setItem(StorageKey.PendingPatches, JSON.stringify(patches));
+    }
+  } catch (error) {
+    console.error('[StorageService] Falha ao salvar patches pendentes no localStorage:', error);
+  }
+}
+
+/**
+ * Carrega patches pendentes que ainda não foram sincronizados com a planilha
+ */
+export function loadPendingPatches(): Array<[string, Record<string, unknown>]> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(StorageKey.PendingPatches);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('[StorageService] Falha ao carregar patches pendentes do localStorage:', error);
+  }
+  return [];
+}
+
+/**
+ * Limpa a fila de patches pendentes
+ */
+export function clearPendingPatches(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(StorageKey.PendingPatches);
+  } catch (error) {
+    console.error('[StorageService] Falha ao limpar patches pendentes:', error);
+  }
+}
+

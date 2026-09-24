@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
 
 interface CurrencyInputProps {
   value: number;
@@ -22,30 +22,60 @@ export const CurrencyInput = ({
   const [localStr, setLocalStr] = useState<string>(() => (value ? value.toString() : ''));
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sincroniza estado local quando o valor externo muda (apenas se o campo não estiver em foco)
   useEffect(() => {
     if (!isFocused) {
       setLocalStr(value === 0 ? '' : value.toString());
     }
   }, [value, isFocused]);
 
+  // Limpa timer se o componente desmontar
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const commitValue = (rawString: string) => {
+    const normalized = rawString.replace(',', '.');
+    const num = parseFloat(normalized);
+    const cleanNum = isNaN(num) ? 0 : num;
+    onChange(cleanNum);
+    return cleanNum;
+  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     let raw = e.target.value;
     raw = raw.replace(/[^\d.,-]/g, '');
     setLocalStr(raw);
 
-    const normalized = raw.replace(',', '.');
-    const num = parseFloat(normalized);
-    onChange(isNaN(num) ? 0 : num);
+    // Debounce de 350ms para evitar recálculo de todo o orçamento a cada dígito digitado
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      commitValue(raw);
+    }, 350);
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    const normalized = localStr.replace(',', '.');
-    const num = parseFloat(normalized);
-    const cleanNum = isNaN(num) ? 0 : num;
-    onChange(cleanNum);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    const cleanNum = commitValue(localStr);
     setLocalStr(cleanNum === 0 ? '' : cleanNum.toString());
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
   };
 
   const handleFocus = () => {
@@ -55,14 +85,14 @@ export const CurrencyInput = ({
 
   return (
     <div
-      className={`inline-flex items-center w-full rounded border transition-colors ${
+      className={`inline-flex items-center w-full rounded-lg border transition-all duration-150 ${
         isFocused
-          ? 'border-[#0e6b7a] ring-1 ring-[#0e6b7a] bg-white dark:bg-slate-900'
+          ? 'border-[#0e6b7a] ring-2 ring-[#0e6b7a]/20 bg-white dark:bg-slate-900 shadow-xs'
           : 'border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600'
       } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${className}`}
     >
       {prefix && (
-        <span className="pl-1.5 text-[11px] font-medium text-slate-400 select-none">
+        <span className="pl-2 text-[11px] font-semibold text-slate-400 select-none">
           {prefix}
         </span>
       )}
@@ -71,13 +101,14 @@ export const CurrencyInput = ({
         type="text"
         inputMode="decimal"
         disabled={disabled}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel || 'Valor monetário'}
         value={localStr}
         placeholder={placeholder}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="w-full bg-transparent text-right font-mono text-xs py-1 px-1.5 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none disabled:cursor-not-allowed tabular-nums"
+        onKeyDown={handleKeyDown}
+        className="w-full bg-transparent text-right font-mono text-xs py-1.5 px-2 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed tabular-nums"
       />
     </div>
   );

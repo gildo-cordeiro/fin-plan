@@ -1,0 +1,113 @@
+import { useState } from 'react';
+import { MonthHorizonBar } from '../months/MonthHorizonBar';
+import { CashFlowChart } from '../dashboard/CashFlowChart';
+import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
+import { MonthlySummaryTable } from '../summary/MonthlySummaryTable';
+import { IncomeSection } from './IncomeSection';
+import { CategorySection } from './CategorySection';
+import { BarChart3, TrendingUp, Layers } from 'lucide-react';
+
+export const HorizonView = () => {
+  const [chartDisplay, setChartDisplay] = useState<'both' | 'line' | 'bar'>('line');
+
+  return (
+    <div className="space-y-4">
+      {/* Barra de controle de horizonte temporal (meses visíveis, atalhos de 6/12/24 meses) */}
+      <MonthHorizonBar />
+
+      {/* ── Painel de Projeções e Gráficos Multi-Meses ── */}
+      <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span>📈</span>
+              <span>Projeção Financeira & Visualização de Fluxo</span>
+            </h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              Visualize a curva de liquidez acumulada e a composição mensal de entradas versus saídas.
+            </p>
+          </div>
+
+          {/* Segmented Control para seleção de gráfico */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
+            <button
+              type="button"
+              onClick={() => setChartDisplay('line')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                chartDisplay === 'line'
+                  ? 'bg-white dark:bg-slate-900 text-[#0e6b7a] dark:text-[#4ec2d3] shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Evolução do Saldo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setChartDisplay('bar')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                chartDisplay === 'bar'
+                  ? 'bg-white dark:bg-slate-900 text-[#0e6b7a] dark:text-[#4ec2d3] shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>Renda × Despesas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setChartDisplay('both')}
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+                chartDisplay === 'both'
+                  ? 'bg-white dark:bg-slate-900 text-[#0e6b7a] dark:text-[#4ec2d3] shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Exibir Ambos</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Renderização condicional dos gráficos */}
+        {chartDisplay === 'both' ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <CashFlowChart />
+            <MonthlyBarChart />
+          </div>
+        ) : chartDisplay === 'line' ? (
+          <CashFlowChart />
+        ) : (
+          <MonthlyBarChart />
+        )}
+      </section>
+
+      {/* ── Tabela Analítica de Resumo Consolidado 12 Meses ── */}
+      <section className="space-y-1">
+        <MonthlySummaryTable />
+      </section>
+
+      {/* ── Matrizes Orçamentárias por Categoria ── */}
+      <section className="space-y-3">
+        <IncomeSection />
+        <CategorySection
+          categoryKey="cartoes"
+          title="Cartões de crédito"
+          hint="Faturas previstas para cada mês do horizonte."
+        />
+        <CategorySection
+          categoryKey="fixas"
+          title="Despesas fixas"
+          hint="Contas recorrentes com repetição ao longo do tempo."
+        />
+        <CategorySection
+          categoryKey="vars"
+          title="Despesas variáveis"
+          hint="Estimativas de consumo e lazer mensais."
+        />
+      </section>
+    </div>
+  );
+};

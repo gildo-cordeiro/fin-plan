@@ -4,7 +4,7 @@ import { formatBRL } from '../../utils/formatters';
 import { EditBalanceModal } from '../modals/EditBalanceModal';
 
 export const StatusBar = () => {
-  const { metrics, state } = useBudget();
+  const { metrics, state, isOnline } = useBudget();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
 
   const monthCount = state.months.length;
@@ -43,6 +43,14 @@ export const StatusBar = () => {
             ✏️
           </span>
         </button>
+
+        {/* Indicador de Modo Offline */}
+        {!isOnline && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>Modo Offline (salvando localmente)</span>
+          </span>
+        )}
 
         {/* Resumos Secundários */}
         <div className="flex items-center gap-3">

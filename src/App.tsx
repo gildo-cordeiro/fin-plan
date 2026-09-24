@@ -1,27 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
-import { NavMenu } from './components/layout/NavMenu';
-import type { TabId } from './components/layout/NavMenu';
+import { NavMenu, type TabId } from './components/layout/NavMenu';
 import { StatusBar } from './components/layout/StatusBar';
 import { MonthSelector } from './components/months/MonthSelector';
-import type { ViewMode } from './components/months/MonthSelector';
 import { MonthBudgetView } from './components/budget/MonthBudgetView';
-import { MonthHorizonBar } from './components/months/MonthHorizonBar';
-import { IncomeSection } from './components/budget/IncomeSection';
-import { CategorySection } from './components/budget/CategorySection';
-import { MonthlySummaryTable } from './components/summary/MonthlySummaryTable';
+import { HorizonView } from './components/budget/HorizonView';
 import { GoalsSection } from './components/goals/GoalsSection';
 import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
+import { SimulationPanel } from './components/simulation/SimulationPanel';
 import { useBudget } from './context/BudgetContext';
 
 export const BudgetAppContent = () => {
   const { state, isSheetLoading, fetchFromSheet } = useBudget();
 
-  const [tab, setTab] = useState<TabId>('orcamento');
+  const [tab, setTab] = useState<TabId>('mes');
   const [activeMonthId, setActiveMonthId] = useState(state.months[0]?.id || '');
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
 
-  // Manter activeMonthId válido quando os meses mudam
+  // Manter activeMonthId válido quando a lista de meses é atualizada
   useEffect(() => {
     if (state.months.length > 0 && !state.months.some((m) => m.id === activeMonthId)) {
       setActiveMonthId(state.months[0].id);
@@ -35,9 +30,17 @@ export const BudgetAppContent = () => {
     state.lists.vars.length === 0 &&
     state.lists.mud.length === 0;
 
+  // Layout responsivo adaptativo baseado na densidade do conteúdo
+  const containerMaxWidth =
+    tab === 'horizonte'
+      ? 'max-w-[1440px]'
+      : tab === 'metas' || tab === 'simulador'
+      ? 'max-w-5xl'
+      : 'max-w-4xl';
+
   return (
     <div className="min-h-screen bg-[#f4f6f8] dark:bg-[#0b1116] text-[#14202b] dark:text-[#e7eff5] transition-colors py-4 px-3 sm:px-6">
-      <main className="max-w-[800px] mx-auto space-y-2">
+      <main className={`${containerMaxWidth} mx-auto space-y-3 transition-all duration-200`}>
         <Header />
         <StatusBar />
         <NavMenu active={tab} onSelect={setTab} />
@@ -63,13 +66,13 @@ export const BudgetAppContent = () => {
               </h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              O aplicativo está conectado à sua planilha Google configurada no <code>.env</code>. Se seus dados já estiverem na planilha, clique no botão abaixo para recarregar ou comece a adicionar novas despesas e receitas.
+              O aplicativo está conectado à sua planilha Google configurada. Se seus dados já estiverem na planilha, clique no botão abaixo para recarregar ou comece a adicionar novas despesas e receitas.
             </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => fetchFromSheet()}
-                className="text-xs px-3 py-1.5 rounded-xl font-bold bg-[#0e6b7a] text-white hover:bg-[#09525e] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                className="text-xs px-3.5 py-2 rounded-xl font-bold bg-[#0e6b7a] text-white hover:bg-[#09525e] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <span>📥</span>
                 <span>Recarregar da Planilha</span>
@@ -78,55 +81,39 @@ export const BudgetAppContent = () => {
           </div>
         )}
 
-        {/* ── ABA ORÇAMENTO ── */}
-        {tab === 'orcamento' && (
-          <div className="space-y-2">
+        {/* ── ABA 1: MÊS ATUAL (OPERAÇÃO DO MÊS) ── */}
+        {tab === 'mes' && (
+          <div className="space-y-3">
             <MonthSelector
               activeMonthId={activeMonthId}
               onMonthChange={setActiveMonthId}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
+              viewMode="month"
+              onViewModeChange={(m) => {
+                if (m === 'table') setTab('horizonte');
+              }}
             />
 
-            {viewMode === 'month' ? (
-              <MonthBudgetView
-                monthId={activeMonthId}
-                onNavigateToGoals={() => setTab('metas')}
-              />
-            ) : (
-              <div className="space-y-3">
-                <MonthHorizonBar />
-                <IncomeSection />
-                <CategorySection
-                  categoryKey="cartoes"
-                  title="Cartões de crédito"
-                  hint="Fatura de cada mês."
-                />
-                <CategorySection
-                  categoryKey="fixas"
-                  title="Despesas fixas"
-                  hint="Contas recorrentes."
-                />
-                <CategorySection
-                  categoryKey="vars"
-                  title="Despesas variáveis"
-                  hint="Gastos que podem variar."
-                />
-                <MonthlySummaryTable />
-              </div>
-            )}
+            <MonthBudgetView
+              monthId={activeMonthId}
+              onNavigateToGoals={() => setTab('metas')}
+              onNavigateToHorizon={() => setTab('horizonte')}
+              onNavigateToSimulations={() => setTab('simulador')}
+            />
           </div>
         )}
 
-        {/* ── ABA METAS ── */}
+        {/* ── ABA 2: VISÃO 12 MESES & GRÁFICOS (HORIZONTE E PROJEÇÕES) ── */}
+        {tab === 'horizonte' && <HorizonView />}
+
+        {/* ── ABA 3: METAS & RESERVA & EVENTOS ── */}
         {tab === 'metas' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="py-1">
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                Metas & Eventos
+                Metas & Eventos Financeiros
               </h2>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                Acompanhe o progresso de cada objetivo. Registre aportes manualmente.
+                Acompanhe o progresso de cada objetivo financeiro, reserva de emergência e custos pontuais da mudança.
               </p>
             </div>
             <GoalsSection />
@@ -134,8 +121,23 @@ export const BudgetAppContent = () => {
           </div>
         )}
 
-        <footer className="pt-2 pb-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          FinPlan — Planejador Financeiro Pessoal
+        {/* ── ABA 4: SIMULAÇÕES ("E SE...") ── */}
+        {tab === 'simulador' && (
+          <div className="space-y-4">
+            <div className="py-1">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                Simulador de Cenários Financeiros
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                Projete variações de despesas ou custos imprevistos e teste a resiliência do seu fluxo de caixa em tempo real.
+              </p>
+            </div>
+            <SimulationPanel />
+          </div>
+        )}
+
+        <footer className="pt-4 pb-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
+          FinPlan — Planejador Financeiro Pessoal • Dados sincronizados com Google Sheets
         </footer>
       </main>
     </div>

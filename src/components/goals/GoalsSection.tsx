@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
+import { useToast } from '../../context/ToastContext';
 import { formatBRL } from '../../utils/formatters';
 import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
@@ -56,7 +57,8 @@ interface GoalCardProps {
 }
 
 const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
-  const { updateGoal, removeGoal, removeContribution, setGoalStatus } = useBudget();
+  const { showToast } = useToast();
+  const { updateGoal, removeGoal, restoreGoal, removeContribution, setGoalStatus } = useBudget();
 
   const [expanded, setExpanded] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -177,7 +179,17 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
                 )}
                 <button
                   type="button"
-                  onClick={() => removeGoal(goal.id)}
+                  onClick={() => {
+                    const removed = removeGoal(goal.id);
+                    if (removed) {
+                      showToast(`Meta "${removed.name}" excluída`, {
+                        action: {
+                          label: 'Desfazer',
+                          onClick: () => restoreGoal(removed),
+                        },
+                      });
+                    }
+                  }}
                   className="text-left px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                 >
                   ✕ Excluir meta

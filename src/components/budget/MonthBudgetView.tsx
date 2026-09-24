@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
+import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
@@ -12,13 +13,22 @@ import type { BudgetItem, ExpenseCategoryKey } from '../../types/budget';
 interface MonthBudgetViewProps {
   monthId: string;
   onNavigateToGoals?: () => void;
+  onNavigateToHorizon?: () => void;
+  onNavigateToSimulations?: () => void;
 }
 
-export const MonthBudgetView = ({ monthId, onNavigateToGoals }: MonthBudgetViewProps) => {
+export const MonthBudgetView = ({
+  monthId,
+  onNavigateToGoals,
+  onNavigateToHorizon,
+  onNavigateToSimulations,
+}: MonthBudgetViewProps) => {
+  const { showToast } = useToast();
   const {
     state,
     monthlySummaries,
     removeItem,
+    restoreItem,
     updateItemName,
     toggleItemActive,
     updateItemValue,
@@ -113,9 +123,20 @@ export const MonthBudgetView = ({ monthId, onNavigateToGoals }: MonthBudgetViewP
             {canDeleteEach && (
               <button
                 type="button"
-                onClick={() => removeItem(category, item.id)}
+                onClick={() => {
+                  const removed = removeItem(category, item.id);
+                  if (removed) {
+                    showToast(`Item "${removed.name}" removido`, {
+                      action: {
+                        label: 'Desfazer',
+                        onClick: () => restoreItem(category, removed),
+                      },
+                    });
+                  }
+                }}
                 className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors"
                 title="Remover conta"
+                aria-label={`Remover ${item.name}`}
               >
                 ✕
               </button>
@@ -365,14 +386,27 @@ export const MonthBudgetView = ({ monthId, onNavigateToGoals }: MonthBudgetViewP
       {/* ── Seção Inferior: Gráficos e Simulações (Expandíveis) ── */}
       <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {!showCharts ? (
-          <button
-            type="button"
-            onClick={() => setShowCharts(true)}
-            className="py-3 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
-          >
-            <span>📈</span>
-            <span>Ver Gráficos Multi-Meses</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowCharts(true)}
+              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <span>📈</span>
+              <span>Gráficos Rápidos</span>
+            </button>
+            {onNavigateToHorizon && (
+              <button
+                type="button"
+                onClick={onNavigateToHorizon}
+                title="Abrir Visão Anual Completa & Gráficos"
+                aria-label="Abrir Visão Anual Completa"
+                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all"
+              >
+                <span>↗ 12 Meses</span>
+              </button>
+            )}
+          </div>
         ) : (
           <div className="sm:col-span-2 space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between">
@@ -413,14 +447,27 @@ export const MonthBudgetView = ({ monthId, onNavigateToGoals }: MonthBudgetViewP
         )}
 
         {!showSim ? (
-          <button
-            type="button"
-            onClick={() => setShowSim(true)}
-            className="py-3 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
-          >
-            <span>🔮</span>
-            <span>Simulador de Cenários ("E se...")</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSim(true)}
+              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all"
+            >
+              <span>🔮</span>
+              <span>Simulador Rápido</span>
+            </button>
+            {onNavigateToSimulations && (
+              <button
+                type="button"
+                onClick={onNavigateToSimulations}
+                title="Abrir Painel Completo de Simulação"
+                aria-label="Abrir Painel Completo de Simulação"
+                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all"
+              >
+                <span>↗ Simulações</span>
+              </button>
+            )}
+          </div>
         ) : (
           <div className="sm:col-span-2 space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between pb-1">

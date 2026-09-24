@@ -26,6 +26,9 @@ import {
   saveBudgetState,
   loadTheme,
   saveTheme,
+  savePendingPatches,
+  loadPendingPatches,
+  clearPendingPatches,
 } from '../services/storageService';
 import { sheetService, type SheetRowRecord } from '../services/sheetService';
 
@@ -61,6 +64,9 @@ interface BudgetContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
 
+  // Status de Conectividade Offline-First
+  isOnline: boolean;
+
   // Status & Integração com Google Sheets (Nuvem como Banco de Dados)
   isSheetLoading: boolean;
   isSheetSyncing: boolean;
@@ -89,7 +95,8 @@ interface BudgetContextType {
     monthId: string;
     repeatForward?: boolean;
   }) => void;
-  removeItem: (category: BudgetCategoryKey, itemId: string) => void;
+  removeItem: (category: BudgetCategoryKey, itemId: string) => BudgetItem | undefined;
+  restoreItem: (category: BudgetCategoryKey, item: BudgetItem) => void;
   updateItemName: (category: BudgetCategoryKey, itemId: string, name: string) => void;
   toggleItemActive: (category: BudgetCategoryKey, itemId: string) => void;
   updateItemValue: (category: BudgetCategoryKey, itemId: string, monthId: string, value: number) => void;
@@ -103,7 +110,8 @@ interface BudgetContextType {
 
   // Ações de Metas & Eventos
   addGoal: (initial?: Partial<Omit<FinancialGoal, 'id' | 'contributions'>>) => void;
-  removeGoal: (goalId: string) => void;
+  removeGoal: (goalId: string) => FinancialGoal | undefined;
+  restoreGoal: (goal: FinancialGoal) => void;
   updateGoal: (goalId: string, patch: Partial<Omit<FinancialGoal, 'id' | 'contributions'>>) => void;
   addContribution: (goalId: string, amount: number, note?: string) => void;
   removeContribution: (goalId: string, contributionId: string) => void;
@@ -119,6 +127,9 @@ const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => loadTheme());
   const [state, setState] = useState<BudgetState>(() => loadBudgetState());
+
+  // Status de Conectividade Offline-First
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   // Estados da integração em nuvem com o Google Sheets
   const [isSheetLoading, setIsSheetLoading] = useState(false);
@@ -139,14 +150,39 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const recordPendingPatch = (id: string, patch: Partial<SheetRowRecord>) => {
     const existing = pendingPatchesRef.current.get(id) || {};
     pendingPatchesRef.current.set(id, { ...existing, ...patch });
+    // Persistência offline da fila para não perder mutações caso a aba feche ou caia a rede
+    savePendingPatches(Array.from(pendingPatchesRef.current.entries()) as Array<[string, Record<string, unknown>]>);
   };
 
   const flagNeedsFullSync = () => {
     needsFullSyncRef.current = true;
   };
 
-  // Inicialização: verifica conexão com o Google Sheets
+  // Inicialização e monitoramento de conectividade (Offline-First)
   useEffect(() => {
+    // Hidrata patches pendentes que possam ter ficado da sessão anterior
+    const storedPatches = loadPendingPatches();
+    if (storedPatches.length > 0) {
+      storedPatches.forEach(([id, patch]) => {
+        pendingPatchesRef.current.set(id, patch as Partial<SheetRowRecord>);
+      });
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Ao voltar a ficar online, se houver patches pendentes acumulados, aciona a sincronização
+      if (pendingPatchesRef.current.size > 0 || needsFullSyncRef.current) {
+        setIsSheetSyncing(true);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     const url = sheetService.getApiUrl();
     if (url) {
       setIsSheetConfigured(true);
@@ -184,6 +220,11 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     } else {
       isReadyForAutoSyncRef.current = true;
     }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   // Persistência local contínua e auto-sincronização granular (PATCH) com o Google Sheets (debounced 2.5s)
@@ -219,6 +260,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           // Sincronização granular (PATCH): atualiza diretamente nas linhas existentes no Google Sheets sem duplicar
           const patches = Array.from(pendingPatchesRef.current.entries());
           pendingPatchesRef.current.clear();
+          clearPendingPatches();
 
           await Promise.all(
             patches.map(([id, patch]) => sheetService.updateRow(id, patch))
@@ -227,6 +269,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           // Sincronização estrutural completa: sobrescrita limpa sem duplicatas
           needsFullSyncRef.current = false;
           pendingPatchesRef.current.clear();
+          clearPendingPatches();
           await sheetService.uploadToSheet(latestStateRef.current);
         }
 
@@ -570,7 +613,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
   };
 
-  const removeItem = (category: BudgetCategoryKey, itemId: string) => {
+  const removeItem = (category: BudgetCategoryKey, itemId: string): BudgetItem | undefined => {
     const item =
       category === BudgetCategory.Renda
         ? state.incomes.find((i) => i.id === itemId)
@@ -578,24 +621,24 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ? state.lists.mud.find((i) => i.id === itemId)
         : (state.lists[category as ExpenseCategoryKey] || []).find((i) => i.id === itemId);
 
+    if (!item) return undefined;
+
     // Deleta os IDs específicos da planilha diretamente
-    if (item) {
-      if (category === ExpenseCategory.Mud) {
-        const rowId = SheetIdGenerator.oneTime(item.name);
+    if (category === ExpenseCategory.Mud) {
+      const rowId = SheetIdGenerator.oneTime(item.name);
+      sheetService.deleteRow(rowId).catch((err) =>
+        console.warn('[BudgetContext] Falha ao deletar linha da planilha:', err)
+      );
+    } else {
+      state.months.forEach((m) => {
+        const rowId =
+          category === BudgetCategory.Renda
+            ? SheetIdGenerator.income(item.name, m.id)
+            : SheetIdGenerator.expense(category as ExpenseCategoryKey, item.name, m.id);
         sheetService.deleteRow(rowId).catch((err) =>
           console.warn('[BudgetContext] Falha ao deletar linha da planilha:', err)
         );
-      } else {
-        state.months.forEach((m) => {
-          const rowId =
-            category === BudgetCategory.Renda
-              ? SheetIdGenerator.income(item.name, m.id)
-              : SheetIdGenerator.expense(category as ExpenseCategoryKey, item.name, m.id);
-          sheetService.deleteRow(rowId).catch((err) =>
-            console.warn('[BudgetContext] Falha ao deletar linha da planilha:', err)
-          );
-        });
-      }
+      });
     }
 
     setState((prev) => {
@@ -604,9 +647,59 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
       return {
         ...prev,
-        lists: { ...prev.lists, [category]: prev.lists[category].filter((i) => i.id !== itemId) },
+        lists: { ...prev.lists, [category]: prev.lists[category as ExpenseCategoryKey].filter((i) => i.id !== itemId) },
       };
     });
+
+    return item;
+  };
+
+  const restoreItem = (category: BudgetCategoryKey, item: BudgetItem) => {
+    setState((prev) => {
+      if (category === BudgetCategory.Renda) {
+        return { ...prev, incomes: [...prev.incomes, item] };
+      }
+      return {
+        ...prev,
+        lists: {
+          ...prev.lists,
+          [category]: [...(prev.lists[category as ExpenseCategoryKey] || []), item],
+        },
+      };
+    });
+
+    // Re-sincroniza os valores restaurados
+    if (category === ExpenseCategory.Mud) {
+      const rowId = SheetIdGenerator.oneTime(item.name);
+      recordPendingPatch(rowId, {
+        id: rowId,
+        tipo: 'mudanca',
+        categoria: 'mud',
+        nome: item.name,
+        valor: item.oneTimeValue || 0,
+        mes_referencia: item.targetMonthId || 'geral',
+        status: item.off ? 'inativo' : 'ativo',
+      });
+    } else {
+      state.months.forEach((m) => {
+        const val = item.values[m.id] ?? 0;
+        if (val > 0) {
+          const rowId =
+            category === BudgetCategory.Renda
+              ? SheetIdGenerator.income(item.name, m.id)
+              : SheetIdGenerator.expense(category as ExpenseCategoryKey, item.name, m.id);
+          recordPendingPatch(rowId, {
+            id: rowId,
+            tipo: category === BudgetCategory.Renda ? 'renda' : 'despesa',
+            categoria: category,
+            nome: item.name,
+            valor: val,
+            mes_referencia: m.id,
+            status: item.off ? 'inativo' : 'ativo',
+          });
+        }
+      });
+    }
   };
 
   const updateItemName = (category: BudgetCategoryKey, itemId: string, name: string) => {
@@ -831,7 +924,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setState((prev) => ({ ...prev, goals: [...prev.goals, newGoal] }));
   };
 
-  const removeGoal = (goalId: string) => {
+  const removeGoal = (goalId: string): FinancialGoal | undefined => {
     const goal = state.goals.find((g) => g.id === goalId);
     if (goal) {
       const rowId = SheetIdGenerator.goal(goal.name);
@@ -840,6 +933,21 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       );
     }
     setState((prev) => ({ ...prev, goals: prev.goals.filter((g) => g.id !== goalId) }));
+    return goal;
+  };
+
+  const restoreGoal = (goal: FinancialGoal) => {
+    setState((prev) => ({ ...prev, goals: [...prev.goals, goal] }));
+    const rowId = SheetIdGenerator.goal(goal.name);
+    recordPendingPatch(rowId, {
+      id: rowId,
+      tipo: 'meta',
+      categoria: 'meta',
+      nome: goal.name,
+      valor: goal.targetAmount,
+      observacao: `${goal.icon} ${goal.description}`.trim(),
+      status: goal.status,
+    });
   };
 
   const updateGoal = (
@@ -924,6 +1032,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         metrics,
         theme,
         toggleTheme,
+        isOnline,
         isSheetLoading,
         isSheetSyncing,
         lastSheetSync,
@@ -940,6 +1049,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addItem,
         addTransaction,
         removeItem,
+        restoreItem,
         updateItemName,
         toggleItemActive,
         updateItemValue,
@@ -950,6 +1060,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setAllOneTimeTargetMonth,
         addGoal,
         removeGoal,
+        restoreGoal,
         updateGoal,
         addContribution,
         removeContribution,

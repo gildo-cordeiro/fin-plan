@@ -32,15 +32,16 @@ export const BackupModal = ({ isOpen, onClose }: BackupModalProps) => {
     }
   };
 
+  const [confirmReset, setConfirmReset] = useState(false);
+
   const handleReset = () => {
-    if (window.confirm('Tem certeza de que deseja voltar aos dados iniciais? Todas as alterações manuais serão resetadas.')) {
-      resetToDefaults();
-      setMsg({ text: 'Dados restaurados para o padrão inicial.', type: 'info' });
-      setTimeout(() => {
-        setMsg(null);
-        onClose();
-      }, 1000);
-    }
+    resetToDefaults();
+    setConfirmReset(false);
+    setMsg({ text: 'Dados restaurados para o padrão inicial.', type: 'info' });
+    setTimeout(() => {
+      setMsg(null);
+      onClose();
+    }, 1000);
   };
 
   return (
@@ -84,13 +85,33 @@ export const BackupModal = ({ isOpen, onClose }: BackupModalProps) => {
             Restaurar do Texto Abaixo
           </button>
 
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 ml-auto transition-colors"
-          >
-            Resetar Padrões
-          </button>
+          {confirmReset ? (
+            <div className="flex items-center gap-1.5 ml-auto">
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold">Confirmar reset?</span>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition-colors cursor-pointer shadow-xs"
+              >
+                Sim, Resetar
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmReset(false)}
+                className="px-2 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmReset(true)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 ml-auto transition-colors cursor-pointer"
+            >
+              Resetar Padrões
+            </button>
+          )}
         </div>
 
         <div>
