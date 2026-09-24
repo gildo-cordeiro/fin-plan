@@ -15,7 +15,7 @@ export const MonthlyBarChart = () => {
   );
 
   const W = Math.max(480, n * 55);
-  const H = 200;
+  const H = 210;
   const padLeft = 30;
   const padRight = 30;
   const padTop = 20;
@@ -31,40 +31,45 @@ export const MonthlyBarChart = () => {
   const currentHover = hoveredIdx !== null ? monthlySummaries[hoveredIdx] : null;
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-          Renda e despesas
-        </h3>
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-full shadow-2xs transition-shadow duration-200">
+      {/* Cabeçalho & Legenda */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-h-[28px]">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Renda × Despesas
+          </span>
+        </div>
         <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#0f7a55] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#0f7a55] inline-block"></span>
             Renda
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#c2653d] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#c2653d] inline-block"></span>
             Cartões
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#3b6998] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#3b6998] inline-block"></span>
             Fixas
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#c09420] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#c09420] inline-block"></span>
             Variáveis
           </span>
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-1">
+      {/* Gráfico SVG */}
+      <div className="overflow-x-auto pb-1 my-auto">
         <div style={{ minWidth: W }} className="relative select-none">
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block">
+            {/* Linha de Base */}
             <line
               x1={padLeft}
               y1={H - padBottom}
               x2={W - padRight}
               y2={H - padBottom}
-              stroke="#dbe3e9"
+              stroke="#cbd5e1"
               className="dark:stroke-slate-700"
               strokeWidth="1"
             />
@@ -95,6 +100,7 @@ export const MonthlyBarChart = () => {
                   onMouseLeave={() => setHoveredIdx(null)}
                   className="cursor-pointer"
                 >
+                  {/* Fundo suave na coluna em hover */}
                   {isHovered && (
                     <rect
                       x={cx - groupW / 2}
@@ -102,8 +108,8 @@ export const MonthlyBarChart = () => {
                       width={groupW}
                       height={H - padTop - padBottom}
                       fill="currentColor"
-                      className="text-slate-100 dark:text-slate-800/50"
-                      rx="3"
+                      className="text-slate-100/70 dark:text-slate-800/40 transition-opacity duration-200"
+                      rx="4"
                     />
                   )}
 
@@ -115,6 +121,7 @@ export const MonthlyBarChart = () => {
                     height={Math.max(2, incH)}
                     rx="2"
                     fill="#0f7a55"
+                    className="transition-all duration-150"
                   />
 
                   {/* Cartões */}
@@ -124,6 +131,7 @@ export const MonthlyBarChart = () => {
                     width={barW}
                     height={Math.max(1, cardH)}
                     fill="#c2653d"
+                    className="transition-all duration-150"
                   />
 
                   {/* Fixas */}
@@ -133,6 +141,7 @@ export const MonthlyBarChart = () => {
                     width={barW}
                     height={Math.max(1, fixH)}
                     fill="#3b6998"
+                    className="transition-all duration-150"
                   />
 
                   {/* Variáveis */}
@@ -143,16 +152,18 @@ export const MonthlyBarChart = () => {
                     height={Math.max(1, varH)}
                     rx="2"
                     fill="#c09420"
+                    className="transition-all duration-150"
                   />
 
-                  {/* Mês */}
+                  {/* Rótulo inferior do mês */}
                   <text
                     x={cx}
                     y={H - 8}
                     textAnchor="middle"
                     fontSize="10"
-                    fill="#627282"
+                    fill={isHovered ? '#0f7a55' : '#627282'}
                     fontWeight={isHovered ? '700' : '500'}
+                    className="transition-colors duration-150 select-none"
                   >
                     {m.month.shortName}
                   </text>
@@ -163,15 +174,15 @@ export const MonthlyBarChart = () => {
         </div>
       </div>
 
-      {/* Tooltip de detalhes compacto e fixo abaixo */}
-      <div className="mt-2 h-7 px-2 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+      {/* Tooltip de detalhes inferior com animação suave e altura fixa */}
+      <div className="mt-3 min-h-[38px] px-3 py-1.5 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition-all duration-200">
         {currentHover ? (
-          <div className="w-full flex items-center justify-between">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">
+          <div className="w-full flex flex-wrap items-center justify-between gap-2 transition-all duration-200 ease-out opacity-100">
+            <span className="font-bold text-slate-800 dark:text-slate-200">
               {currentHover.month.name}:
             </span>
-            <div className="flex items-center gap-3 font-mono text-[11px]">
-              <span className="text-[#0f7a55] dark:text-[#3dd69c]">
+            <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
+              <span className="text-[#0f7a55] dark:text-[#3dd69c] font-semibold">
                 Renda: {formatBRL(currentHover.income)}
               </span>
               <span className="text-[#c2653d]">
@@ -186,7 +197,7 @@ export const MonthlyBarChart = () => {
             </div>
           </div>
         ) : (
-          <span className="text-slate-400 text-[11px]">
+          <span className="text-slate-400 text-[11px] transition-opacity duration-200">
             Passe o mouse ou toque nas barras para discriminar as contas do mês.
           </span>
         )}

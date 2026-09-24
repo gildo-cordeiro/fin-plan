@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useBudget } from '../../context/BudgetContext';
+import { formatBRL } from '../../utils/formatters';
 import { MonthHorizonBar } from '../months/MonthHorizonBar';
 import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
@@ -6,7 +8,14 @@ import { MonthlySummaryTable } from '../summary/MonthlySummaryTable';
 import { BarChart3, TrendingUp, Layers } from 'lucide-react';
 
 export const HorizonView = () => {
+  const { monthlySummaries } = useBudget();
   const [chartDisplay, setChartDisplay] = useState<'both' | 'line' | 'bar'>('line');
+
+  const deficitMonths = monthlySummaries.filter((m) => m.accumulatedBalance < 0);
+  const totalReserveWithdrawal = deficitMonths.reduce(
+    (acc, m) => acc + Math.abs(m.accumulatedBalance),
+    0
+  );
 
   return (
     <div className="space-y-4">
@@ -69,9 +78,21 @@ export const HorizonView = () => {
           </div>
         </div>
 
-        {/* Renderização condicional dos gráficos */}
+        {/* Banner Informativo de Retirada da Reserva (largura total para manter os gráficos perfeitamente alinhados) */}
+        {totalReserveWithdrawal > 0 && (
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 shadow-2xs transition-all duration-300">
+            <span className="text-base shrink-0">💡</span>
+            <div className="leading-snug">
+              <strong>Retirada da Reserva:</strong> Em{' '}
+              <strong>{deficitMonths.map((m) => m.month.shortName).join(', ')}</strong> você precisará retirar{' '}
+              <strong className="font-mono">{formatBRL(totalReserveWithdrawal)}</strong> da reserva para não deixar a conta no vermelho (o saldo que você já tinha em conta cobre o restante do déficit do mês). Nos demais meses, o fluxo fecha positivo sem tocar na reserva!
+            </div>
+          </div>
+        )}
+
+        {/* Renderização condicional dos gráficos em grid perfeitamente simétrico */}
         {chartDisplay === 'both' ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
             <CashFlowChart />
             <MonthlyBarChart />
           </div>
