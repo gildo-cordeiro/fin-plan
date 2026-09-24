@@ -3,8 +3,6 @@ import { MonthHorizonBar } from '../months/MonthHorizonBar';
 import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
 import { MonthlySummaryTable } from '../summary/MonthlySummaryTable';
-import { IncomeSection } from './IncomeSection';
-import { CategorySection } from './CategorySection';
 import { BarChart3, TrendingUp, Layers } from 'lucide-react';
 
 export const HorizonView = () => {
@@ -87,26 +85,6 @@ export const HorizonView = () => {
       {/* ── Tabela Analítica de Resumo Consolidado 12 Meses ── */}
       <section className="space-y-1">
         <MonthlySummaryTable />
-      </section>
-
-      {/* ── Matrizes Orçamentárias por Categoria ── */}
-      <section className="space-y-3">
-        <IncomeSection />
-        <CategorySection
-          categoryKey="cartoes"
-          title="Cartões de crédito"
-          hint="Faturas previstas para cada mês do horizonte."
-        />
-        <CategorySection
-          categoryKey="fixas"
-          title="Despesas fixas"
-          hint="Contas recorrentes com repetição ao longo do tempo."
-        />
-        <CategorySection
-          categoryKey="vars"
-          title="Despesas variáveis"
-          hint="Estimativas de consumo e lazer mensais."
-        />
       </section>
     </div>
   );
