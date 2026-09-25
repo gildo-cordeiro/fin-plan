@@ -35,13 +35,11 @@ export const MonthBudgetView = ({
     updateItemValue,
   } = useBudget();
 
-  // Modais de Edição e Lançamentos
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [budgetModalCategory, setBudgetModalCategory] = useState<ExpenseCategoryKey | 'renda'>('renda');
   const [isNewTxModalOpen, setIsNewTxModalOpen] = useState(false);
   const [modalDefaultCategory, setModalDefaultCategory] = useState<ExpenseCategoryKey | 'renda'>('fixas');
 
-  // Controles de Visualização Rápida
   const [showInlineLists, setShowInlineLists] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar');
@@ -51,7 +49,6 @@ export const MonthBudgetView = ({
   const month = state.months.find((m) => m.id === monthId);
   if (!summary || !month) return null;
 
-  // Totais crus das listas no mês selecionado
   const rawIncome = state.incomes
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
@@ -65,12 +62,11 @@ export const MonthBudgetView = ({
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
 
-  // Totais simulados / consolidados
   const { income, oneTime, totalExpenses, monthBalance, accumulatedBalance } = summary;
   const savingsRate = income > 0 ? (monthBalance / income) * 100 : 0;
   const isPositive = monthBalance >= 0;
 
-  const monthMudItems = state.lists.mud.filter(
+  const monthOneTimeItems = (state.oneTimeCosts || []).filter(
     (item) => !item.off && item.targetMonthId === monthId
   );
 
@@ -170,9 +166,7 @@ export const MonthBudgetView = ({
 
   return (
     <div className="space-y-4">
-      {/* ── Card Hero Principal do Mês ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        {/* Top: Status & Ações Principais */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -196,7 +190,6 @@ export const MonthBudgetView = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botão de Destaque para abrir o Modal de Edição Orçamentária */}
             <button
               type="button"
               onClick={() => handleOpenBudgetModal('renda')}
@@ -217,9 +210,7 @@ export const MonthBudgetView = ({
           </div>
         </div>
 
-        {/* 3 Blocos de Valor */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          {/* Renda */}
           <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-0.5">
               Renda Prevista
@@ -229,7 +220,6 @@ export const MonthBudgetView = ({
             </span>
           </div>
 
-          {/* Despesas */}
           <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-0.5">
               Total de Despesas
@@ -244,7 +234,6 @@ export const MonthBudgetView = ({
             )}
           </div>
 
-          {/* Sobra / Saldo */}
           <div
             className={`p-3 rounded-xl border ${
               isPositive
@@ -274,7 +263,6 @@ export const MonthBudgetView = ({
           </div>
         </div>
 
-        {/* Callout inteligente sobre metas e sobra */}
         {isPositive && monthBalance > 0 && (
           <div className="p-2.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900/40 flex items-center justify-between text-xs text-teal-800 dark:text-teal-300">
             <span className="flex items-center gap-1.5">
@@ -295,7 +283,6 @@ export const MonthBudgetView = ({
           </div>
         )}
 
-        {/* Rodapé: Saldo Acumulado Projetado */}
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>Saldo acumulado em conta até {month.shortName}:</span>
           <strong className="font-mono text-sm text-slate-800 dark:text-slate-200 tabular-nums">
@@ -304,7 +291,6 @@ export const MonthBudgetView = ({
         </div>
       </div>
 
-      {/* ── Cards Resumidos das 4 Bases do Orçamento (Clicáveis para abrir o Modal) ── */}
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -320,7 +306,6 @@ export const MonthBudgetView = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {/* Card Renda */}
           <div
             onClick={() => handleOpenBudgetModal('renda')}
             className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
@@ -344,7 +329,6 @@ export const MonthBudgetView = ({
             </div>
           </div>
 
-          {/* Card Cartões */}
           <div
             onClick={() => handleOpenBudgetModal('cartoes')}
             className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-orange-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
@@ -368,7 +352,6 @@ export const MonthBudgetView = ({
             </div>
           </div>
 
-          {/* Card Fixas */}
           <div
             onClick={() => handleOpenBudgetModal('fixas')}
             className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
@@ -392,7 +375,6 @@ export const MonthBudgetView = ({
             </div>
           </div>
 
-          {/* Card Variáveis */}
           <div
             onClick={() => handleOpenBudgetModal('vars')}
             className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
@@ -418,7 +400,6 @@ export const MonthBudgetView = ({
         </div>
       </div>
 
-      {/* ── Toggle opcional para inspecionar os itens na própria página ── */}
       <div className="pt-1">
         <button
           type="button"
@@ -492,10 +473,9 @@ export const MonthBudgetView = ({
         )}
       </div>
 
-      {/* ── CUSTOS DA MUDANÇA AGENDADOS PARA ESTE MÊS (EX: DEZEMBRO) ── */}
       {oneTime > 0 && (
         <CollapsibleSection
-          title={`Custos da Mudança / Evento (Neste Mês)`}
+          title={`Custos Pontuais / Projetos (Neste Mês)`}
           icon="🚚"
           total={formatBRL(oneTime)}
           totalColorClass="text-purple-600 dark:text-purple-400"
@@ -517,13 +497,13 @@ export const MonthBudgetView = ({
               )}
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {monthMudItems.map((item) => (
+              {monthOneTimeItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
                   <span className="text-slate-800 dark:text-slate-200 font-medium">
                     {item.name}
                   </span>
                   <strong className="font-mono text-purple-700 dark:text-purple-300">
-                    {formatBRL(item.oneTimeValue || 0)}
+                    {formatBRL(item.value || 0)}
                   </strong>
                 </div>
               ))}
@@ -532,7 +512,6 @@ export const MonthBudgetView = ({
         </CollapsibleSection>
       )}
 
-      {/* ── Seção Inferior: Atalhos de Gráficos e Simulações (Expandíveis) ── */}
       <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
         {!showCharts ? (
           <div className="flex gap-2">
@@ -636,7 +615,6 @@ export const MonthBudgetView = ({
         )}
       </div>
 
-      {/* ── Modal de Lançamento Avulso Rápido ── */}
       <NewTransactionModal
         isOpen={isNewTxModalOpen}
         onClose={() => setIsNewTxModalOpen(false)}
@@ -644,7 +622,6 @@ export const MonthBudgetView = ({
         defaultCategory={modalDefaultCategory}
       />
 
-      {/* ── Modal de Gerenciamento Centralizado do Orçamento ── */}
       <BudgetManagementModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}

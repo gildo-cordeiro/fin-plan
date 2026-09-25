@@ -26,7 +26,6 @@ export const MonthSelector = ({
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-xs">
-      {/* Navegação de mês com Dropdown e Setas */}
       <div className="flex items-center gap-1">
         <button
           type="button"
@@ -65,7 +64,6 @@ export const MonthSelector = ({
         </button>
       </div>
 
-      {/* Toggle visual: Modo Mês Individual vs Modo Tabela Multi-Meses */}
       <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
         <button
           type="button"

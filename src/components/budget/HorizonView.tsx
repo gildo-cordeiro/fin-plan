@@ -19,10 +19,8 @@ export const HorizonView = () => {
 
   return (
     <div className="space-y-4">
-      {/* Barra de controle de horizonte temporal (meses visíveis, atalhos de 6/12/24 meses) */}
       <MonthHorizonBar />
 
-      {/* ── Painel de Projeções e Gráficos Multi-Meses ── */}
       <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
@@ -35,7 +33,6 @@ export const HorizonView = () => {
             </p>
           </div>
 
-          {/* Segmented Control para seleção de gráfico */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
             <button
               type="button"
@@ -78,7 +75,6 @@ export const HorizonView = () => {
           </div>
         </div>
 
-        {/* Banner Informativo de Retirada da Reserva (largura total para manter os gráficos perfeitamente alinhados) */}
         {totalReserveWithdrawal > 0 && (
           <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 shadow-2xs transition-all duration-300">
             <span className="text-base shrink-0">💡</span>
@@ -90,7 +86,6 @@ export const HorizonView = () => {
           </div>
         )}
 
-        {/* Renderização condicional dos gráficos em grid perfeitamente simétrico */}
         {chartDisplay === 'both' ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
             <CashFlowChart />
@@ -103,7 +98,6 @@ export const HorizonView = () => {
         )}
       </section>
 
-      {/* ── Tabela Analítica de Resumo Consolidado 12 Meses ── */}
       <section className="space-y-1">
         <MonthlySummaryTable />
       </section>

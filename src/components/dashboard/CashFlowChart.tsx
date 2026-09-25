@@ -51,19 +51,16 @@ export const CashFlowChart = () => {
 
   const zeroY = getY(0);
 
-  // Caminho da linha de saldo acumulado
   const linePath = dataPoints
     .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx).toFixed(1)} ${getY(p.value).toFixed(1)}`)
     .join(' ');
 
-  // Área translúcida sob a linha
   const areaPath = `${linePath} L ${getX(n - 1)} ${H - padBottom} L ${getX(0)} ${H - padBottom} Z`;
 
   const currentHover = hoveredIdx !== null ? dataPoints[hoveredIdx] : null;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-full shadow-2xs transition-shadow duration-200">
-      {/* Cabeçalho & Legenda */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-h-[28px]">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -83,7 +80,6 @@ export const CashFlowChart = () => {
         </div>
       </div>
 
-      {/* Gráfico SVG */}
       <div className="overflow-x-auto pb-1 my-auto">
         <div style={{ minWidth: W }} className="relative select-none">
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block">
@@ -94,7 +90,6 @@ export const CashFlowChart = () => {
               </linearGradient>
             </defs>
 
-            {/* Linha Zero (Equilíbrio de Caixa) */}
             <line
               x1={padLeft}
               y1={zeroY}
@@ -116,10 +111,8 @@ export const CashFlowChart = () => {
               R$ 0
             </text>
 
-            {/* Área sombreada sob a curva */}
             <path d={areaPath} fill="url(#cashGradient)" />
 
-            {/* Linha Principal de Caixa */}
             <path
               d={linePath}
               fill="none"
@@ -129,7 +122,6 @@ export const CashFlowChart = () => {
               strokeLinejoin="round"
             />
 
-            {/* Pontos interativos */}
             {dataPoints.map((pt, idx) => {
               const cx = getX(idx);
               const cy = getY(pt.value);
@@ -150,7 +142,6 @@ export const CashFlowChart = () => {
                   onMouseLeave={() => setHoveredIdx(null)}
                   className="cursor-pointer"
                 >
-                  {/* Linha guia vertical com fade suave */}
                   <line
                     x1={cx}
                     y1={padTop}
@@ -163,7 +154,6 @@ export const CashFlowChart = () => {
                     className="transition-opacity duration-200"
                   />
 
-                  {/* Anel de alerta de déficit caso necessite retirada da reserva */}
                   {hasDeficit && (
                     <circle
                       cx={cx}
@@ -177,7 +167,6 @@ export const CashFlowChart = () => {
                     />
                   )}
 
-                  {/* Círculo do ponto */}
                   <circle
                     cx={cx}
                     cy={cy}
@@ -188,7 +177,6 @@ export const CashFlowChart = () => {
                     className="transition-all duration-200 ease-out"
                   />
 
-                  {/* Rótulo inferior do mês */}
                   <text
                     x={cx}
                     y={H - 8}
@@ -207,7 +195,6 @@ export const CashFlowChart = () => {
         </div>
       </div>
 
-      {/* Tooltip de detalhes inferior com animação suave e altura fixa */}
       <div className="mt-3 min-h-[38px] px-3 py-1.5 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition-all duration-200">
         {currentHover ? (
           <div className="w-full flex flex-wrap items-center justify-between gap-2 transition-all duration-200 ease-out opacity-100">

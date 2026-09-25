@@ -9,14 +9,12 @@ export const SimulationPanel = () => {
   const isSimActive =
     simulation.varsPercent !== 0 || simulation.oneTimeMarginPercent !== 0;
 
-  // Cálculo da base crua (sem simulação)
   const activeVars = lists.vars.filter((i) => !i.off);
-  const activeMud = lists.mud.filter((i) => !i.off);
+  const activeOneTime = (state.oneTimeCosts || []).filter((i) => !i.off);
   const activeIncomes = incomes.filter((i) => !i.off);
   const activeCards = lists.cartoes.filter((i) => !i.off);
   const activeFixed = lists.fixas.filter((i) => !i.off);
 
-  // Média mensal crua de variáveis
   const totalRawVarsAllMonths = months.reduce((acc, m) => {
     return acc + activeVars.reduce((sum, i) => sum + (i.values[m.id] ?? 0), 0);
   }, 0);
@@ -24,32 +22,28 @@ export const SimulationPanel = () => {
   const avgMonthlySimVars = avgMonthlyRawVars * (1 + simulation.varsPercent / 100);
   const diffMonthlyVars = avgMonthlySimVars - avgMonthlyRawVars;
 
-  // Custo cru da mudança
-  const rawMudTotal = activeMud.reduce((acc, i) => acc + (i.oneTimeValue || 0), 0);
-  const simMudTotal = rawMudTotal * (1 + simulation.oneTimeMarginPercent / 100);
-  const diffMud = simMudTotal - rawMudTotal;
+  const rawOneTimeTotal = activeOneTime.reduce((acc, i) => acc + (i.value || 0), 0);
+  const simOneTimeTotal = rawOneTimeTotal * (1 + simulation.oneTimeMarginPercent / 100);
+  const diffOneTime = simOneTimeTotal - rawOneTimeTotal;
 
-  // Saldo final cru (sem simulação de variáveis nem margem de mudança)
   let baseRunning = simulation.initialBalance;
   months.forEach((m) => {
     const inc = activeIncomes.reduce((sum, i) => sum + (i.values[m.id] ?? 0), 0);
     const crd = activeCards.reduce((sum, i) => sum + (i.values[m.id] ?? 0), 0);
     const fix = activeFixed.reduce((sum, i) => sum + (i.values[m.id] ?? 0), 0);
     const vr = activeVars.reduce((sum, i) => sum + (i.values[m.id] ?? 0), 0);
-    const oneTimeThisMonth = activeMud
+    const oneTimeThisMonth = activeOneTime
       .filter((i) => i.targetMonthId === m.id)
-      .reduce((sum, i) => sum + (i.oneTimeValue || 0), 0);
+      .reduce((sum, i) => sum + (i.value || 0), 0);
 
     baseRunning += inc - (crd + fix + vr + oneTimeThisMonth);
   });
-  // Se nenhum item foi atribuído a um mês, deduz do saldo final
-  const hasDistributed = activeMud.some((i) => i.targetMonthId);
-  const baseFinal = hasDistributed ? baseRunning : baseRunning - rawMudTotal;
+  const hasDistributed = activeOneTime.some((i) => i.targetMonthId);
+  const baseFinal = hasDistributed ? baseRunning : baseRunning - rawOneTimeTotal;
 
   const currentFinal = metrics.finalAccumulated;
   const finalDiff = currentFinal - baseFinal;
 
-  // Diagnóstico
   const willInvadeReserve =
     simulation.emergencyReserve > 0 &&
     metrics.minAccumulatedBalance < simulation.emergencyReserve;
@@ -57,7 +51,6 @@ export const SimulationPanel = () => {
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
@@ -84,9 +77,7 @@ export const SimulationPanel = () => {
         )}
       </div>
 
-      {/* Sliders */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Slider 1: Gastos Variáveis */}
         <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="text-slate-700 dark:text-slate-300 font-medium">
@@ -123,11 +114,10 @@ export const SimulationPanel = () => {
           </div>
         </div>
 
-        {/* Slider 2: Margem de Imprevistos na Mudança */}
         <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
           <div className="flex justify-between items-center text-xs">
             <span className="text-slate-700 dark:text-slate-300 font-medium">
-              Margem de Imprevistos na Mudança:
+              Margem de Imprevistos em Custos Pontuais:
             </span>
             <strong
               className={`font-mono text-sm ${
@@ -160,7 +150,6 @@ export const SimulationPanel = () => {
         </div>
       </div>
 
-      {/* ── CARD DE IMPACTO IMEDIATO DA SIMULAÇÃO (FEEDBACK VISUAL CLARO) ── */}
       <div
         className={`p-4 rounded-2xl border transition-all ${
           isSimActive
@@ -185,7 +174,6 @@ export const SimulationPanel = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          {/* 1. Impacto nas Despesas Variáveis */}
           <div className="space-y-0.5">
             <span className="text-slate-500 dark:text-slate-400 block text-[11px]">
               Despesas Variáveis (Média/mês):
@@ -211,17 +199,16 @@ export const SimulationPanel = () => {
             )}
           </div>
 
-          {/* 2. Custo da Mudança */}
           <div className="space-y-0.5">
             <span className="text-slate-500 dark:text-slate-400 block text-[11px]">
-              Custo Total da Mudança:
+              Custos Pontuais Totais:
             </span>
             <div className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200">
-              {formatBRL(simMudTotal)}
+              {formatBRL(simOneTimeTotal)}
             </div>
             {simulation.oneTimeMarginPercent > 0 ? (
               <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 block">
-                +{formatBRL(diffMud)} de margem de segurança
+                +{formatBRL(diffOneTime)} de margem de segurança
               </span>
             ) : (
               <span className="text-[10px] text-slate-400 block">
@@ -230,7 +217,6 @@ export const SimulationPanel = () => {
             )}
           </div>
 
-          {/* 3. Saldo Final Projetado */}
           <div className="space-y-0.5">
             <span className="text-slate-500 dark:text-slate-400 block text-[11px]">
               Saldo Acumulado no Final:
@@ -263,7 +249,6 @@ export const SimulationPanel = () => {
           </div>
         </div>
 
-        {/* Diagnóstico em Linguagem Natural */}
         <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
           {willHaveDeficit ? (
             <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
@@ -291,7 +276,6 @@ export const SimulationPanel = () => {
         </div>
       </div>
 
-      {/* Inputs de Saldo Inicial e Reserva */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">

@@ -62,23 +62,11 @@ export const CATEGORY_DEFINITIONS: Record<BudgetCategoryKey, CategoryMeta> = {
     defaultRepeat: false,
     hint: 'Supermercado, farmácia, lazer, delivery e combustível.',
   },
-  [ExpenseCategory.Mud]: {
-    key: ExpenseCategory.Mud,
-    label: 'Custos da Mudança / Evento',
-    shortLabel: 'Mudança',
-    icon: '🚚',
-    color: '#8b5cf6',
-    textColor: 'text-purple-700 dark:text-purple-400',
-    borderColor: 'border-purple-300 dark:border-purple-700',
-    bgLight: 'bg-purple-50 dark:bg-purple-950/40',
-    defaultRepeat: false,
-    hint: 'Frete, caução, pequenos reparos e custos pontuais do projeto.',
-  },
 };
 
 export const TRANSACTION_CATEGORIES: CategoryMeta[] = [
-  CATEGORY_DEFINITIONS.renda,
-  CATEGORY_DEFINITIONS.cartoes,
-  CATEGORY_DEFINITIONS.fixas,
-  CATEGORY_DEFINITIONS.vars,
+  CATEGORY_DEFINITIONS[BudgetCategory.Renda],
+  CATEGORY_DEFINITIONS[ExpenseCategory.Cartoes],
+  CATEGORY_DEFINITIONS[ExpenseCategory.Fixas],
+  CATEGORY_DEFINITIONS[ExpenseCategory.Vars],
 ];

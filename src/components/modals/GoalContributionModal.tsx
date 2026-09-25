@@ -50,7 +50,6 @@ export const GoalContributionModal = ({
       maxWidth="max-w-sm"
     >
       <div className="space-y-4">
-        {/* Resumo Atual */}
         <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between text-xs">
           <div>
             <span className="text-slate-400 block">Já guardado:</span>
@@ -67,7 +66,6 @@ export const GoalContributionModal = ({
         </div>
 
         <form onSubmit={handleSave} className="space-y-3.5">
-          {/* Valor */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Valor a Guardar (R$)
@@ -81,7 +79,6 @@ export const GoalContributionModal = ({
             />
           </div>
 
-          {/* Observação */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Observação / Origem (Opcional)
@@ -95,7 +92,6 @@ export const GoalContributionModal = ({
             />
           </div>
 
-          {/* Ações */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"

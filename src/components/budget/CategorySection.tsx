@@ -32,7 +32,6 @@ export const CategorySection = ({
 
   const simFactor = categoryKey === 'vars' ? 1 + simulation.varsPercent / 100 : 1;
 
-  // Totais mensais (apenas itens ativos)
   const monthTotals = months.map((m) =>
     items
       .filter((i) => !i.off)
@@ -60,7 +59,6 @@ export const CategorySection = ({
 
       <div className="overflow-x-auto pb-1">
         <table className="text-xs border-collapse" style={{ minWidth: 200 + months.length * 96 }}>
-          {/* Header */}
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-medium">
               <th className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-1.5 w-7 text-center"></th>
@@ -83,7 +81,6 @@ export const CategorySection = ({
                   key={item.id}
                   className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-opacity ${item.off ? 'opacity-40' : ''}`}
                 >
-                  {/* Checkbox — sticky */}
                   <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-1.5">
                     <div className="flex items-center justify-center">
                       <input
@@ -96,7 +93,6 @@ export const CategorySection = ({
                     </div>
                   </td>
 
-                  {/* Nome — sticky */}
                   <td className="sticky left-7 z-10 bg-white dark:bg-slate-900 py-1.5 pr-2">
                     <input
                       type="text"
@@ -107,7 +103,6 @@ export const CategorySection = ({
                     />
                   </td>
 
-                  {/* Meses */}
                   {months.map((m, mIdx) => (
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
@@ -117,7 +112,6 @@ export const CategorySection = ({
                           disabled={item.off}
                           ariaLabel={`${item.name} em ${m.shortName}`}
                         />
-                        {/* Botão "repetir a partir daqui" — hover, apenas se não for o último mês */}
                         {!item.off && mIdx < months.length - 1 && (
                           <button
                             type="button"
@@ -132,12 +126,10 @@ export const CategorySection = ({
                     </td>
                   ))}
 
-                  {/* Total da linha */}
                   <td className="py-1.5 px-2 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums whitespace-nowrap">
                     {formatBRL(rowTotal)}
                   </td>
 
-                  {/* Ações */}
                   <td className="py-1.5">
                     <div className="flex items-center gap-0.5">
                       <button
@@ -175,7 +167,6 @@ export const CategorySection = ({
             })}
           </tbody>
 
-          {/* Subtotal */}
           <tfoot>
             <tr className="border-t border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200">
               <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-2"></td>

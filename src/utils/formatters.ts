@@ -49,9 +49,6 @@ export function formatPercent(value: number): string {
   return `${sign}${value.toFixed(1).replace('.', ',')}%`;
 }
 
-/**
- * Cria um objeto MonthItem para determinado ano e mês
- */
 export function createMonthItem(year: number, monthIndex: number): MonthItem {
   const normalizedDate = new Date(year, monthIndex, 1);
   const y = normalizedDate.getFullYear();
@@ -68,9 +65,6 @@ export function createMonthItem(year: number, monthIndex: number): MonthItem {
   };
 }
 
-/**
- * Gera uma lista de N meses a partir de um mês/ano de início
- */
 export function generateMonthSequence(startYear: number, startMonthIndex: number, count: number): MonthItem[] {
   const result: MonthItem[] = [];
   for (let i = 0; i < count; i++) {
@@ -79,16 +73,10 @@ export function generateMonthSequence(startYear: number, startMonthIndex: number
   return result;
 }
 
-/**
- * Pega o próximo mês a partir do último mês de uma lista
- */
 export function getNextMonth(currentLast: MonthItem): MonthItem {
   return createMonthItem(currentLast.year, currentLast.monthIndex + 1);
 }
 
-/**
- * Pega o mês anterior a partir do primeiro mês de uma lista
- */
 export function getPrevMonth(currentFirst: MonthItem): MonthItem {
   return createMonthItem(currentFirst.year, currentFirst.monthIndex - 1);
 }

@@ -7,35 +7,32 @@ export const OneTimeCostsSection = () => {
   const { showToast } = useToast();
   const {
     state,
-    addItem,
-    removeItem,
-    restoreItem,
-    updateItemName,
-    toggleItemActive,
+    addOneTimeCost,
+    removeOneTimeCost,
+    restoreOneTimeCost,
+    updateOneTimeCost,
     updateOneTimeValue,
     updateOneTimeTargetMonth,
     setAllOneTimeTargetMonth,
     updateGoal,
   } = useBudget();
 
-  const { lists, simulation, goals, months } = state;
-  const items = lists.mud;
+  const { simulation, goals, months } = state;
+  const items = state.oneTimeCosts || [];
 
   const rawTotal = items
     .filter((i) => !i.off)
-    .reduce((acc, item) => acc + (item.oneTimeValue || 0), 0);
+    .reduce((acc, item) => acc + (item.value || 0), 0);
 
   const marginFactor = 1 + simulation.oneTimeMarginPercent / 100;
   const totalWithMargin = rawTotal * marginFactor;
 
-  // Encontrar se a maioria dos itens já tem um mês comum atribuído (ex: Dezembro)
   const assignedMonths = items.map((i) => i.targetMonthId).filter(Boolean);
   const commonMonthId =
     assignedMonths.length > 0 && assignedMonths.every((m) => m === assignedMonths[0])
       ? assignedMonths[0]
       : '';
 
-  // Encontrar meta de mudança se existir
   const mudGoal = goals.find(
     (g) =>
       g.name.toLowerCase().includes('mudan') ||
@@ -59,40 +56,38 @@ export const OneTimeCostsSection = () => {
 
   return (
     <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xl">🚚</span>
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Orçamento Detalhado da Mudança (Custos Pontuais)
+              Custos Pontuais e Projetos Especiais
             </h2>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            Ao contrário das contas mensais, estes são os custos específicos para realizar o evento da mudança.
+            Ao contrário das contas mensais recorrentes, estes são gastos únicos (ex: mudança, caução, reforma, viagem).
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => addItem('mud', 'Novo custo da mudança')}
-          className="text-xs px-3 py-1.5 rounded-xl border border-[#0e6b7a]/40 bg-[#0e6b7a]/5 text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-[#0e6b7a]/15 font-semibold transition-colors"
+          onClick={() => addOneTimeCost({ name: 'Novo Custo Pontual', value: 0 })}
+          className="text-xs px-3 py-1.5 rounded-xl border border-[#0e6b7a]/40 bg-[#0e6b7a]/5 text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-[#0e6b7a]/15 font-semibold transition-colors cursor-pointer"
         >
           + Adicionar Custo
         </button>
       </div>
 
-      {/* ── SELETOR CENTRAL: INTERLIGAÇÃO COM O MÊS DA MUDANÇA (EX: DEZEMBRO) ── */}
       <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-transparent dark:from-purple-950/30 border border-purple-200/80 dark:border-purple-900/40 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">📅</span>
             <div>
               <strong className="text-slate-900 dark:text-slate-100 text-sm font-bold block">
-                Quando a Mudança vai acontecer?
+                Quando o evento vai acontecer?
               </strong>
               <span className="text-slate-500 dark:text-slate-400">
-                Selecione o mês da mudança (ex: <strong>Dezembro</strong>) para debitar estes custos no orçamento daquele mês.
+                Selecione o mês previsto (ex: <strong>Dezembro</strong>) para debitar estes custos no orçamento daquele mês.
               </span>
             </div>
           </div>
@@ -115,12 +110,11 @@ export const OneTimeCostsSection = () => {
 
         {commonMonthId && (
           <div className="text-[11px] text-purple-700 dark:text-purple-300 font-medium pl-8">
-            ✓ Todos os custos da mudança estão interligados com <strong>{months.find(m => m.id === commonMonthId)?.name}</strong>. Quando você abrir o orçamento de {months.find(m => m.id === commonMonthId)?.shortName}, eles aparecerão contabilizados lá!
+            ✓ Todos os custos pontuais estão interligados com <strong>{months.find(m => m.id === commonMonthId)?.name}</strong>. Quando você abrir o orçamento de {months.find(m => m.id === commonMonthId)?.shortName}, eles aparecerão contabilizados lá!
           </div>
         )}
       </div>
 
-      {/* Card de Resumo do Projeto da Mudança */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 text-xs">
         <div>
           <span className="text-slate-400 block mb-0.5">Custo Total dos Itens:</span>
@@ -140,7 +134,7 @@ export const OneTimeCostsSection = () => {
 
         {mudGoal ? (
           <div>
-            <span className="text-slate-400 block mb-0.5">Já guardado na Meta da Mudança:</span>
+            <span className="text-slate-400 block mb-0.5">Já guardado na Meta:</span>
             <div className="flex items-center gap-2">
               <strong className="font-mono text-emerald-600 dark:text-emerald-400 text-sm">
                 {formatBRL(mudSaved)}
@@ -149,8 +143,8 @@ export const OneTimeCostsSection = () => {
                 <button
                   type="button"
                   onClick={handleSyncWithGoal}
-                  className="text-[10px] font-bold text-[#0e6b7a] dark:text-[#4ec2d3] underline"
-                  title="Atualiza o valor alvo da meta de mudança com o total calculado aqui"
+                  className="text-[10px] font-bold text-[#0e6b7a] dark:text-[#4ec2d3] underline cursor-pointer"
+                  title="Atualiza o valor alvo da meta com o total calculado aqui"
                 >
                   Sincronizar meta
                 </button>
@@ -165,7 +159,6 @@ export const OneTimeCostsSection = () => {
         )}
       </div>
 
-      {/* Lista de Itens com Seletor Individual de Mês */}
       <div className="divide-y divide-slate-100 dark:divide-slate-800/60 pt-1">
         {items.map((item) => (
           <div
@@ -177,7 +170,7 @@ export const OneTimeCostsSection = () => {
             <input
               type="checkbox"
               checked={!item.off}
-              onChange={() => toggleItemActive('mud', item.id)}
+              onChange={() => updateOneTimeCost(item.id, { off: !item.off })}
               className="w-4 h-4 rounded accent-[#0e6b7a] cursor-pointer shrink-0"
               title={item.off ? 'Incluir no orçamento' : 'Desconsiderar'}
             />
@@ -185,13 +178,12 @@ export const OneTimeCostsSection = () => {
             <input
               type="text"
               value={item.name}
-              onChange={(e) => updateItemName('mud', item.id, e.target.value)}
+              onChange={(e) => updateOneTimeCost(item.id, { name: e.target.value })}
               disabled={item.off}
-              placeholder="Nome do custo (ex: Caminhão de mudança)"
+              placeholder="Nome do custo (ex: Caminhão de mudança, Caução, Pintura)"
               className="flex-1 min-w-[160px] text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-0.5 px-1 truncate"
             />
 
-            {/* Mês previsto para este item */}
             <div className="shrink-0">
               <select
                 value={item.targetMonthId || ''}
@@ -211,7 +203,7 @@ export const OneTimeCostsSection = () => {
 
             <div className="w-28 sm:w-32 shrink-0">
               <CurrencyInput
-                value={item.oneTimeValue || 0}
+                value={item.value || 0}
                 onChange={(val) => updateOneTimeValue(item.id, val)}
                 disabled={item.off}
                 ariaLabel={`Valor de ${item.name}`}
@@ -221,17 +213,17 @@ export const OneTimeCostsSection = () => {
             <button
               type="button"
               onClick={() => {
-                const removed = removeItem('mud', item.id);
+                const removed = removeOneTimeCost(item.id);
                 if (removed) {
                   showToast(`Custo "${removed.name}" removido`, {
                     action: {
                       label: 'Desfazer',
-                      onClick: () => restoreItem('mud', removed),
+                      onClick: () => restoreOneTimeCost(removed),
                     },
                   });
                 }
               }}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
               title="Remover custo"
               aria-label={`Remover ${item.name}`}
             >

@@ -34,7 +34,6 @@ export const MonthHorizonBar = () => {
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-      {/* Indicador do Período */}
       <div className="flex items-center gap-2">
         <span className="text-slate-400 font-medium">Horizonte:</span>
         <strong className="text-slate-800 dark:text-slate-100">
@@ -45,7 +44,6 @@ export const MonthHorizonBar = () => {
         </span>
       </div>
 
-      {/* Controles de Presets e Ajustes */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-slate-400 text-[11px] mr-1 hidden sm:inline">Duração:</span>
         {presets.map((p) => {
@@ -102,7 +100,6 @@ export const MonthHorizonBar = () => {
         </button>
       </div>
 
-      {/* Modal Personalizado */}
       {isCustomOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 max-w-sm w-full shadow-xl">

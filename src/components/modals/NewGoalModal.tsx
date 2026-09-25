@@ -60,7 +60,6 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
       maxWidth="max-w-md"
     >
       <div className="space-y-4">
-        {/* Sugestões Rápidas */}
         <div>
           <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
             Sugestões Rápidas
@@ -83,7 +82,6 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
         </div>
 
         <form onSubmit={handleSave} className="space-y-3.5">
-          {/* Ícone e Nome */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Ícone e Nome da Meta
@@ -121,7 +119,6 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
             </div>
           </div>
 
-          {/* Valor Alvo */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Valor Alvo Total (R$)
@@ -135,7 +132,6 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
             />
           </div>
 
-          {/* Descrição */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Descrição / Detalhes (Opcional)
@@ -149,7 +145,6 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
             />
           </div>
 
-          {/* Ações */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"

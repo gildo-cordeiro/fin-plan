@@ -6,10 +6,6 @@ import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
 import { GoalContributionModal } from '../modals/GoalContributionModal';
 
-/**
- * Sanitiza o ícone da meta garantindo que palavras normais (ex: 'Meta' ou 'Reserva')
- * nunca sejam exibidas como ícones gigantes.
- */
 function getCleanGoalIcon(icon?: string, name?: string): string {
   if (icon && !/[a-zA-Z0-9]/.test(icon) && icon.length <= 4) {
     return icon;
@@ -22,8 +18,6 @@ function getCleanGoalIcon(icon?: string, name?: string): string {
   if (lower.includes('estudo') || lower.includes('curso')) return '📚';
   return '🎯';
 }
-
-// ── Sub-componente: Linha de aporte ──────────────────────────────────────────
 
 const ContributionRow = ({
   contrib,
@@ -48,8 +42,6 @@ const ContributionRow = ({
     </button>
   </div>
 );
-
-// ── Sub-componente: Card de Meta ──────────────────────────────────────────────
 
 interface GoalCardProps {
   goal: FinancialGoal;
@@ -83,7 +75,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
       }`}
     >
       <div className="p-4 space-y-3">
-        {/* Header do card: Ícone limpo, Nome, Descrição e Menu */}
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 text-lg flex items-center justify-center shrink-0 select-none shadow-xs">
             {cleanIcon}
@@ -119,7 +110,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
             />
           </div>
 
-          {/* Status & Menu de Opções */}
           <div className="flex items-center gap-1.5 shrink-0">
             {isDone && (
               <span className="text-[11px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-full font-bold">
@@ -199,7 +189,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
           </div>
         </div>
 
-        {/* Card de Métricas de Valores */}
         <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80">
           <div>
             <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
@@ -242,7 +231,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
           </div>
         </div>
 
-        {/* Barra de Progresso Suave */}
         <div className="space-y-1">
           <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div
@@ -274,7 +262,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
           </div>
         </div>
 
-        {/* Botões de Ação do Card */}
         <div className="flex items-center gap-2 pt-1">
           {!isDone && (
             <button
@@ -298,7 +285,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
           )}
         </div>
 
-        {/* Histórico de Aportes Expandido */}
         {expanded && goal.contributions.length > 0 && (
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
@@ -319,8 +305,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
     </div>
   );
 };
-
-// ── Componente Principal ──────────────────────────────────────────────────────
 
 export const GoalsSection = () => {
   const { state } = useBudget();
@@ -343,7 +327,6 @@ export const GoalsSection = () => {
 
   return (
     <div className="space-y-3">
-      {/* ── Banner de Explicação Didática da Separação (Colapsável) ── */}
       <div className="rounded-2xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/70 dark:border-teal-900/40 text-xs overflow-hidden">
         <button
           type="button"
@@ -368,7 +351,6 @@ export const GoalsSection = () => {
         )}
       </div>
 
-      {/* ── Resumo Geral de Metas em 3 Widgets Elegantes ── */}
       {goals.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
@@ -413,7 +395,6 @@ export const GoalsSection = () => {
         </div>
       )}
 
-      {/* Grid de Metas Ativas */}
       {activeGoals.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {activeGoals.map((goal) => (
@@ -426,7 +407,6 @@ export const GoalsSection = () => {
         </div>
       )}
 
-      {/* Metas Concluídas */}
       {doneGoals.length > 0 && (
         <details className="group">
           <summary className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer select-none list-none flex items-center gap-1.5 py-1">
@@ -447,7 +427,6 @@ export const GoalsSection = () => {
         </details>
       )}
 
-      {/* Estado Vazio */}
       {goals.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
           <span className="text-3xl mb-2">🎯</span>
@@ -467,7 +446,6 @@ export const GoalsSection = () => {
         </div>
       )}
 
-      {/* Modais */}
       <NewGoalModal
         isOpen={isNewGoalOpen}
         onClose={() => setIsNewGoalOpen(false)}

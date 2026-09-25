@@ -46,7 +46,6 @@
   }
 }
 
-/* Remove spin buttons de inputs numéricos */
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 
   -webkit-appearance: none; 
@@ -56,7 +55,6 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* Scrollbar sutil e compacta */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -75,7 +73,6 @@ input[type=number] {
   background: #94a3b8;
 }
 
-/* Tabular nums para alinhamento financeiro */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }

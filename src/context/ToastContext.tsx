@@ -49,7 +49,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       duration,
     };
 
-    setToasts((prev) => [...prev.slice(-3), newToast]); // Mantém no máximo 4 toasts simultâneos
+    setToasts((prev) => [...prev.slice(-3), newToast]);
 
     if (duration > 0) {
       setTimeout(() => {
@@ -61,7 +61,6 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
       {children}
-      {/* Container de Toasts flutuantes */}
       <aside
         aria-live="polite"
         aria-label="Notificações do sistema"

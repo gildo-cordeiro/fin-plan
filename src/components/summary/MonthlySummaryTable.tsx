@@ -35,7 +35,6 @@ export const MonthlySummaryTable = () => {
 
   const renderRow = (label: string, field: FieldKey, total: number) => (
     <tr className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-      {/* Label — sticky */}
       <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-2 px-3 text-left font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap border-r border-slate-100 dark:border-slate-800">
         {label}
       </td>
@@ -53,7 +52,6 @@ export const MonthlySummaryTable = () => {
           {formatBRL(x[field])}
         </td>
       ))}
-      {/* Total — sticky right */}
       <td
         className={`sticky right-0 z-10 bg-white dark:bg-slate-900 py-2 px-3 text-right font-mono font-semibold tabular-nums whitespace-nowrap border-l border-slate-100 dark:border-slate-800 ${
           field === 'monthBalance'
@@ -90,7 +88,6 @@ export const MonthlySummaryTable = () => {
         <table className="w-full text-xs border-collapse font-mono" style={{ minWidth: 240 + months.length * 90 }}>
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 font-sans">
-              {/* Header label — sticky */}
               <th className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-2 px-3 text-left font-semibold whitespace-nowrap border-r border-slate-100 dark:border-slate-800">
                 Fluxo
               </th>
@@ -99,7 +96,6 @@ export const MonthlySummaryTable = () => {
                   {m.shortName}
                 </th>
               ))}
-              {/* Total header — sticky right */}
               <th className="sticky right-0 z-10 bg-white dark:bg-slate-900 py-2 px-3 text-right font-semibold whitespace-nowrap border-l border-slate-100 dark:border-slate-800">
                 Total
               </th>
@@ -112,7 +108,6 @@ export const MonthlySummaryTable = () => {
             {renderRow('Variáveis',    'variable',     totalVars)}
             {renderRow('Sobra do mês', 'monthBalance', totalBalance)}
 
-            {/* Saldo Acumulado */}
             <tr className="bg-[#e5f2f4]/60 dark:bg-[#102a33]/60 font-bold border-t-2 border-[#0e6b7a]/30 text-xs">
               <td className="sticky left-0 z-10 bg-[#e5f2f4] dark:bg-[#102a33] py-2.5 px-3 text-left font-sans text-[#0e6b7a] dark:text-[#4ec2d3] whitespace-nowrap border-r border-[#0e6b7a]/20">
                 Saldo acumulado

@@ -19,7 +19,6 @@ export const Modal = ({
   maxWidth = 'max-w-md',
   showCloseButton = true,
 }: ModalProps) => {
-  // Fechar com tecla Escape e travar o scroll da página enquanto aberto
   useEffect(() => {
     if (!isOpen) return;
 
@@ -52,7 +51,6 @@ export const Modal = ({
         className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 w-full ${maxWidth} shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header do Modal */}
         <div className="flex items-start justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -77,7 +75,6 @@ export const Modal = ({
           )}
         </div>
 
-        {/* Corpo do Modal */}
         <div>{children}</div>
       </div>
     </div>

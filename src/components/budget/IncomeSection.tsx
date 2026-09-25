@@ -39,14 +39,10 @@ export const IncomeSection = () => {
       </p>
 
       <div className="overflow-x-auto pb-1">
-        {/* Usamos uma tabela real para poder usar sticky na 1ª coluna */}
         <table className="text-xs border-collapse" style={{ minWidth: 200 + months.length * 96 }}>
-          {/* Header */}
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-medium">
-              {/* sticky: checkbox col */}
               <th className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-1.5 w-6 text-center"></th>
-              {/* sticky: name col */}
               <th className="sticky left-6 z-10 bg-white dark:bg-slate-900 py-1.5 pr-2 text-left w-44 min-w-[11rem]">Item</th>
               {months.map((m) => (
                 <th key={m.id} className="py-1.5 px-1 text-right w-24 min-w-[6rem]">
@@ -63,10 +59,8 @@ export const IncomeSection = () => {
               const rowTotal = months.reduce((acc, m) => acc + (item.values[m.id] ?? 0), 0);
               return (
                 <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                  {/* dot */}
                   <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-1.5 text-center text-slate-400">•</td>
 
-                  {/* Nome — sticky */}
                   <td className="sticky left-6 z-10 bg-white dark:bg-slate-900 py-1.5 pr-2">
                     <input
                       type="text"
@@ -76,7 +70,6 @@ export const IncomeSection = () => {
                     />
                   </td>
 
-                  {/* Meses */}
                   {months.map((m, mIdx) => (
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
@@ -85,7 +78,6 @@ export const IncomeSection = () => {
                           onChange={(val) => updateItemValue('renda', item.id, m.id, val)}
                           ariaLabel={`${item.name} em ${m.shortName}`}
                         />
-                        {/* Botão "repetir a partir daqui" — aparece no hover se não for o último mês */}
                         {mIdx < months.length - 1 && (
                           <button
                             type="button"
@@ -100,12 +92,10 @@ export const IncomeSection = () => {
                     </td>
                   ))}
 
-                  {/* Total da linha */}
                   <td className="py-1.5 px-2 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums whitespace-nowrap">
                     {formatBRL(rowTotal)}
                   </td>
 
-                  {/* Ações */}
                   <td className="py-1.5">
                     <div className="flex items-center gap-0.5">
                       <button
@@ -133,7 +123,6 @@ export const IncomeSection = () => {
             })}
           </tbody>
 
-          {/* Subtotal */}
           <tfoot>
             <tr className="border-t border-slate-200 dark:border-slate-700 text-xs font-bold text-[#0f7a55] dark:text-[#3dd69c]">
               <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-2"></td>

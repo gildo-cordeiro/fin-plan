@@ -29,8 +29,6 @@ export const CurrencyInput = ({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevValueRef = useRef(value);
 
-  // Sincroniza estado local quando o valor externo muda
-  // Se não estiver em foco OU se o valor externo foi resetado para 0, atualiza o texto local
   useEffect(() => {
     if (prevValueRef.current !== value) {
       prevValueRef.current = value;
@@ -40,7 +38,6 @@ export const CurrencyInput = ({
     }
   }, [value, isFocused]);
 
-  // Limpa timer se o componente desmontar
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {

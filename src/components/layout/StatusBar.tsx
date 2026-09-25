@@ -27,7 +27,6 @@ export const StatusBar = () => {
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs py-2 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs text-slate-500 dark:text-slate-400">
-        {/* Saldo Clicável para Edição Direta */}
         <button
           type="button"
           onClick={() => setIsEditBalanceOpen(true)}
@@ -44,7 +43,6 @@ export const StatusBar = () => {
           </span>
         </button>
 
-        {/* Indicador de Modo Offline */}
         {!isOnline && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-800 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -52,7 +50,6 @@ export const StatusBar = () => {
           </span>
         )}
 
-        {/* Resumos Secundários */}
         <div className="flex items-center gap-3">
           <div>
             <span>Sobra média mensal: </span>

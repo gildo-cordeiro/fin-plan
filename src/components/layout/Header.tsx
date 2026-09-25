@@ -6,19 +6,19 @@ export const Header = () => {
   const {
     theme,
     toggleTheme,
-    isSheetLoading,
-    isSheetSyncing,
-    sheetSyncError,
-    lastSheetSync,
-    saveToSheet,
+    isCloudLoading,
+    isCloudSyncing,
+    cloudSyncError,
+    lastCloudSync,
+    saveToCloud,
   } = useBudget();
 
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [manualSyncFeedback, setManualSyncFeedback] = useState<string | null>(null);
 
   const handleManualSync = async () => {
-    if (isSheetSyncing || isSheetLoading) return;
-    const res = await saveToSheet();
+    if (isCloudSyncing || isCloudLoading) return;
+    const res = await saveToCloud();
     if (res.success) {
       setManualSyncFeedback('Salvo!');
       setTimeout(() => setManualSyncFeedback(null), 2500);
@@ -33,49 +33,48 @@ export const Header = () => {
             <span>FinPlan</span>
             <span
               className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hidden sm:inline-flex items-center gap-1"
-              title="Sincronização em nuvem ativa com Google Sheets"
+              title="Sincronização em nuvem ativa com MongoDB Atlas"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Salvamento Automático</span>
+              <span>Nuvem Ativa</span>
             </span>
           </h1>
           <p className="text-[11px] text-slate-400 dark:text-slate-500">
-            {isSheetLoading
-              ? 'Carregando dados da sua planilha Google...'
-              : isSheetSyncing
-              ? 'Salvando alterações automaticamente na nuvem...'
-              : sheetSyncError
-              ? 'Aviso: Falha na conexão com a planilha. Seus dados estão seguros localmente.'
-              : lastSheetSync
-              ? `Planilha sincronizada às ${lastSheetSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-              : 'Conectado à sua planilha Google'}
+            {isCloudLoading
+              ? 'Carregando dados da nuvem (MongoDB)...'
+              : isCloudSyncing
+              ? 'Salvando alterações no MongoDB Atlas...'
+              : cloudSyncError
+              ? 'Aviso: Falha na conexão com a nuvem. Seus dados estão seguros localmente.'
+              : lastCloudSync
+              ? `Nuvem sincronizada às ${lastCloudSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+              : 'Conectado ao MongoDB Atlas'}
           </p>
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Botão de Ação Direta para Sincronização */}
           <button
             type="button"
             onClick={handleManualSync}
-            disabled={isSheetSyncing || isSheetLoading}
+            disabled={isCloudSyncing || isCloudLoading}
             className={`text-xs px-2.5 py-1.5 rounded-lg border font-semibold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
-              sheetSyncError
+              cloudSyncError
                 ? 'border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 hover:bg-rose-100'
-                : isSheetSyncing || isSheetLoading
+                : isCloudSyncing || isCloudLoading
                 ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 opacity-80 cursor-wait'
                 : manualSyncFeedback
                 ? 'border-emerald-400 dark:border-emerald-700 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200'
                 : 'border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100'
             }`}
             title={
-              lastSheetSync
-                ? `Último salvamento: ${lastSheetSync.toLocaleTimeString()}. Clique para salvar agora manualmente.`
-                : 'Clique para sincronizar com a planilha Google'
+              lastCloudSync
+                ? `Último salvamento: ${lastCloudSync.toLocaleTimeString()}. Clique para salvar agora na nuvem.`
+                : 'Clique para sincronizar com o MongoDB Atlas'
             }
           >
-            {isSheetLoading || isSheetSyncing ? (
+            {isCloudLoading || isCloudSyncing ? (
               <span className="inline-block animate-spin text-sm">⏳</span>
-            ) : sheetSyncError ? (
+            ) : cloudSyncError ? (
               <span className="text-sm">⚠️</span>
             ) : manualSyncFeedback ? (
               <span className="text-sm">✓</span>
@@ -83,15 +82,15 @@ export const Header = () => {
               <span className="text-sm">☁️</span>
             )}
             <span>
-              {isSheetLoading
+              {isCloudLoading
                 ? 'Carregando...'
-                : isSheetSyncing
+                : isCloudSyncing
                 ? 'Salvando...'
                 : manualSyncFeedback
                 ? 'Salvo!'
-                : sheetSyncError
+                : cloudSyncError
                 ? 'Reconectar'
-                : 'Salvar na Planilha'}
+                : 'Salvar na Nuvem'}
             </span>
           </button>
 

@@ -2,33 +2,38 @@ import type { ExpenseCategoryKey, GoalStatus } from '../constants/enums';
 export * from '../constants/enums';
 
 export interface MonthItem {
-  id: string; // e.g. '2026-10'
-  name: string; // 'Outubro 2026'
-  shortName: string; // 'Out/26'
+  id: string;
+  name: string;
+  shortName: string;
   year: number;
-  monthIndex: number; // 0 to 11
+  monthIndex: number;
 }
 
 export interface BudgetItem {
   id: string;
   name: string;
   category: ExpenseCategoryKey | 'renda';
-  values: Record<string, number>; // monthId -> amount
+  values: Record<string, number>;
   off?: boolean;
   notes?: string;
-  dueDate?: number; // Dia de vencimento (opcional)
-  // Para despesas pontuais / mudança
-  isOneTime?: boolean;
-  oneTimeValue?: number;
-  targetMonthId?: string; // Mês previsto para ocorrer o gasto pontual
+  dueDate?: number;
+}
+
+export interface OneTimeCost {
+  id: string;
+  name: string;
+  value: number;
+  targetMonthId?: string;
+  off?: boolean;
+  notes?: string;
 }
 
 export interface SimulationSettings {
-  varsPercent: number; // Variação despesas variáveis (-50% a +50%)
-  rendaPercent: number; // Variação de renda (-30% a +30%)
-  oneTimeMarginPercent: number; // Margem para imprevistos (0% a +50%)
-  initialBalance: number; // Saldo disponível hoje
-  emergencyReserve: number; // Reserva de emergência intocável
+  varsPercent: number;
+  rendaPercent: number;
+  oneTimeMarginPercent: number;
+  initialBalance: number;
+  emergencyReserve: number;
 }
 
 export interface MonthSummary {
@@ -39,7 +44,7 @@ export interface MonthSummary {
   variable: number;
   oneTime: number;
   totalExpenses: number;
-  monthBalance: number; // Renda - Despesas
+  monthBalance: number;
   accumulatedBalance: number;
   availableAfterReserve: number;
 }
@@ -51,18 +56,14 @@ export interface OverallMetrics {
   netFinalAfterOneTime: number;
   minAccumulatedBalance: number;
   minAccumulatedMonth: string;
-  averageSavingsRate: number; // % poupada da renda
+  averageSavingsRate: number;
   totalIncome: number;
   totalRegularExpenses: number;
 }
 
-// ── Metas & Eventos ──────────────────────────────────────────────────────────
-
-
-
 export interface GoalContribution {
   id: string;
-  date: string;       // ISO date 'YYYY-MM-DD'
+  date: string;
   amount: number;
   note?: string;
 }
@@ -71,14 +72,12 @@ export interface FinancialGoal {
   id: string;
   name: string;
   description?: string;
-  targetAmount: number;   // Valor que precisa juntar
-  icon?: string;          // emoji
-  color?: string;         // tailwind color token ou hex
+  targetAmount: number;
+  icon?: string;
+  color?: string;
   status: GoalStatus;
   contributions: GoalContribution[];
 }
-
-// ── Estado Global ─────────────────────────────────────────────────────────────
 
 export interface BudgetState {
   version: number;
@@ -89,7 +88,7 @@ export interface BudgetState {
     cartoes: BudgetItem[];
     fixas: BudgetItem[];
     vars: BudgetItem[];
-    mud: BudgetItem[];
   };
+  oneTimeCosts: OneTimeCost[];
   goals: FinancialGoal[];
 }

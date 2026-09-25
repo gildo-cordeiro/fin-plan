@@ -40,7 +40,6 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
       maxWidth="max-w-sm"
     >
       <form onSubmit={handleSave} className="space-y-4">
-        {/* Saldo Atual */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Saldo em Conta Hoje (R$)
@@ -57,7 +56,6 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
           </span>
         </div>
 
-        {/* Reserva de Emergência */}
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Reserva que não quer mexer (R$)
@@ -74,7 +72,6 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
           </span>
         </div>
 
-        {/* Ações */}
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"

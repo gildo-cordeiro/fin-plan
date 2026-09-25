@@ -1,12 +1,7 @@
 import type { BudgetState, MonthSummary, OverallMetrics } from '../types/budget';
 
-/**
- * Serviço de Cálculo Orçamentário (Pure Domain Logic)
- * Isola todas as fórmulas financeiras, projeções e métricas do ciclo de vida do React.
- */
-
 export function calculateMonthlySummaries(state: BudgetState): MonthSummary[] {
-  const { months, simulation, incomes, lists } = state;
+  const { months, simulation, incomes, lists, oneTimeCosts } = state;
   const {
     varsPercent,
     rendaPercent,
@@ -19,24 +14,21 @@ export function calculateMonthlySummaries(state: BudgetState): MonthSummary[] {
   const varsFactor = 1 + varsPercent / 100;
   const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
 
-  // Itens ativos
   const activeIncomes = incomes.filter((i) => !i.off);
-  const activeCards = lists.cartoes.filter((i) => !i.off);
-  const activeFixed = lists.fixas.filter((i) => !i.off);
-  const activeVars = lists.vars.filter((i) => !i.off);
-  const activeMud = lists.mud.filter((i) => !i.off);
+  const activeCards = (lists.cartoes || []).filter((i) => !i.off);
+  const activeFixed = (lists.fixas || []).filter((i) => !i.off);
+  const activeVars = (lists.vars || []).filter((i) => !i.off);
+  const activeOneTime = (oneTimeCosts || []).filter((i) => !i.off);
 
   let runningAccumulated = initialBalance;
   const summaries: MonthSummary[] = [];
 
   months.forEach((m) => {
-    // Renda projetada do mês
     const mIncome = activeIncomes.reduce(
       (acc, item) => acc + (item.values[m.id] ?? 0) * incomeFactor,
       0
     );
 
-    // Despesas regulares do mês
     const mCards = activeCards.reduce((acc, item) => acc + (item.values[m.id] ?? 0), 0);
     const mFixed = activeFixed.reduce((acc, item) => acc + (item.values[m.id] ?? 0), 0);
     const mVars = activeVars.reduce(
@@ -44,10 +36,9 @@ export function calculateMonthlySummaries(state: BudgetState): MonthSummary[] {
       0
     );
 
-    // Despesas pontuais atribuídas a este mês específico (ex: Mudança em Dezembro)
-    const mOneTime = activeMud
+    const mOneTime = activeOneTime
       .filter((item) => item.targetMonthId === m.id)
-      .reduce((acc, item) => acc + (item.oneTimeValue || 0) * oneTimeFactor, 0);
+      .reduce((acc, item) => acc + (item.value || 0) * oneTimeFactor, 0);
 
     const mRegularExpenses = mCards + mFixed + mVars;
     const mTotalExpenses = mRegularExpenses + mOneTime;
@@ -77,12 +68,12 @@ export function calculateOverallMetrics(
   state: BudgetState,
   monthlySummaries: MonthSummary[]
 ): OverallMetrics {
-  const { simulation, lists, months } = state;
+  const { simulation, oneTimeCosts, months } = state;
   const { oneTimeMarginPercent, initialBalance, emergencyReserve } = simulation;
   const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
 
-  const activeMud = lists.mud.filter((i) => !i.off);
-  const rawOneTimeTotal = activeMud.reduce((acc, item) => acc + (item.oneTimeValue || 0), 0);
+  const activeOneTime = (oneTimeCosts || []).filter((i) => !i.off);
+  const rawOneTimeTotal = activeOneTime.reduce((acc, item) => acc + (item.value || 0), 0);
   const totalOneTimeCosts = rawOneTimeTotal * oneTimeFactor;
 
   let minBalance = Number.POSITIVE_INFINITY;
@@ -100,15 +91,23 @@ export function calculateOverallMetrics(
     }
   });
 
-  const lastSummary = monthlySummaries[monthlySummaries.length - 1];
-  const finalAccumulated = lastSummary ? lastSummary.accumulatedBalance : initialBalance;
-  const totalAvailableAfterReserve = finalAccumulated - emergencyReserve;
+  if (minBalance === Number.POSITIVE_INFINITY) {
+    minBalance = initialBalance;
+    minMonth = months[0]?.shortName || '-';
+  }
 
-  // Se nenhum item pontual tiver targetMonthId, deduz o total de custos pontuais do saldo final disponível
-  const hasDistributedOneTime = activeMud.some((i) => i.targetMonthId);
-  const netFinalAfterOneTime = hasDistributedOneTime
-    ? totalAvailableAfterReserve
-    : totalAvailableAfterReserve - totalOneTimeCosts;
+  const finalAccumulated =
+    monthlySummaries.length > 0
+      ? monthlySummaries[monthlySummaries.length - 1].accumulatedBalance
+      : initialBalance;
+
+  const totalAvailableAfterReserve = Math.max(0, finalAccumulated - emergencyReserve);
+
+  const unassignedOneTimeCosts = activeOneTime
+    .filter((item) => !item.targetMonthId)
+    .reduce((acc, item) => acc + (item.value || 0) * oneTimeFactor, 0);
+
+  const netFinalAfterOneTime = finalAccumulated - unassignedOneTimeCosts;
 
   const averageSavingsRate =
     sumTotalIncome > 0
@@ -120,9 +119,8 @@ export function calculateOverallMetrics(
     totalAvailableAfterReserve,
     totalOneTimeCosts,
     netFinalAfterOneTime,
-    minAccumulatedBalance:
-      minBalance === Number.POSITIVE_INFINITY ? initialBalance : minBalance,
-    minAccumulatedMonth: minMonth || (months[0]?.shortName ?? ''),
+    minAccumulatedBalance: minBalance,
+    minAccumulatedMonth: minMonth,
     averageSavingsRate,
     totalIncome: sumTotalIncome,
     totalRegularExpenses: sumTotalRegularExpenses,

@@ -67,13 +67,11 @@ export const BudgetManagementModal = ({
 
   if (!currentMonth) return null;
 
-  // Itens da aba ativa
   const currentItems: BudgetItem[] =
     activeTab === 'renda'
       ? state.incomes
       : state.lists[activeTab as ExpenseCategoryKey] || [];
 
-  // Total da categoria no mês selecionado
   const categoryTotal = currentItems
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[selectedMonthId] ?? 0), 0);
@@ -82,7 +80,6 @@ export const BudgetManagementModal = ({
     const finalName = (nameToAdd || newItemName).trim();
     if (!finalName) return;
 
-    // Despesas fixas e renda por padrão são recorrentes para os meses seguintes
     const shouldRepeat = activeTab === 'fixas' || activeTab === 'renda';
 
     addTransaction({
@@ -133,7 +130,6 @@ export const BudgetManagementModal = ({
             <span>⚙️</span>
             <span>Central de Orçamento: Renda & Despesas</span>
           </div>
-          {/* Seletor de Mês no Header do Modal */}
           <select
             value={selectedMonthId}
             onChange={(e) => setSelectedMonthId(e.target.value)}
@@ -152,7 +148,6 @@ export const BudgetManagementModal = ({
       maxWidth="max-w-2xl"
     >
       <div className="space-y-4">
-        {/* ── Abas de Categorias ── */}
         <div className="flex gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl">
           {TABS.map((tab) => {
             const isActive = tab.key === activeTab;
@@ -174,7 +169,6 @@ export const BudgetManagementModal = ({
           })}
         </div>
 
-        {/* ── Sub-header da Categoria Ativa ── */}
         <div className="flex items-center justify-between px-1 text-xs">
           <span className="text-slate-500 dark:text-slate-400">
             {activeDef.hint}
@@ -184,7 +178,6 @@ export const BudgetManagementModal = ({
           </span>
         </div>
 
-        {/* ── Lista de Itens Editáveis ── */}
         <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl p-2 bg-slate-50/40 dark:bg-slate-950/40 divide-y divide-slate-100 dark:divide-slate-800/80 max-h-[38vh] overflow-y-auto">
           {currentItems.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-400">
@@ -202,7 +195,6 @@ export const BudgetManagementModal = ({
                       : 'hover:bg-white dark:hover:bg-slate-900/60'
                   }`}
                 >
-                  {/* Checkbox Ativo/Inativo */}
                   <input
                     type="checkbox"
                     checked={!item.off}
@@ -211,7 +203,6 @@ export const BudgetManagementModal = ({
                     className="w-4 h-4 rounded accent-[#0e6b7a] cursor-pointer shrink-0"
                   />
 
-                  {/* Nome da Conta */}
                   <input
                     type="text"
                     value={item.name}
@@ -221,7 +212,6 @@ export const BudgetManagementModal = ({
                     className="flex-1 min-w-0 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-1 px-1 truncate"
                   />
 
-                  {/* Input de Valor */}
                   <div className="w-28 sm:w-32 shrink-0">
                     <CurrencyInput
                       value={val}
@@ -231,7 +221,6 @@ export const BudgetManagementModal = ({
                     />
                   </div>
 
-                  {/* Ações da Linha */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
@@ -258,7 +247,6 @@ export const BudgetManagementModal = ({
           )}
         </div>
 
-        {/* ── Seção Adicionar Novo Item ── */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -301,7 +289,6 @@ export const BudgetManagementModal = ({
             </button>
           </div>
 
-          {/* Sugestões Rápidas */}
           {filteredSuggestions.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
               <span className="text-[10px] text-slate-400 font-medium">Sugestões rápidas:</span>
@@ -319,7 +306,6 @@ export const BudgetManagementModal = ({
           )}
         </form>
 
-        {/* ── Impacto Global em Tempo Real (Rodapé do Modal) ── */}
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
             <div>

@@ -96,7 +96,6 @@ export const NewTransactionModal = ({
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSave} className="space-y-4">
-        {/* Seletor de Tipo / Categoria */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
             Tipo de Lançamento
@@ -123,7 +122,6 @@ export const NewTransactionModal = ({
           </div>
         </div>
 
-        {/* Nome do Lançamento */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
             Descrição / Nome da Conta
@@ -136,7 +134,6 @@ export const NewTransactionModal = ({
             placeholder="Ex: Aluguel, Supermercado, Salário..."
             className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0e6b7a] dark:focus:ring-[#4ec2d3]"
           />
-          {/* Sugestões rápidas em chips */}
           {suggestions.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {suggestions.map((sug) => (
@@ -153,7 +150,6 @@ export const NewTransactionModal = ({
           )}
         </div>
 
-        {/* Valor */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
             Valor (R$)
@@ -169,7 +165,6 @@ export const NewTransactionModal = ({
           </div>
         </div>
 
-        {/* Mês e Repetição */}
         <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-600 dark:text-slate-400 font-medium">Mês de Lançamento:</span>
@@ -203,7 +198,6 @@ export const NewTransactionModal = ({
           </label>
         </div>
 
-        {/* Ações */}
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
