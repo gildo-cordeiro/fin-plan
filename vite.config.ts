@@ -49,7 +49,7 @@ export default defineConfig(({ mode }) => {
                   },
                 });
 
-                const { default: handler } = await import('./api/budget');
+                const { default: handler } = await server.ssrLoadModule('/api/budget.ts');
                 await handler(extendedReq as any, extendedRes as any);
               } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Erro no servidor';
