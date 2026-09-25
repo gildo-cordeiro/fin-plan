@@ -1,19 +1,54 @@
-import type { IncomingMessage, ServerResponse } from 'http';
-import { getBudgetCollection } from './lib/mongodb';
+import { MongoClient, type Collection, type Document } from 'mongodb';
 
 const BUDGET_DOCUMENT_ID = 'default_budget';
 
-interface ExtendedRequest extends IncomingMessage {
-  body?: unknown;
-  method?: string;
+declare global {
+  // eslint-disable-next-line no-var
+  var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-interface ExtendedResponse extends ServerResponse {
-  status: (statusCode: number) => ExtendedResponse;
-  json: (body: unknown) => ExtendedResponse;
+let clientPromise: Promise<MongoClient> | undefined;
+
+function getMongoClientPromise(uri: string): Promise<MongoClient> {
+  const options = {
+    serverSelectionTimeoutMS: 8000,
+  };
+
+  if (process.env.NODE_ENV === 'development') {
+    if (!global._mongoClientPromise) {
+      const client = new MongoClient(uri, options);
+      global._mongoClientPromise = client.connect();
+    }
+    return global._mongoClientPromise;
+  }
+
+  if (!clientPromise) {
+    const client = new MongoClient(uri, options);
+    clientPromise = client.connect();
+  }
+  return clientPromise;
 }
 
-export default async function handler(req: ExtendedRequest, res: ExtendedResponse) {
+async function getBudgetCollection(uri: string): Promise<Collection<Document>> {
+  const client = await getMongoClientPromise(uri);
+  const dbName = process.env.MONGODB_DB_NAME || 'finplan';
+  return client.db(dbName).collection('budgets');
+}
+
+function reply(res: any, status: number, data?: unknown) {
+  if (typeof res.status === 'function' && typeof res.json === 'function') {
+    return data !== undefined ? res.status(status).json(data) : res.status(status).end();
+  }
+  res.statusCode = status;
+  if (data !== undefined) {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(data));
+  } else {
+    res.end();
+  }
+}
+
+export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -23,26 +58,27 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
   );
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return reply(res, 200);
   }
 
-  if (!process.env.MONGODB_URI) {
-    return res.status(503).json({
-      error: 'MONGODB_URI não configurada. Defina MONGODB_URI no seu .env.local ou nas variáveis da Vercel.',
+  const mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri) {
+    return reply(res, 503, {
+      error: 'MONGODB_URI não configurada nas variáveis de ambiente da Vercel. Adicione MONGODB_URI nas variáveis do projeto na Vercel (Project Settings -> Environment Variables).',
     });
   }
 
   try {
-    const collection = await getBudgetCollection();
+    const collection = await getBudgetCollection(mongoUri);
 
     if (req.method === 'GET') {
       const doc = await collection.findOne({ _id: BUDGET_DOCUMENT_ID as any });
 
       if (!doc || !doc.data) {
-        return res.status(200).json({ exists: false, data: null });
+        return reply(res, 200, { exists: false, data: null });
       }
 
-      return res.status(200).json({
+      return reply(res, 200, {
         exists: true,
         data: doc.data,
         updatedAt: doc.updatedAt,
@@ -57,7 +93,7 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
         for await (const chunk of req) {
           buffers.push(chunk as Buffer);
         }
-        const raw = Buffer.concat(buffers).toString();
+        const raw = Buffer.concat(buffers).toString('utf-8');
         if (raw) {
           try {
             body = JSON.parse(raw);
@@ -73,31 +109,32 @@ export default async function handler(req: ExtendedRequest, res: ExtendedRespons
       }
 
       if (!body || typeof body !== 'object') {
-        return res.status(400).json({ error: 'Corpo da requisição inválido ou ausente.' });
+        return reply(res, 400, { error: 'Corpo da requisição inválido ou ausente.' });
       }
 
+      const now = new Date();
       await collection.updateOne(
         { _id: BUDGET_DOCUMENT_ID as any },
         {
           $set: {
             data: body,
-            updatedAt: new Date(),
+            updatedAt: now,
           },
         },
         { upsert: true }
       );
 
-      return res.status(200).json({
+      return reply(res, 200, {
         success: true,
         message: 'Orçamento persistido no MongoDB Atlas com sucesso.',
-        updatedAt: new Date(),
+        updatedAt: now,
       });
     }
 
-    return res.status(405).json({ error: `Método ${req.method} não suportado.` });
+    return reply(res, 405, { error: `Método ${req.method} não suportado.` });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Erro interno do servidor';
     console.error('[API /api/budget] Erro:', err);
-    return res.status(500).json({ error: errorMsg });
+    return reply(res, 500, { error: errorMsg });
   }
 }
