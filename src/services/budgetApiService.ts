@@ -74,7 +74,9 @@ export const budgetApiService = {
         throw new Error(errorJson?.error || `Falha ao salvar no MongoDB (status ${res.status})`);
       }
 
-      return { success: true, updatedAt: new Date() };
+      const json = await res.json().catch(() => null);
+      const updatedAt = json?.updatedAt ? new Date(json.updatedAt) : new Date();
+      return { success: true, updatedAt };
     } catch (err: unknown) {
       clearTimeout(timeoutId);
       if (err instanceof Error && err.name === 'AbortError') {

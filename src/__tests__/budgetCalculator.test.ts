@@ -240,5 +240,23 @@ describe('budgetCalculator', () => {
       expect(metrics.minAccumulatedBalance).toBeGreaterThan(0);
       expect(monthlySummaries.every((m) => m.accumulatedBalance > 0)).toBe(true);
     });
+
+    it('quando um choque severo na simulação gera déficit, minAccumulatedBalance fica negativo', () => {
+      const state = createBaseState();
+      state.simulation.initialBalance = 500;
+      // Choque extremo: +50% nas despesas variáveis e adiantamento de custos pontuais
+      state.simulation.varsPercent = 50;
+      state.lists.vars[0].values['2026-10'] = 8000; // agora 12000 com simulação (+50%)
+
+      const { monthlySummaries, metrics } = calculateBudget(state);
+
+      // Outubro: Renda 8000. Despesas: 2000 (cartão) + 2000 (fixa) + 12000 (var) = 16000.
+      // Balanço de Outubro: 8000 - 16000 = -8000.
+      // Saldo acumulado: 500 - 8000 = -7500.
+      expect(monthlySummaries[0].monthBalance).toBe(-8000);
+      expect(monthlySummaries[0].accumulatedBalance).toBe(-7500);
+      expect(metrics.minAccumulatedBalance).toBeLessThan(0);
+      expect(metrics.minAccumulatedBalance).toBe(-7500);
+    });
   });
 });

@@ -42,17 +42,36 @@ describe('budgetApiService', () => {
 
   it('saveBudget envia POST com payload correto', async () => {
     let capturedBody = '';
+    let capturedHeaders: any = null;
     vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
       capturedBody = init?.body as string;
+      capturedHeaders = init?.headers;
       return {
         ok: true,
-        json: async () => ({ success: true }),
+        json: async () => ({ success: true, updatedAt: '2026-09-25T20:00:00.000Z' }),
       } as unknown as Response;
     });
 
     const result = await budgetApiService.saveBudget(INITIAL_BUDGET_STATE);
     expect(result.success).toBe(true);
+    expect(result.updatedAt).toEqual(new Date('2026-09-25T20:00:00.000Z'));
     expect(capturedBody).toContain(String(INITIAL_BUDGET_STATE.simulation.initialBalance));
+    expect(capturedHeaders['Content-Type']).toBe('application/json');
+    expect(capturedHeaders['Accept']).toBe('application/json');
+  });
+
+  it('fetchBudget envia headers Accept e abort controller corretamente', async () => {
+    let capturedHeaders: any = null;
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
+      capturedHeaders = init?.headers;
+      return {
+        ok: true,
+        json: async () => ({ exists: false, data: null }),
+      } as unknown as Response;
+    });
+
+    await budgetApiService.fetchBudget();
+    expect(capturedHeaders['Accept']).toBe('application/json');
   });
 
   it('saveBudget lança erro quando status não for ok', async () => {

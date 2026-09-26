@@ -57,6 +57,7 @@ export const Header = () => {
             <button
               type="button"
               onClick={() => retrySave()}
+              aria-label="Tentar salvar novamente no banco de dados"
               className="text-xs px-2.5 py-1.5 rounded-lg border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 hover:bg-rose-100 font-semibold transition-all flex items-center gap-1 cursor-pointer"
               title="Clique para tentar salvar novamente no banco de dados"
             >
@@ -68,6 +69,7 @@ export const Header = () => {
           <button
             type="button"
             onClick={() => setIsBackupOpen(true)}
+            aria-label="Exportar ou importar backup em arquivo JSON"
             className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium cursor-pointer"
             title="Exportar ou importar backup em arquivo JSON"
           >
@@ -77,6 +79,7 @@ export const Header = () => {
           <button
             type="button"
             onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro'}
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm cursor-pointer"
             title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
           >

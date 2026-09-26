@@ -25,7 +25,9 @@ export const CollapsibleSection = ({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+        aria-expanded={open}
+        aria-label={`${open ? 'Recolher' : 'Expandir'} seção ${title}`}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2">
           <span className={`text-[10px] text-slate-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
