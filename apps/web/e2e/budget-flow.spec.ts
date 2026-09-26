@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('FinPlan - Fluxo Principal e E2E', () => {
   test.beforeEach(async ({ page }) => {
     // Intercepta rotas da API para testes E2E herméticos
-    await page.route('/api/budget', async (route) => {
+    await page.route('**/api/v1/budget', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
           status: 200,

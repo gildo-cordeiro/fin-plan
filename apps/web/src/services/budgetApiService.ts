@@ -8,6 +8,11 @@ export interface BudgetApiResponse {
   error?: string;
 }
 
+function getBaseUrl(): string {
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  return envUrl ? envUrl.replace(/\/$/, '') : '';
+}
+
 function getAuthHeaders(): Record<string, string> {
   const apiKey = (import.meta as any).env?.VITE_API_SECRET_KEY;
   return apiKey ? { 'x-api-key': apiKey } : {};
@@ -19,7 +24,7 @@ export const budgetApiService = {
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
-      const res = await fetch('/api/budget', {
+      const res = await fetch(`${getBaseUrl()}/api/v1/budget`, {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -57,7 +62,7 @@ export const budgetApiService = {
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const res = await fetch('/api/budget', {
+      const res = await fetch(`${getBaseUrl()}/api/v1/budget`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,29 +1,69 @@
-# 💸 FinPlan — Planejador Financeiro Pessoal
+# 💸 FinPlan — Planejador Financeiro Pessoal (Monorepo)
 
-FinPlan é uma aplicação web moderna de planejamento financeiro pessoal de alta precisão, desenvolvida com React 18, TypeScript, Vite e Tailwind CSS. Projetada sob o paradigma **Local-First**, combina resposta instantânea de interface (0ms de latência percebida) com persistência em nuvem no **MongoDB Atlas** via API Serverless.
+FinPlan é uma aplicação web moderna de planejamento financeiro pessoal de alta precisão, desenvolvida com React 18, TypeScript, Vite, Tailwind CSS e Go. Projetada sob o paradigma **Local-First**, combina resposta instantânea de interface (0ms de latência percebida) com persistência em nuvem atômica no **MongoDB Atlas** através de uma API REST de alta performance desenvolvida em Go.
 
-O sistema permite navegar e projetar o fluxo de caixa em horizontes flexíveis de 1 a 60 meses (com presets de 3, 6, 12 e 24 meses), simular cenários de sensibilidade ("E se...") em tempo real e monitorar a integridade da reserva de emergência e metas financeiras.
+O repositório adota arquitetura de **Monorepo** com deploys completamente desacoplados entre frontend SPA e backend containerizado.
 
 ---
 
 ## 🚀 Badges & Stack Tecnológica
 
-| Camada | Tecnologias Principais |
-|---|---|
-| **Frontend** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React 0.460.0 |
-| **Backend (Serverless)** | Node.js, Vercel Serverless Functions (`api/budget.ts`), MongoDB Node Driver 6.10.0 |
-| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`), Web Storage (`localStorage` v4) |
-| **Testes** | Vitest 2.1.9 (Unitários/Integração), Playwright 1.63.0 (E2E) |
-| **Hospedagem & Deploy** | Vercel (`vercel.json`) com rewrites para SPA |
+| Camada | Tecnologias Principais | Localização |
+|---|---|---|
+| **Monorepo** | Docker Compose | Raiz (`/`) |
+| **Frontend Web** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React | [`apps/web/`](apps/web/) |
+| **Backend REST** | Go 1.27, `net/http` nativo, MongoDB Go Driver 1.17, Docker Distroless | [`apps/api/`](apps/api/) |
+| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`), Web Storage (`localStorage` v4) | Nuvem / Navegador |
+| **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E) | [`apps/web/`](apps/web/) |
+| **Deploy Frontend** | Vercel (SPA estática) | Independente |
+| **Deploy Backend** | Container Docker Distroless (`apps/api/Dockerfile`) | Independente (Cloud Run, Fly.io, Railway, etc.) |
+
+---
+
+## 📁 Estrutura do Monorepo
+
+```text
+fin-plan/
+├── docker-compose.yml         # Orquestração local do backend Go (apps/api)
+├── .env.example               # Template centralizado de variáveis de ambiente
+├── .gitignore                 # Regras unificadas de exclusão Git
+├── README.md                  # Este documento
+│
+├── apps/
+│   ├── web/                   # 📦 Frontend React SPA
+│   │   ├── vercel.json        # Configuração para deploy estático na Vercel
+│   │   ├── package.json       # Dependências específicas do frontend
+│   │   ├── vite.config.ts     # Proxy de dev para http://localhost:8080
+│   │   ├── tsconfig.json      # Configuração TypeScript estrita
+│   │   ├── src/               # Código-fonte React (componentes, hooks, context)
+│   │   ├── e2e/               # Testes ponta a ponta herméticos (Playwright)
+│   │   └── scripts/           # Scripts de migração de dados legados
+│   │
+│   └── api/                   # 📦 Backend Go API REST
+│       ├── Dockerfile         # Multi-stage distroless ultraleve (~20MB)
+│       ├── go.mod             # Módulo Go (github.com/gildo-cordeiro/fin-plan/apps/api)
+│       ├── cmd/api/main.go    # Entrypoint HTTP, graceful shutdown e pool MongoDB
+│       ├── internal/          # Domínio de orçamento, repositório e middlewares
+│       └── README.md          # Documentação específica da API Go
+│
+├── docs/                      # 📚 Documentação Técnica Compartilhada
+│   ├── ARCHITECTURE.md        # Arquitetura Local-First, diagramas e modelo de dados
+│   └── API.md                 # Contrato formal da API REST (/api/v1/budget)
+│
+└── .agents/                   # 🤖 Diretrizes e Skills operacionais para agentes IA
+    └── skills/
+        └── finplan-feature-implementation/
+```
 
 ---
 
 ## 📋 Pré-requisitos
 
-- **Node.js**: Versão `>= 18.0.0` (recomendado Node 20 LTS ou superior).
-- **npm**: Versão `>= 9.0.0` (acompanha a instalação do Node).
-- **MongoDB Atlas**: Cluster configurado com usuário e senha com permissão de leitura/escrita na coleção `budgets`.
-- **Navegador moderno**: Chrome, Edge, Firefox ou Safari com suporte a Web Crypto API (`crypto.randomUUID`).
+- **Node.js**: Versão `>= 18.0.0` (recomendado Node 20 LTS ou superior, para rodar `apps/web`)
+- **npm**: Versão `>= 9.0.0`
+- **Docker & Docker Compose**: Recomendado para rodar a API Go localmente sem precisar instalar Go
+- **Go**: Versão `>= 1.24` (opcional, apenas se quiser compilar a API Go nativamente fora do Docker)
+- **MongoDB Atlas**: Cluster configurado com string de conexão válida
 
 ---
 
@@ -35,134 +75,101 @@ git clone https://github.com/gildo-cordeiro/fin-plan.git
 cd fin-plan
 ```
 
-### 2. Instalar dependências
+### 2. Instalar dependências do Frontend (em `apps/web`)
 ```bash
+cd apps/web
 npm install
+cd ../..
 ```
 
 ### 3. Configurar variáveis de ambiente
-Copie o arquivo de exemplo para `.env`:
+Copie o arquivo `.env.example` da raiz para `.env`:
 ```bash
 cp .env.example .env
 ```
 
-Edite o arquivo `.env` com suas credenciais:
+Edite as credenciais:
 ```ini
-# String de conexão do cluster MongoDB Atlas (obrigatória para sincronização em nuvem)
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster-01.kpiykbg.mongodb.net/?appName=cluster-01
-
-# Nome do banco de dados (opcional, padrão: finplan)
+# Backend Go
+MONGODB_URI=mongodb+srv://<usuario>:<senha>@cluster-01.kpiykbg.mongodb.net/?appName=cluster-01
 MONGODB_DB_NAME=finplan
-
-# Chave secreta de autenticação da API (opcional localmente, recomendada em produção)
-# Caso definida, exige o header x-api-key nas chamadas à API
+PORT=8080
 API_SECRET_KEY=sua-chave-secreta-aqui
-VITE_API_SECRET_KEY=sua-chave-secreta-aqui
-```
 
-> [!NOTE]
-> No ambiente de desenvolvimento local, o Vite carrega automaticamente `MONGODB_URI` e `MONGODB_DB_NAME` via `vite.config.ts` através de um middleware embutido que emula a função serverless sem necessidade do Vercel CLI.
+# Frontend Web
+VITE_API_SECRET_KEY=sua-chave-secreta-aqui
+# VITE_API_URL=http://localhost:8080  # Opcional (o proxy do Vite já encaminha /api em dev)
+```
 
 ---
 
 ## 💻 Como Rodar o Projeto
 
-### Modo de Desenvolvimento
-Inicia o servidor de desenvolvimento Vite com hot-reload e emulação do endpoint `/api/budget`:
+### Fluxo Recomendado de Desenvolvimento:
+
+#### 1. Iniciar o Backend (API Go)
+Na raiz do projeto, suba a API via Docker Compose:
 ```bash
+docker compose up --build
+```
+> Ou em segundo plano: `docker compose up -d`. Se tiver Go instalado nativamente: `cd apps/api && go run ./cmd/api`.
+
+A API estará disponível em `http://localhost:8080` (healthcheck em `http://localhost:8080/api/v1/health`).
+
+#### 2. Iniciar o Frontend (Vite Dev Server)
+Em outro terminal:
+```bash
+cd apps/web
 npm run dev
 ```
-Acesse a aplicação no navegador em: `http://localhost:5173`.
+O frontend iniciará em `http://localhost:5173`. O Vite faz proxy automático de qualquer chamada `/api/*` diretamente para a API Go em `http://localhost:8080`.
 
-### Executar Testes Unitários e de Integração
-Executa a suíte de 37 testes automatizados com Vitest:
+---
+
+## 🧪 Testes e Validação do Frontend (em `apps/web`)
+
 ```bash
+cd apps/web
+
+# Executar suíte de testes unitários (Vitest)
 npm test
-```
 
-### Executar Testes End-to-End (E2E)
-Executa a suíte de testes com Playwright (sobe o servidor de desenvolvimento automaticamente se não estiver em execução):
-```bash
+# Executar verificação de tipos e compilação de produção
+npm run build
+
+# Executar testes ponta a ponta (Playwright)
 npm run test:e2e
 ```
 
-### Compilar para Produção (Typecheck + Build)
-Valida a tipagem estrita com TypeScript (`tsc`) e gera os assets minificados e otimizados na pasta `dist/`:
-```bash
-npm run build
-```
-
-### Visualizar Build Localmente
-Executa uma prévia do bundle compilado em `dist/`:
-```bash
-npm run preview
-```
-
-### Migração de Dados Legados (CSV → MongoDB)
-Converte e envia registros da planilha CSV original diretamente para o MongoDB Atlas:
-```bash
-npm run migrate:mongo
-```
-
 ---
 
-## 📜 Scripts Disponíveis
-
-Todos os comandos configurados no [`package.json`](file:///home/gildo-duarte/Documentos/Projects/fin-plan/package.json):
+## 📜 Scripts do Frontend (`apps/web/package.json`)
 
 | Comando | Descrição |
 |---|---|
-| `npm run dev` | Inicia o servidor Vite na porta `5173` com middleware SSR para `/api/budget`. |
-| `npm run build` | Roda `tsc` (typecheck estrito) e `vite build` gerando arquivos em `dist/`. |
-| `npm run preview` | Inicia servidor local de visualização da pasta `dist/`. |
-| `npm test` | Executa a suíte completa de testes unitários com `vitest run`. |
-| `npm run test:e2e` | Executa os testes de interface ponta a ponta com `playwright test`. |
-| `npm run migrate:mongo` | Executa o script Node.js [`scripts/migrate.js`](file:///home/gildo-duarte/Documentos/Projects/fin-plan/scripts/migrate.js) para carga inicial no MongoDB. |
+| `npm run dev` | Inicia o servidor Vite de desenvolvimento com HMR |
+| `npm run build` | Executa typecheck estrito (`tsc`) e build de produção (`vite build`) |
+| `npm test` | Roda todos os testes unitários com Vitest |
+| `npm run test:e2e` | Roda os testes end-to-end com Playwright |
+| `npm run preview` | Visualiza o build de produção localmente |
 
 ---
 
-## 📁 Estrutura de Pastas
+## 🚀 Estratégia de Deploy Independente
 
-Estrutura resumida de 2 níveis do projeto:
+### Frontend (`apps/web`)
+- **Vercel**: Configure a raiz do projeto na Vercel como `apps/web` e o comando de build como `npm run build` (pasta de saída `dist`). O arquivo `apps/web/vercel.json` garante o roteamento da SPA.
+- Nas configurações de variáveis da Vercel, adicione `VITE_API_URL` apontando para a URL pública onde sua API Go estiver hospedada (ou configure um rewrite no `vercel.json`).
 
-```
-fin-plan/
-├── api/                  # Funções serverless Vercel (endpoint /api/budget para MongoDB Atlas)
-├── docs/                 # Documentação técnica (arquitetura, contratos de API e guias)
-├── e2e/                  # Testes ponta a ponta herméticos com Playwright
-├── scripts/              # Scripts utilitários de manutenção e migração de banco de dados
-├── src/                  # Código-fonte da aplicação React
-│   ├── __tests__/        # Testes unitários com Vitest (cálculos, formatadores, storage, API)
-│   ├── components/       # Componentes React organizados por domínio (budget, dashboard, layout, etc.)
-│   ├── constants/        # Enums de categorias/status, definições visuais e seed inicial
-│   ├── context/          # Contextos globais (BudgetContext para estado/sync e ToastContext para avisos)
-│   ├── hooks/            # Hooks de orquestração e memoização reativa de cálculos
-│   ├── services/         # Serviços de negócio puros (cálculos matemáticos, storage local e API HTTP)
-│   ├── types/            # Definições de tipos e interfaces TypeScript do domínio financeiro
-│   └── utils/            # Utilitários de formatação de moedas/datas pt-BR e gerador UUIDv4
-└── .agents/              # Base de conhecimento e skills operacionais para agentes de IA
-    └── skills/           # Padrões arquiteturais, convenções de código e fluxos de trabalho
-```
+### Backend Go (`apps/api`)
+- **Google Cloud Run / AWS ECS / Fly.io / Railway / VPS**:
+  - Compile a imagem a partir de `apps/api/Dockerfile`.
+  - Imagem baseada em `gcr.io/distroless/static:nonroot`, segura, sem binários shell e pesando ~20 MB.
+  - Configure as variáveis `MONGODB_URI`, `MONGODB_DB_NAME`, `PORT` e `API_SECRET_KEY`.
 
 ---
 
-## 📚 Documentação Adicional
+## 📚 Documentação Complementar
 
-- 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Visão geral detalhada, diagrama Mermaid de sincronização local-first, modelo de dados, decisões arquiteturais e limitações.
-- 🔌 **[Contrato da API](docs/API.md)**: Especificação completa dos métodos, headers, payloads e respostas do endpoint `/api/budget`.
-- 🤖 **Skills & Padrões Operacionais (`.agents/skills/`)**:
-  - [`backend-patterns.md`](.agents/skills/backend-patterns.md): Padrões de conexão singleton MongoDB, tratamento de erros e serverless functions.
-  - [`frontend-patterns.md`](.agents/skills/frontend-patterns.md): Design system Tailwind, tipografia tabular, isolamento de componentes e estado reativo.
-  - [`git-workflow.md`](.agents/skills/git-workflow.md): Padrão de branches, Conventional Commits e validações antes de PRs.
-  - [`full-stack-task.md`](.agents/skills/full-stack-task.md): Guia prático para desenvolvimento de features ponta a ponta com segurança e TDD.
-
----
-
-## 🤝 Contribuição e Licença
-
-Este projeto é de uso pessoal e privado (`"private": true` no `package.json`).
-
-Para colaborar no desenvolvimento:
-1. Crie uma branch temática a partir de `main`: `git checkout -b feat/nome-da-funcionalidade`.
-2. Siga as convenções de commits descritas em [`.agents/skills/git-workflow.md`](.agents/skills/git-workflow.md).
-3. Certifique-se de que `npm test`, `npm run build` e `npm run test:e2e` passem sem avisos antes de abrir um Pull Request.
+- 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Detalhamento Local-First, diagrama Mermaid de persistência, modelo de dados e decisões de engenharia.
+- 🔌 **[Especificação da API](docs/API.md)**: Contratos de endpoints `/api/v1/*`, payloads, cabeçalhos de autenticação e códigos de resposta.

@@ -1,0 +1,23 @@
+# docker-compose.yml — FinPlan API (Go)
+#
+# Uso:
+#   docker compose up --build        # build + inicia backend Go
+#   docker compose up -d             # em background
+#   docker compose down              # para e remove containers
+#
+# As variáveis sensíveis devem estar em um arquivo .env na raiz do monorepo
+# ou serem passadas via ambiente do shell.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8080}:${PORT:-8080}"
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-finplan}
+      - API_SECRET_KEY=${API_SECRET_KEY:-}
+      - PORT=${PORT:-8080}
+    restart: unless-stopped

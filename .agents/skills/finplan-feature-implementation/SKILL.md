@@ -12,35 +12,48 @@ funcionalidade no FinPlan, garantindo que a mudança respeite a arquitetura
 Local-First existente, o modelo de dados atual e os padrões já documentados no
 projeto — em vez de introduzir uma abordagem paralela ou inconsistente.
 
+## Estrutura do Monorepo
+
+O projeto utiliza uma arquitetura monorepo com deploys separados:
+
+```
+fin-plan/
+├── apps/
+│   ├── web/            # Frontend React (SPA)
+│   └── api/     # Backend Go (API REST)
+├── docs/               # Documentação compartilhada
+└── .agents/            # Skills para agentes de IA
+```
+
 ## Antes de implementar (leitura obrigatória)
 
 1. Leia `docs/ARCHITECTURE.md` — em especial as seções "Decisões Arquiteturais
    Relevantes" (documento único atômico, Local-First, UUIDv4) e "Modelo de Dados".
-2. Leia `docs/API.md` se a feature tocar no endpoint `/api/budget` ou exigir um
-   endpoint novo.
+2. Leia `docs/API.md` se a feature tocar no endpoint `/api/v1/budget` ou exigir
+   um endpoint novo.
 3. Consulte as skills complementares deste repositório, se relevantes:
-   - `.agents/skills/backend-patterns.md` — ao tocar em `api/budget.ts`
+   - `.agents/skills/backend-patterns.md` — ao tocar no backend Go
    - `.agents/skills/frontend-patterns.md` — ao tocar em componentes/design system
    - `.agents/skills/git-workflow.md` — para o commit final da feature
 4. Identifique se a feature exige alteração no `BudgetState`
-   (`src/types/budget.ts`). Se sim, trate como **mudança de schema** (ver seção
-   dedicada abaixo) — não é uma alteração trivial.
+   (`apps/web/src/types/budget.ts`). Se sim, trate como **mudança de schema** (ver
+   seção dedicada abaixo) — não é uma alteração trivial.
 
 ## Fluxo de implementação
 
 1. **Modelo de dados**
-   Se necessário, atualize `src/types/budget.ts` e a interface `BudgetState`.
-   Toda entidade nova precisa de um campo `id: string` gerado via
+   Se necessário, atualize `apps/web/src/types/budget.ts` e a interface
+   `BudgetState`. Toda entidade nova precisa de um campo `id: string` gerado via
    `generateId()` (`crypto.randomUUID()`, UUIDv4) — nunca slugs determinísticos.
 
 2. **Motor de cálculo**
    Se a feature afeta projeções, saldo ou métricas, atualize
-   `src/services/budgetCalculator.ts`. Mantenha as funções puras (sem efeitos
-   colaterais, sem chamadas de rede).
+   `apps/web/src/services/budgetCalculator.ts`. Mantenha as funções puras (sem
+   efeitos colaterais, sem chamadas de rede).
 
 3. **Estado global**
-   Exponha a nova ação/estado via `src/context/BudgetContext.tsx`. Toda mutação
-   de estado deve seguir o ciclo de vida já existente:
+   Exponha a nova ação/estado via `apps/web/src/context/BudgetContext.tsx`. Toda
+   mutação de estado deve seguir o ciclo de vida já existente:
    - atualizar o estado React imediatamente (0ms de latência percebida)
    - espelhar no `localStorage` sob a chave `finplan-app-data-v4`
    - reagendar o debounce de 500ms para `budgetApiService.saveBudget`
@@ -48,7 +61,7 @@ projeto — em vez de introduzir uma abordagem paralela ou inconsistente.
 
 4. **UI**
    Crie ou edite o componente dentro da pasta de domínio correta em
-   `src/components/` (`budget/`, `dashboard/`, `simulation/`, `goals/`,
+   `apps/web/src/components/` (`budget/`, `dashboard/`, `simulation/`, `goals/`,
    `months/`, `modals/` ou `ui/` para primitivos reutilizáveis). Siga o design
    system e as convenções descritas em `frontend-patterns.md`.
 
@@ -56,20 +69,19 @@ projeto — em vez de introduzir uma abordagem paralela ou inconsistente.
    Novos dados devem, por padrão, viver dentro do documento único
    `default_budget` — **não crie uma nova coleção MongoDB** sem justificar
    explicitamente por que o padrão de documento único (ver ARCHITECTURE.md,
-   seção 3.3) não se aplica. Se for necessário um endpoint novo, siga o padrão
-   já usado em `api/budget.ts`:
-   - conexão singleton via `MongoClient` com `serverSelectionTimeoutMS: 8000`
-   - helper `reply(res, status, data)` para respostas compatíveis com Vercel e
-     com o middleware SSR local
-   - tratamento de `req.body` como objeto, string ou stream bruta
-   - checagem opcional de `API_SECRET_KEY` via header `x-api-key` ou
-     `Authorization: Bearer`
-   - resposta `200` imediata em `OPTIONS`, `405` para verbos não suportados
+   seção 3.3) não se aplica.
+
+   O backend Go está em `apps/api/`:
+   - Edite os handlers em `apps/api/internal/budget/handler.go` e
+     o repositório em `repository.go`. Siga o padrão de middleware chain
+     (CORS → Auth → handler) e timeouts explícitos de contexto (8s).
+   - Os models Go em `apps/api/internal/budget/model.go` devem
+     ser mantidos em sincronia com os tipos TypeScript do frontend.
 
 6. **Testes**
-   Adicione ou atualize testes Vitest em `src/__tests__/` cobrindo a lógica
-   pura (calculator, storage, api service). Se a feature introduzir um fluxo de
-   UI crítico, adicione um teste Playwright em `e2e/`.
+   Adicione ou atualize testes Vitest em `apps/web/src/__tests__/` cobrindo a
+   lógica pura (calculator, storage, api service). Se a feature introduzir um
+   fluxo de UI crítico, adicione um teste Playwright em `apps/web/e2e/`.
 
 7. **Documentação**
    - Alterou ou criou endpoint? Atualize `docs/API.md` (payload de exemplo,
@@ -97,13 +109,13 @@ projeto — em vez de introduzir uma abordagem paralela ou inconsistente.
 - Não crie uma nova coleção MongoDB para a feature sem antes confirmar
   explicitamente com o usuário — o padrão do projeto é documento único atômico
   (`_id: 'default_budget'`).
-- Não remova a checagem opcional de `API_SECRET_KEY` em `api/budget.ts`.
+- Não remova a checagem opcional de `API_SECRET_KEY` no backend Go.
 - Não gere IDs determinísticos ou slugs — use sempre `generateId()` (UUIDv4).
 - Não implemente resolução de conflitos/CRDT a menos que explicitamente
   solicitado — o projeto assume last-write-wins por design (ver limitação
   conhecida 7.1 em ARCHITECTURE.md).
-- Ao final, rode `npm test` e `npm run build` e confirme que passam antes de
-  considerar a tarefa concluída.
+- Ao final, rode `npm test` e `npm run build` dentro de `apps/web/` e confirme
+  que passam antes de considerar a tarefa concluída.
 
 ## Exemplo (few-shot)
 
@@ -113,13 +125,15 @@ selecionável na criação da meta."
 
 **Ação esperada do agente**:
 1. Adicionar `goalCategory: string` à interface `FinancialGoal` em
-   `src/types/budget.ts`.
+   `apps/web/src/types/budget.ts`.
 2. Incrementar `BudgetState.version` e adicionar a migração correspondente em
    `storageService.ts` (metas antigas sem `goalCategory` recebem um valor
    padrão, ex: `"outros"`).
-3. Atualizar o formulário de criação/edição de meta em `src/components/goals/`
-   para incluir o seletor de categoria, seguindo o design system.
-4. Atualizar `docs/API.md` (payload de exemplo do `POST /api/budget` com o novo
-   campo) e `docs/ARCHITECTURE.md` (entidade `FINANCIAL_GOAL` no diagrama ER).
+3. Atualizar o formulário de criação/edição de meta em
+   `apps/web/src/components/goals/` para incluir o seletor de categoria,
+   seguindo o design system.
+4. Atualizar `docs/API.md` (payload de exemplo do `POST /api/v1/budget` com o
+   novo campo) e `docs/ARCHITECTURE.md` (entidade `FINANCIAL_GOAL` no diagrama
+   ER).
 5. Adicionar/atualizar testes cobrindo a migração e, se aplicável, qualquer
    lógica de cálculo afetada.

@@ -1,19 +1,19 @@
-# 🔌 FinPlan — Especificação da API REST
+# 🔌 FinPlan — Especificação da API REST (v1)
 
-Esta documentação descreve todos os endpoints, contratos de requisição/resposta e regras de erro da camada de persistência serverless do **FinPlan**.
+Esta documentação descreve todos os endpoints, contratos de requisição/resposta, cabeçalhos e regras de erro da camada de persistência REST do **FinPlan**.
 
-A implementação do endpoint localiza-se em [`api/budget.ts`](file:///home/gildo-duarte/Documentos/Projects/fin-plan/api/budget.ts) e é servida como uma Vercel Serverless Function em produção e emulada por middleware SSR do Vite em ambiente de desenvolvimento local.
+A implementação do backend localiza-se em [`apps/api/`](../apps/api/) e é servida como uma API REST compilada em Go com MongoDB Go Driver oficial.
 
 ---
 
 ## 🔒 Autenticação e Cabeçalhos
 
 ### Autenticação por API Key (Opcional / Configurável)
-Se a variável de ambiente `API_SECRET_KEY` estiver definida no servidor, toda requisição aos métodos `GET` e `POST` deve incluir a chave secreta. O backend aceita a credencial em dois formatos:
+Se a variável de ambiente `API_SECRET_KEY` estiver definida no servidor Go, toda requisição às rotas protegidas deve incluir a chave secreta. O backend aceita a credencial em dois formatos:
 1. Cabeçalho proprietário: `x-api-key: <API_SECRET_KEY>`
 2. Cabeçalho padrão HTTP: `Authorization: Bearer <API_SECRET_KEY>`
 
-Se a chave for omitida ou divergir do valor de `API_SECRET_KEY`, a API responderá com status `401 Unauthorized`. Caso a variável `API_SECRET_KEY` **não** esteja configurada no servidor, a verificação é ignorada.
+Se a chave for omitida ou divergir do valor de `API_SECRET_KEY`, a API responderá com status `401 Unauthorized`. Caso a variável `API_SECRET_KEY` **não** esteja configurada no servidor, a verificação é ignorada (modo desenvolvimento aberto).
 
 ### Cabeçalhos Padrão de Resposta (CORS)
 Todas as respostas incluem os seguintes cabeçalhos CORS:
@@ -26,19 +26,32 @@ Todas as respostas incluem os seguintes cabeçalhos CORS:
 
 ## 📦 Recursos e Endpoints
 
-### Domínio: Orçamento & Persistência
+### 1. `GET /api/v1/health`
+Health check para orquestradores (Docker, Kubernetes, Cloud Run).
 
-#### 1. `OPTIONS /api/budget`
+- **Método**: `GET`
+- **Autenticação**: Não requerida
+- **Resposta**:
+  - `200 OK`:
+    ```json
+    {
+      "status": "ok"
+    }
+    ```
+
+---
+
+### 2. `OPTIONS /api/v1/budget`
 Executa a validação de pré-vôo (preflight) para clientes CORS.
 
 - **Método**: `OPTIONS`
 - **Autenticação**: Não requerida
 - **Resposta**:
-  - `200 OK` (sem corpo, apenas cabeçalhos)
+  - `200 OK` (sem corpo, apenas cabeçalhos CORS)
 
 ---
 
-#### 2. `GET /api/budget`
+### 3. `GET /api/v1/budget`
 Recupera o estado mais recente do orçamento armazenado no MongoDB Atlas (`_id: 'default_budget'`).
 
 - **Método**: `GET`
@@ -111,7 +124,7 @@ Recupera o estado mais recente do orçamento armazenado no MongoDB Atlas (`_id: 
   - **`503 Service Unavailable`** (Variável `MONGODB_URI` ausente no ambiente):
     ```json
     {
-      "error": "MONGODB_URI não configurada nas variáveis de ambiente da Vercel. Adicione MONGODB_URI nas variáveis do projeto na Vercel (Project Settings -> Environment Variables)."
+      "error": "MONGODB_URI não configurada nas variáveis de ambiente. O servidor está ativo mas sem conexão com o banco de dados."
     }
     ```
   - **`500 Internal Server Error`** (Timeout ou falha de rede com o cluster MongoDB):
@@ -123,7 +136,7 @@ Recupera o estado mais recente do orçamento armazenado no MongoDB Atlas (`_id: 
 
 ---
 
-#### 3. `POST /api/budget`
+### 4. `POST /api/v1/budget`
 Persiste atomicamente o estado completo do orçamento no documento único `default_budget` via `updateOne` com `{ upsert: true }`.
 
 - **Método**: `POST`
@@ -250,7 +263,7 @@ Persiste atomicamente o estado completo do orçamento no documento único `defau
     ```
 
 - **Respostas de Erro**:
-  - **`400 Bad Request`** (Corpo ausente, string inválida ou tipo não-objeto):
+  - **`400 Bad Request`** (Corpo ausente, JSON malformado ou payload inválido):
     ```json
     {
       "error": "Corpo da requisição inválido ou ausente."
@@ -262,10 +275,10 @@ Persiste atomicamente o estado completo do orçamento no documento único `defau
       "error": "Acesso não autorizado. Chave de API ausente ou inválida."
     }
     ```
-  - **`503 Service Unavailable`** (`MONGODB_URI` não configurada):
+  - **`503 Service Unavailable`** (`MONGODB_URI` não configurada no servidor):
     ```json
     {
-      "error": "MONGODB_URI não configurada nas variáveis de ambiente da Vercel. Adicione MONGODB_URI nas variáveis do projeto na Vercel (Project Settings -> Environment Variables)."
+      "error": "MONGODB_URI não configurada nas variáveis de ambiente."
     }
     ```
   - **`500 Internal Server Error`**:
@@ -277,11 +290,12 @@ Persiste atomicamente o estado completo do orçamento no documento único `defau
 
 ---
 
-#### 4. Métodos Não Suportados (`PUT`, `DELETE`, `PATCH`, etc.)
+### 5. Métodos Não Suportados
+Qualquer outro método HTTP (ex: `PUT`, `DELETE`, `PATCH`) disparado contra `/api/v1/budget` retornará:
 - **Status de Resposta**: `405 Method Not Allowed`
 - **Corpo**:
   ```json
   {
-    "error": "Método PUT não suportado."
+    "error": "Método {METHOD} não suportado."
   }
   ```

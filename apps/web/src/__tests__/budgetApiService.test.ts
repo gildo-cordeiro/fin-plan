@@ -18,12 +18,17 @@ describe('budgetApiService', () => {
       updatedAt: '2026-09-24T19:00:00.000Z',
     };
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
-    } as unknown as Response);
+    let capturedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
+      capturedUrl = String(url);
+      return {
+        ok: true,
+        json: async () => mockResponse,
+      } as unknown as Response;
+    });
 
     const result = await budgetApiService.fetchBudget();
+    expect(capturedUrl).toBe('/api/v1/budget');
     expect(result.state).not.toBeNull();
     expect(result.state?.simulation.initialBalance).toBe(INITIAL_BUDGET_STATE.simulation.initialBalance);
     expect(result.updatedAt).toEqual(new Date('2026-09-24T19:00:00.000Z'));
