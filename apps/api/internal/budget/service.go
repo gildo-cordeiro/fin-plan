@@ -1,4 +1,4 @@
-package budgetyear
+package budget
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/onetimecost"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 )
 
 var (
@@ -179,8 +179,8 @@ func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewMode
 		return &YearViewModel{
 			Year:         *createdYear,
 			Months:       createdYear.Months,
-			Items:        []budgetitem.BudgetItem{},
-			OneTimeCosts: []onetimecost.OneTimeCost{},
+			Items:        []item.BudgetItem{},
+			OneTimeCosts: []cost.OneTimeCost{},
 			Goals:        []goal.Goal{},
 		}, nil
 	}

@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetyear"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budget"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/config"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/middleware"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/onetimecost"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -72,15 +72,15 @@ func (a *App) routes() *http.ServeMux {
 
 	if a.mongoClient != nil {
 		// Atomic budget-items
-		itemRepo := budgetitem.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
-		itemSvc := budgetitem.NewService(itemRepo)
-		itemH := budgetitem.NewHandler(itemSvc)
+		itemRepo := item.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		itemSvc := item.NewService(itemRepo)
+		itemH := item.NewHandler(itemSvc)
 		itemH.RegisterRoutes(mux)
 
 		// Atomic one-time-costs
-		costRepo := onetimecost.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
-		costSvc := onetimecost.NewService(costRepo)
-		costH := onetimecost.NewHandler(costSvc)
+		costRepo := cost.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		costSvc := cost.NewService(costRepo)
+		costH := cost.NewHandler(costSvc)
 		costH.RegisterRoutes(mux)
 
 		// Atomic goals & contributions
@@ -90,9 +90,9 @@ func (a *App) routes() *http.ServeMux {
 		goalH.RegisterRoutes(mux)
 
 		// Budget years, months and aggregated view model
-		yearRepo := budgetyear.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
-		yearSvc := budgetyear.NewService(yearRepo)
-		yearH := budgetyear.NewHandler(yearSvc)
+		yearRepo := budget.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		yearSvc := budget.NewService(yearRepo)
+		yearH := budget.NewHandler(yearSvc)
 		yearH.RegisterRoutes(mux)
 	} else {
 		unavailableHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +176,7 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	_ = db.Collection("one_time_costs").Drop(idxCtx)
 
 	// Index: budgets.year (unique)
-	_, err := db.Collection(budgetyear.CollectionBudgets).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+	_, err := db.Collection(budget.CollectionBudgets).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "year", Value: 1}},
 		Options: options.Index().SetUnique(true).SetName("idx_budgets_year_unique"),
 	})
@@ -185,7 +185,7 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	}
 
 	// Index: costs.targetMonthId
-	_, err = db.Collection(onetimecost.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+	_, err = db.Collection(cost.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "targetMonthId", Value: 1}},
 		Options: options.Index().SetName("idx_costs_targetMonthId"),
 	})
@@ -194,7 +194,7 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	}
 
 	// Index: items.type
-	_, err = db.Collection(budgetitem.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+	_, err = db.Collection(item.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "type", Value: 1}},
 		Options: options.Index().SetName("idx_items_type"),
 	})

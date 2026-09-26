@@ -115,10 +115,10 @@ fin-plan/
 │       ├── cmd/api/main.go      # Entrypoint HTTP, graceful shutdown e auto-indexing MongoDB
 │       └── internal/
 │           ├── app/             # Application lifecycle, composição e shutdown gracioso
-│           ├── budgetitem/      # Itens orçamentários trans-anuais (CRUD atômico)
-│           ├── budgetyear/      # Anos fiscais, meses e agregação YearViewModel
+│           ├── budget/          # Anos fiscais, meses e agregação YearViewModel
+│           ├── cost/            # Custos pontuais com targetMonthId
 │           ├── goal/            # Metas financeiras e aportes atômicos ($push/$pull)
-│           ├── onetimecost/     # Custos pontuais com targetMonthId
+│           ├── item/            # Itens orçamentários trans-anuais (CRUD atômico)
 │           ├── httputil/        # Respostas padronizadas (WriteJSON/WriteError) e UUIDv4
 │           ├── config/          # Carregamento de variáveis de ambiente
 │           └── middleware/      # Middlewares de Auth e CORS

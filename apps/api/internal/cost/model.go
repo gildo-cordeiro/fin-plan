@@ -1,4 +1,4 @@
-package onetimecost
+package cost
 
 type OneTimeCost struct {
 	ID            string  `json:"id" bson:"_id"`

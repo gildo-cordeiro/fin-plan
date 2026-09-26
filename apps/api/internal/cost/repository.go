@@ -1,4 +1,4 @@
-package onetimecost
+package cost
 
 import (
 	"context"

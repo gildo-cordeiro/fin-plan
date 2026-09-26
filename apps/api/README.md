@@ -13,10 +13,10 @@ api/
 │   ├── app/
 │   │   ├── app.go               # Application bootstrap (centraliza banco, DI, auto-indexing, rotas, shutdown)
 │   │   └── app_test.go          # Testes unitários do ciclo de vida da aplicação
-│   ├── budgetitem/              # Itens orçamentários trans-anuais (CRUD atômico)
-│   ├── budgetyear/              # Anos orçamentários, meses e agregação YearViewModel
+│   ├── budget/                  # Anos orçamentários, meses e agregação YearViewModel
+│   ├── cost/                    # Custos pontuais com targetMonthId
 │   ├── goal/                    # Metas financeiras e aportes atômicos ($push/$pull)
-│   ├── onetimecost/             # Custos pontuais com targetMonthId
+│   ├── item/                    # Itens orçamentários trans-anuais (CRUD atômico)
 │   ├── httputil/                # Respostas padronizadas (WriteJSON/WriteError) e UUIDv4
 │   ├── middleware/
 │   │   ├── auth.go              # API key (x-api-key / Authorization: Bearer)

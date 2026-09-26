@@ -1,4 +1,4 @@
-package budgetyear
+package budget
 
 import (
 	"context"

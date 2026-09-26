@@ -1,4 +1,4 @@
-package budgetitem
+package item
 
 type BudgetItem struct {
 	ID      string             `json:"id" bson:"_id"`

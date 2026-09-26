@@ -1,11 +1,11 @@
-package budgetyear
+package budget
 
 import (
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/onetimecost"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 )
 
 type SimulationSettings struct {
@@ -33,11 +33,11 @@ type Month struct {
 }
 
 type YearViewModel struct {
-	Year         BudgetYear                `json:"year"`
-	Months       []Month                   `json:"months"`
-	Items        []budgetitem.BudgetItem   `json:"items"`
-	OneTimeCosts []onetimecost.OneTimeCost `json:"oneTimeCosts"`
-	Goals        []goal.Goal               `json:"goals"`
+	Year         BudgetYear         `json:"year"`
+	Months       []Month            `json:"months"`
+	Items        []item.BudgetItem  `json:"items"`
+	OneTimeCosts []cost.OneTimeCost `json:"oneTimeCosts"`
+	Goals        []goal.Goal        `json:"goals"`
 }
 
 type CreateBudgetYearInput struct {

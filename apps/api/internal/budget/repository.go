@@ -1,12 +1,12 @@
-package budgetyear
+package budget
 
 import (
 	"context"
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/onetimecost"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,8 +42,8 @@ func NewMongoRepository(client *mongo.Client, dbName string) *MongoRepository {
 	return &MongoRepository{
 		db:        db,
 		yearsColl: db.Collection(CollectionBudgets),
-		itemsColl: db.Collection(budgetitem.CollectionName),
-		costsColl: db.Collection(onetimecost.CollectionName),
+		itemsColl: db.Collection(item.CollectionName),
+		costsColl: db.Collection(cost.CollectionName),
 		goalsColl: db.Collection(goal.CollectionName),
 	}
 }
@@ -52,8 +52,8 @@ func NewRepository(db *mongo.Database) *MongoRepository {
 	return &MongoRepository{
 		db:        db,
 		yearsColl: db.Collection(CollectionBudgets),
-		itemsColl: db.Collection(budgetitem.CollectionName),
-		costsColl: db.Collection(onetimecost.CollectionName),
+		itemsColl: db.Collection(item.CollectionName),
+		costsColl: db.Collection(cost.CollectionName),
 		goalsColl: db.Collection(goal.CollectionName),
 	}
 }
@@ -212,12 +212,12 @@ func (r *MongoRepository) GetYearViewModel(ctx context.Context, year int) (*Year
 	}
 	defer cursorItems.Close(ctx)
 
-	var items []budgetitem.BudgetItem
+	var items []item.BudgetItem
 	if err := cursorItems.All(ctx, &items); err != nil {
 		return nil, err
 	}
 	if items == nil {
-		items = []budgetitem.BudgetItem{}
+		items = []item.BudgetItem{}
 	}
 
 	// Buscar custos pontuais do ano ou sem mês atribuído
@@ -240,12 +240,12 @@ func (r *MongoRepository) GetYearViewModel(ctx context.Context, year int) (*Year
 	}
 	defer cursorCosts.Close(ctx)
 
-	var costs []onetimecost.OneTimeCost
+	var costs []cost.OneTimeCost
 	if err := cursorCosts.All(ctx, &costs); err != nil {
 		return nil, err
 	}
 	if costs == nil {
-		costs = []onetimecost.OneTimeCost{}
+		costs = []cost.OneTimeCost{}
 	}
 
 	// Buscar todas as metas financeiras
