@@ -9,9 +9,13 @@ export const MonthlyBarChart = () => {
   const n = monthlySummaries.length;
   if (n === 0) return null;
 
+  const hasAnyOneTime = monthlySummaries.some((m) => m.oneTime > 0);
+
   const maxVal = Math.max(
     1000,
-    ...monthlySummaries.map((m) => Math.max(m.income, m.cards + m.fixed + m.variable))
+    ...monthlySummaries.map((m) =>
+      Math.max(m.income, m.cards + m.fixed + m.variable + (m.oneTime || 0))
+    )
   );
 
   const W = Math.max(480, n * 55);
@@ -55,6 +59,12 @@ export const MonthlyBarChart = () => {
             <span className="w-2.5 h-2.5 rounded-xs bg-[#c09420] inline-block"></span>
             Variáveis
           </span>
+          {hasAnyOneTime && (
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-xs bg-[#9333ea] inline-block"></span>
+              Pontuais
+            </span>
+          )}
         </div>
       </div>
 
@@ -83,10 +93,12 @@ export const MonthlyBarChart = () => {
               const cardH = getH(m.cards);
               const fixH = getH(m.fixed);
               const varH = getH(m.variable);
+              const oneTimeH = getH(m.oneTime || 0);
 
               const cardY = H - padBottom - cardH;
               const fixY = cardY - fixH;
               const varY = fixY - varH;
+              const oneTimeY = varY - oneTimeH;
 
               return (
                 <g
@@ -145,6 +157,18 @@ export const MonthlyBarChart = () => {
                     className="transition-all duration-150"
                   />
 
+                  {oneTimeH > 0 && (
+                    <rect
+                      x={expX}
+                      y={oneTimeY}
+                      width={barW}
+                      height={Math.max(1, oneTimeH)}
+                      rx="2"
+                      fill="#9333ea"
+                      className="transition-all duration-150"
+                    />
+                  )}
+
                   <text
                     x={cx}
                     y={H - 8}
@@ -182,6 +206,11 @@ export const MonthlyBarChart = () => {
               <span className="text-[#c09420]">
                 Var: {formatBRL(currentHover.variable)}
               </span>
+              {currentHover.oneTime > 0 && (
+                <span className="text-[#9333ea] font-semibold">
+                  Pontuais: {formatBRL(currentHover.oneTime)}
+                </span>
+              )}
             </div>
           </div>
         ) : (

@@ -200,5 +200,45 @@ describe('budgetCalculator', () => {
       expect(result.monthlySummaries).toHaveLength(3);
       expect(result.metrics.finalAccumulated).toBe(17800);
     });
+
+    it('custo pontual alocado gera inflexão exata no mês e reduz o saldo acumulado subsequente', () => {
+      const state = createBaseState();
+      // Adicionar custo de mudança alto em Dezembro/26
+      state.oneTimeCosts.push({
+        id: 'ot-mudanca',
+        name: 'Mudança de Residência',
+        value: 5000,
+        targetMonthId: '2026-12',
+      });
+
+      const { monthlySummaries, metrics } = calculateBudget(state);
+      const dec = monthlySummaries[2];
+
+      // Regular em Dezembro: 3000 (cartão) + 2000 (fixa) + 1500 (var) = 6500
+      // Custo pontual: 5000
+      // Total despesas: 11500
+      // Renda: 10000
+      // Sobra de Dezembro: -1500
+      expect(dec.oneTime).toBe(5000);
+      expect(dec.totalExpenses).toBe(11500);
+      expect(dec.monthBalance).toBe(-1500);
+
+      // Saldo acumulado anterior (Nov) era 14300. Com -1500, vai para 12800
+      expect(dec.accumulatedBalance).toBe(12800);
+      expect(metrics.finalAccumulated).toBe(12800);
+    });
+
+    it('quando o saldo inicial for baixo mas crescente, minAccumulatedBalance é positivo e não há déficit', () => {
+      const state = createBaseState();
+      state.simulation.initialBalance = 1000;
+      state.simulation.emergencyReserve = 10000; // meta bem superior ao caixa atual
+
+      const { monthlySummaries, metrics } = calculateBudget(state);
+
+      expect(metrics.minAccumulatedBalance).toBe(4000); // 1000 + 3000 de Outubro
+      expect(metrics.minAccumulatedMonth).toBe('Out/26');
+      expect(metrics.minAccumulatedBalance).toBeGreaterThan(0);
+      expect(monthlySummaries.every((m) => m.accumulatedBalance > 0)).toBe(true);
+    });
   });
 });
