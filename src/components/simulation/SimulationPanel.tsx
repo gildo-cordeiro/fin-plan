@@ -77,7 +77,8 @@ export const SimulationPanel = () => {
             onClick={() =>
               updateSimulation({ varsPercent: 0, oneTimeMarginPercent: 0 })
             }
-            className="text-xs px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200 font-semibold transition-colors"
+            aria-label="Zerar todas as simulações e voltar aos valores originais"
+            className="text-xs px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200 font-semibold transition-colors cursor-pointer"
           >
             ✕ Zerar Simulações
           </button>
@@ -109,6 +110,7 @@ export const SimulationPanel = () => {
             max="50"
             step="5"
             value={simulation.varsPercent}
+            aria-label="Variação percentual de despesas variáveis"
             onChange={(e) =>
               updateSimulation({ varsPercent: Number(e.target.value) })
             }
@@ -142,6 +144,7 @@ export const SimulationPanel = () => {
             max="50"
             step="5"
             value={simulation.oneTimeMarginPercent}
+            aria-label="Margem de imprevistos para custos pontuais"
             onChange={(e) =>
               updateSimulation({
                 oneTimeMarginPercent: Number(e.target.value),

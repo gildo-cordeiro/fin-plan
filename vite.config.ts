@@ -68,5 +68,9 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       open: false,
     },
+    test: {
+      include: ['src/__tests__/**/*.test.ts'],
+      exclude: ['e2e/**', 'node_modules/**'],
+    },
   };
 });
