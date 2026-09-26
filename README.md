@@ -1,153 +1,168 @@
-# 💸 FinPlan — Planejador Financeiro & Orçamento de Metas
+# 💸 FinPlan — Planejador Financeiro Pessoal
 
-Um aplicativo moderno, reativo e bem estruturado construído em **React 18 + TypeScript + Vite + Tailwind CSS**, desenvolvido para superar as limitações de horizontes rígidos (como os antigos 3 meses) e permitir planejar com flexibilidade qualquer período de tempo (**3 meses, 6 meses, 12 meses / 1 ano, 24 meses / 2 anos ou personalizado**).
+FinPlan é uma aplicação web moderna de planejamento financeiro pessoal de alta precisão, desenvolvida com React 18, TypeScript, Vite e Tailwind CSS. Projetada sob o paradigma **Local-First**, combina resposta instantânea de interface (0ms de latência percebida) com persistência em nuvem no **MongoDB Atlas** via API Serverless.
 
----
-
-## 🚀 Principais Funcionalidades
-
-### 1. 📅 Horizonte Temporal Dinâmico e Ilimitado (Não se restringe a 3 meses)
-- **Presets rápidos de horizonte**: alterne com 1 clique entre **3 Meses**, **6 Meses**, **12 Meses** e **24 Meses**.
-- **Horizonte Personalizado**: escolha o mês e ano de início (ex: Outubro/2026) e projete quantos meses desejar (de 1 a 60 meses).
-- **Adição/Remoção Fluida**: botões `+ Próximo Mês` e `- Mês Anterior` para expandir o fluxo mantendo os valores de despesas recorrentes preenchidos automaticamente.
-- **Replicação inteligente**: botão `⇥` em cada linha para replicar o valor do 1º mês em todos os meses posteriores com 1 clique.
-
-### 2. 📊 Dashboard Executivo & Gráficos Interativos
-- **Cards de KPIs**:
-  - **Sobra Líquida após Mudança / Metas**: badge dinâmico indicando se a meta é viável ou o valor exato faltante.
-  - **Disponível para Metas**: saldo total acumulado menos a Reserva de Emergência intocável.
-  - **Custo Total Planejado**: soma de custos pontuais com margem de segurança configurável.
-  - **Ponto Crítico do Caixa (Break-even)**: alerta preventivo do menor saldo durante todo o período e taxa média de poupança.
-- **Gráfico de Evolução do Saldo Acumulado (Cashflow SVG)**: curva com gradiente, linha de reserva intocável e tooltips interativos ao passar o mouse.
-- **Gráfico Renda vs Despesas Mês a Mês (Stacked Bar Chart)**: comparativo visual de entradas versus composição de cartões, despesas fixas e variáveis.
-- **Gráfico Donut de Distribuição de Gastos**: percentual de cada categoria no orçamento total.
-
-### 3. 🔮 Simulador de Cenários ("E se...")
-- Teste variações sem alterar seus dados base cadastrados:
-  - **Gastos Variáveis**: simule oscilações de -50% a +50% (economia ou inflação).
-  - **Renda Líquida**: simule aumento ou cortes de -30% a +30%.
-  - **Margem de Imprevistos nos Custos Pontuais**: adicione de 0% a +50% de folga orçamentária.
-  - **Saldo Inicial e Reserva de Emergência**: ajuste o ponto de partida e a blindagem financeira.
-
-### 4. 📝 Planejamento Detalhado por Categorias
-- **Rendas Líquidas**: suporte a múltiplas fontes de receita (salário, freelance, extras).
-- **Cartões de Crédito**: acompanhamento de faturas e parcelas abertas por mês.
-- **Despesas Fixas**: aluguel, condomínio, energia, gás, celular, internet, carro, etc.
-- **Despesas Variáveis**: mercado, feira, galão de água, transporte, etc.
-- **Custos Pontuais / Mudança**: caminhão/frete, caução/depósito, montagem de móveis, pintura e reformas, com atribuição de mês específico ou meta global.
-- Checkboxes em cada item para ativar/desativar em simulações instantâneas.
-
-### 5. 📋 Demonstrativo Mês a Mês & Exportação
-- Tabela consolidada com Entradas, Cartões, Fixas, Variáveis, Custos Pontuais, Sobra do Mês e Saldo Acumulado.
-- **Exportação para Planilha (CSV / Excel)** com codificação UTF-8 compatível.
-
-### 6. ☁️ Banco de Dados em Nuvem (Google Sheets + SheetDB)
-- **Integração nativa com Planilha Google**: seus dados ficam gravados diretamente em uma planilha relacional no seu Google Drive.
-- **Identificadores Semânticos Determinísticos**: chaves puras (`cfg:*`, `renda:*`, `despesa:*`, `mudanca:*`, `meta:*`) que garantem idempotência e eliminam duplicatas.
-- **Sincronização Granular (Delta Sync via `PATCH`)**: qualquer edição no app altera apenas a célula correspondente na planilha em ~300ms, sem adicionar novas linhas.
-- **Modo Local-First**: o app funciona com latência zero e salva no `localStorage`, sincronizando em segundo plano com debounce de 2,5s.
-
-### 7. 💾 Backup, Importação & Persistência Local
-- Salvamento contínuo em tempo real no `localStorage` do navegador (v4).
-- Modal dedicado para:
-  - Copiar e colar JSON de configuração.
-  - Baixar arquivo `.json`.
-  - Carregar arquivo de backup `.json`.
-  - Restaurar dados padrão iniciais.
-
-### 8. 🌓 Design Moderno & Acessibilidade
-- Modo Escuro (Dark Mode) e Modo Claro (Light Mode) com detecção automática e alternador no topo.
-- Tipografia moderna (Inter + JetBrains Mono para números tabulares alinhados).
-- Feedback tátil, inputs monetários com seleção rápida ao foco e layout responsivo (mobile, tablet e desktop).
+O sistema permite navegar e projetar o fluxo de caixa em horizontes flexíveis de 1 a 60 meses (com presets de 3, 6, 12 e 24 meses), simular cenários de sensibilidade ("E se...") em tempo real e monitorar a integridade da reserva de emergência e metas financeiras.
 
 ---
 
-## 📖 Documentação de Arquitetura
+## 🚀 Badges & Stack Tecnológica
 
-Para uma explicação detalhada de como o sistema foi concebido, seus fluxos de dados, a modelagem relacional na planilha e por que escolhemos IDs semânticos determinísticos em vez de UUIDs, leia o guia completo:
-
-👉 **[docs/ARQUITETURA_E_FUNCIONAMENTO.md](docs/ARQUITETURA_E_FUNCIONAMENTO.md)**
+| Camada | Tecnologias Principais |
+|---|---|
+| **Frontend** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React 0.460.0 |
+| **Backend (Serverless)** | Node.js, Vercel Serverless Functions (`api/budget.ts`), MongoDB Node Driver 6.10.0 |
+| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`), Web Storage (`localStorage` v4) |
+| **Testes** | Vitest 2.1.9 (Unitários/Integração), Playwright 1.63.0 (E2E) |
+| **Hospedagem & Deploy** | Vercel (`vercel.json`) com rewrites para SPA |
 
 ---
 
-## 🛠️ Como Executar o Projeto
+## 📋 Pré-requisitos
 
-### Pré-requisitos
-Node.js instalado (v18 ou superior).
+- **Node.js**: Versão `>= 18.0.0` (recomendado Node 20 LTS ou superior).
+- **npm**: Versão `>= 9.0.0` (acompanha a instalação do Node).
+- **MongoDB Atlas**: Cluster configurado com usuário e senha com permissão de leitura/escrita na coleção `budgets`.
+- **Navegador moderno**: Chrome, Edge, Firefox ou Safari com suporte a Web Crypto API (`crypto.randomUUID`).
 
-### Instalar dependências
+---
+
+## ⚙️ Instalação e Configuração
+
+### 1. Clonar o repositório
+```bash
+git clone https://github.com/gildo-cordeiro/fin-plan.git
+cd fin-plan
+```
+
+### 2. Instalar dependências
 ```bash
 npm install
 ```
 
-### Iniciar o servidor de desenvolvimento
+### 3. Configurar variáveis de ambiente
+Copie o arquivo de exemplo para `.env`:
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` com suas credenciais:
+```ini
+# String de conexão do cluster MongoDB Atlas (obrigatória para sincronização em nuvem)
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster-01.kpiykbg.mongodb.net/?appName=cluster-01
+
+# Nome do banco de dados (opcional, padrão: finplan)
+MONGODB_DB_NAME=finplan
+
+# Chave secreta de autenticação da API (opcional localmente, recomendada em produção)
+# Caso definida, exige o header x-api-key nas chamadas à API
+API_SECRET_KEY=sua-chave-secreta-aqui
+VITE_API_SECRET_KEY=sua-chave-secreta-aqui
+```
+
+> [!NOTE]
+> No ambiente de desenvolvimento local, o Vite carrega automaticamente `MONGODB_URI` e `MONGODB_DB_NAME` via `vite.config.ts` através de um middleware embutido que emula a função serverless sem necessidade do Vercel CLI.
+
+---
+
+## 💻 Como Rodar o Projeto
+
+### Modo de Desenvolvimento
+Inicia o servidor de desenvolvimento Vite com hot-reload e emulação do endpoint `/api/budget`:
 ```bash
 npm run dev
 ```
-O servidor estará rodando em `http://localhost:5173`.
+Acesse a aplicação no navegador em: `http://localhost:5173`.
 
-### Executar a Suíte de Testes Automatizados (Vitest)
+### Executar Testes Unitários e de Integração
+Executa a suíte de 37 testes automatizados com Vitest:
 ```bash
 npm test
 ```
-Executa 23 testes unitários e de integração cobrindo o `sheetService`, normalização de slugs, gerador de IDs e fluxos de rede mockados.
 
-### Compilar para Produção
+### Executar Testes End-to-End (E2E)
+Executa a suíte de testes com Playwright (sobe o servidor de desenvolvimento automaticamente se não estiver em execução):
+```bash
+npm run test:e2e
+```
+
+### Compilar para Produção (Typecheck + Build)
+Valida a tipagem estrita com TypeScript (`tsc`) e gera os assets minificados e otimizados na pasta `dist/`:
 ```bash
 npm run build
 ```
-Os arquivos otimizados e minificados serão gerados na pasta `dist/`.
+
+### Visualizar Build Localmente
+Executa uma prévia do bundle compilado em `dist/`:
+```bash
+npm run preview
+```
+
+### Migração de Dados Legados (CSV → MongoDB)
+Converte e envia registros da planilha CSV original diretamente para o MongoDB Atlas:
+```bash
+npm run migrate:mongo
+```
+
+---
+
+## 📜 Scripts Disponíveis
+
+Todos os comandos configurados no [`package.json`](file:///home/gildo-duarte/Documentos/Projects/fin-plan/package.json):
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Inicia o servidor Vite na porta `5173` com middleware SSR para `/api/budget`. |
+| `npm run build` | Roda `tsc` (typecheck estrito) e `vite build` gerando arquivos em `dist/`. |
+| `npm run preview` | Inicia servidor local de visualização da pasta `dist/`. |
+| `npm test` | Executa a suíte completa de testes unitários com `vitest run`. |
+| `npm run test:e2e` | Executa os testes de interface ponta a ponta com `playwright test`. |
+| `npm run migrate:mongo` | Executa o script Node.js [`scripts/migrate.js`](file:///home/gildo-duarte/Documentos/Projects/fin-plan/scripts/migrate.js) para carga inicial no MongoDB. |
 
 ---
 
 ## 📁 Estrutura de Pastas
 
+Estrutura resumida de 2 níveis do projeto:
+
 ```
-Finances/
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── tailwind.config.js
-├── postcss.config.js
-├── src/
-│   ├── main.tsx                      # Ponto de entrada React 18
-│   ├── App.tsx                       # Layout principal e rotas/abas
-│   ├── index.css                     # Configurações do Tailwind e estilos base
-│   ├── types/
-│   │   └── budget.ts                 # Interfaces TypeScript do domínio financeiro
-│   ├── constants/
-│   │   └── seedData.ts               # Dados iniciais e valores de referência
-│   ├── context/
-│   │   └── BudgetContext.tsx         # Estado global, ações e persistência
-│   ├── hooks/
-│   │   └── useBudgetCalculations.ts  # Motor de cálculo e projeção financeira
-│   ├── utils/
-│   │   └── formatters.ts             # Formatadores BRL, números e datas
-│   └── components/
-│       ├── layout/
-│       │   ├── Header.tsx            # Barra superior, tema e backup
-│       │   └── NavigationTabs.tsx    # Abas de navegação (Dashboard, Detalhes, etc.)
-│       ├── months/
-│       │   └── MonthHorizonBar.tsx   # Barra de horizonte (Presets 3M, 6M, 12M, 24M)
-│       ├── dashboard/
-│       │   ├── KpiCards.tsx          # Indicadores principais de caixa e meta
-│       │   ├── CashFlowChart.tsx     # Gráfico SVG de curva de caixa acumulado
-│       │   ├── MonthlyBarChart.tsx   # Gráfico SVG de barras empilhadas
-│       │   └── CategoryDonutChart.tsx# Gráfico SVG Donut de gastos por categoria
-│       ├── simulation/
-│       │   └── SimulationPanel.tsx   # Sliders de simulação ("E se...")
-│       ├── budget/
-│       │   ├── IncomeSection.tsx     # Seção de receitas
-│       │   ├── CategorySection.tsx   # Componente reutilizável de despesas
-│       │   └── OneTimeCostsSection.tsx # Custos da mudança / metas pontuais
-│       ├── summary/
-│       │   └── MonthlySummaryTable.tsx # Tabela consolidadora mês a mês + CSV
-│       ├── modals/
-│       │   └── BackupModal.tsx       # Importação e exportação de backups
-│       └── ui/
-│           ├── Button.tsx            # Botão reutilizável com variantes
-│           ├── Card.tsx              # Card com suporte a glassmorphism
-│           ├── Badge.tsx             # Pílulas e tags de status
-│           └── CurrencyInput.tsx     # Input monetário formatado em BRL
+fin-plan/
+├── api/                  # Funções serverless Vercel (endpoint /api/budget para MongoDB Atlas)
+├── docs/                 # Documentação técnica (arquitetura, contratos de API e guias)
+├── e2e/                  # Testes ponta a ponta herméticos com Playwright
+├── scripts/              # Scripts utilitários de manutenção e migração de banco de dados
+├── src/                  # Código-fonte da aplicação React
+│   ├── __tests__/        # Testes unitários com Vitest (cálculos, formatadores, storage, API)
+│   ├── components/       # Componentes React organizados por domínio (budget, dashboard, layout, etc.)
+│   ├── constants/        # Enums de categorias/status, definições visuais e seed inicial
+│   ├── context/          # Contextos globais (BudgetContext para estado/sync e ToastContext para avisos)
+│   ├── hooks/            # Hooks de orquestração e memoização reativa de cálculos
+│   ├── services/         # Serviços de negócio puros (cálculos matemáticos, storage local e API HTTP)
+│   ├── types/            # Definições de tipos e interfaces TypeScript do domínio financeiro
+│   └── utils/            # Utilitários de formatação de moedas/datas pt-BR e gerador UUIDv4
+└── .agents/              # Base de conhecimento e skills operacionais para agentes de IA
+    └── skills/           # Padrões arquiteturais, convenções de código e fluxos de trabalho
 ```
+
+---
+
+## 📚 Documentação Adicional
+
+- 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Visão geral detalhada, diagrama Mermaid de sincronização local-first, modelo de dados, decisões arquiteturais e limitações.
+- 🔌 **[Contrato da API](docs/API.md)**: Especificação completa dos métodos, headers, payloads e respostas do endpoint `/api/budget`.
+- 🤖 **Skills & Padrões Operacionais (`.agents/skills/`)**:
+  - [`backend-patterns.md`](.agents/skills/backend-patterns.md): Padrões de conexão singleton MongoDB, tratamento de erros e serverless functions.
+  - [`frontend-patterns.md`](.agents/skills/frontend-patterns.md): Design system Tailwind, tipografia tabular, isolamento de componentes e estado reativo.
+  - [`git-workflow.md`](.agents/skills/git-workflow.md): Padrão de branches, Conventional Commits e validações antes de PRs.
+  - [`full-stack-task.md`](.agents/skills/full-stack-task.md): Guia prático para desenvolvimento de features ponta a ponta com segurança e TDD.
+
+---
+
+## 🤝 Contribuição e Licença
+
+Este projeto é de uso pessoal e privado (`"private": true` no `package.json`).
+
+Para colaborar no desenvolvimento:
+1. Crie uma branch temática a partir de `main`: `git checkout -b feat/nome-da-funcionalidade`.
+2. Siga as convenções de commits descritas em [`.agents/skills/git-workflow.md`](.agents/skills/git-workflow.md).
+3. Certifique-se de que `npm test`, `npm run build` e `npm run test:e2e` passem sem avisos antes de abrir um Pull Request.
