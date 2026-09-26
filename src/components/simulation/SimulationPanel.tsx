@@ -44,10 +44,17 @@ export const SimulationPanel = () => {
   const currentFinal = metrics.finalAccumulated;
   const finalDiff = currentFinal - baseFinal;
 
-  const willInvadeReserve =
-    simulation.emergencyReserve > 0 &&
-    metrics.minAccumulatedBalance < simulation.emergencyReserve;
   const willHaveDeficit = metrics.minAccumulatedBalance < 0;
+
+  // A invasão de reserva só é alertada se houver simulação ativa aumentando gastos
+  // e reduzindo o saldo abaixo da reserva pretendida
+  const willInvadeReserve =
+    isSimActive &&
+    !willHaveDeficit &&
+    simulation.emergencyReserve > 0 &&
+    finalDiff < 0 &&
+    (simulation.initialBalance >= simulation.emergencyReserve ||
+      metrics.minAccumulatedBalance < simulation.emergencyReserve);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
@@ -250,7 +257,24 @@ export const SimulationPanel = () => {
         </div>
 
         <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
-          {willHaveDeficit ? (
+          {!isSimActive ? (
+            metrics.minAccumulatedBalance < 0 ? (
+              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
+                <span>🔴</span>
+                <span>
+                  <strong>Atenção (Orçamento Base):</strong> Suas contas originais ficam negativas em{' '}
+                  <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
+                <span>🟢</span>
+                <span>
+                  <strong>Cenário Base Saudável:</strong> Suas contas fecham no positivo em todos os meses (menor saldo: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}).
+                </span>
+              </div>
+            )
+          ) : willHaveDeficit ? (
             <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
               <span>🔴</span>
               <span>
@@ -262,7 +286,7 @@ export const SimulationPanel = () => {
             <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold">
               <span>🟡</span>
               <span>
-                <strong>Aviso:</strong> Você consegue cobrir os gastos, mas terá que usar parte da sua Reserva de Emergência. Menor saldo previsto: {formatBRL(metrics.minAccumulatedBalance)}.
+                <strong>Aviso:</strong> A simulação aumenta seus gastos e exigirá uso de parte da sua Reserva de Emergência (menor saldo previsto: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong>).
               </span>
             </div>
           ) : (

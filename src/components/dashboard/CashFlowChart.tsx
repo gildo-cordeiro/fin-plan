@@ -14,6 +14,7 @@ export const CashFlowChart = () => {
       income: 0,
       expenses: 0,
       monthBalance: 0,
+      oneTime: 0,
       needsReserveWithdrawal: false,
       withdrawalAmount: 0,
     },
@@ -27,6 +28,7 @@ export const CashFlowChart = () => {
         income: m.income,
         expenses: m.totalExpenses,
         monthBalance: m.monthBalance,
+        oneTime: m.oneTime || 0,
         needsReserveWithdrawal,
         withdrawalAmount,
       };
@@ -58,6 +60,7 @@ export const CashFlowChart = () => {
   const areaPath = `${linePath} L ${getX(n - 1)} ${H - padBottom} L ${getX(0)} ${H - padBottom} Z`;
 
   const currentHover = hoveredIdx !== null ? dataPoints[hoveredIdx] : null;
+  const hasAnyOneTime = dataPoints.some((p) => (p.oneTime || 0) > 0);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-full shadow-2xs transition-shadow duration-200">
@@ -77,6 +80,12 @@ export const CashFlowChart = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-900 inline-block"></span>
             Retirada da reserva (déficit)
           </span>
+          {hasAnyOneTime && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-600 ring-2 ring-purple-300 dark:ring-purple-900 inline-block"></span>
+              Custos pontuais
+            </span>
+          )}
         </div>
       </div>
 
@@ -154,6 +163,19 @@ export const CashFlowChart = () => {
                     className="transition-opacity duration-200"
                   />
 
+                  {(pt.oneTime || 0) > 0 && (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isHovered ? 12 : 8.5}
+                      fill="none"
+                      stroke="#9333ea"
+                      strokeWidth={1.5}
+                      strokeDasharray="2 2"
+                      className="transition-all duration-200 ease-out"
+                    />
+                  )}
+
                   {hasDeficit && (
                     <circle
                       cx={cx}
@@ -213,7 +235,12 @@ export const CashFlowChart = () => {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {currentHover.oneTime > 0 && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+                  🚚 Custos pontuais: <strong className="font-mono">{formatBRL(currentHover.oneTime)}</strong>
+                </span>
+              )}
               {currentHover.label !== 'Hoje' && (
                 currentHover.needsReserveWithdrawal ? (
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 transition-all duration-200">
