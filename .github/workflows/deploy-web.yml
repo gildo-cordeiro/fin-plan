@@ -16,9 +16,6 @@ jobs:
   deploy:
     name: Deploy Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
 
     steps:
       - name: Checkout do código
@@ -32,9 +29,11 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
 
       - name: Instalar dependências
+        working-directory: apps/web
         run: npm ci
 
       - name: Executar testes unitários
+        working-directory: apps/web
         run: npm test
 
       - name: Deploy na Vercel (CLI Oficial)
