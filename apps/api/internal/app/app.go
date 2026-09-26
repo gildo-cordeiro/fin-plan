@@ -169,12 +169,6 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	idxCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Limpeza de collections legadas (ambiente sem dados de produção a preservar)
-	_ = db.Collection("months").Drop(idxCtx)
-	_ = db.Collection("budget_years").Drop(idxCtx)
-	_ = db.Collection("budget_items").Drop(idxCtx)
-	_ = db.Collection("one_time_costs").Drop(idxCtx)
-
 	// Index: budgets.year (unique)
 	_, err := db.Collection(budget.CollectionBudgets).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "year", Value: 1}},
