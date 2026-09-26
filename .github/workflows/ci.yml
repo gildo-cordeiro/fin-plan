@@ -36,7 +36,7 @@ jobs:
         run: npm run build
 
   test-api:
-    name: Build & Vet API (apps/api)
+    name: Test & Build API (apps/api)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,5 +58,9 @@ jobs:
       - name: Executar go vet
         run: go vet ./...
 
+      - name: Executar testes unitários
+        run: go test -v ./...
+
       - name: Compilar binário da API
         run: go build -v ./cmd/api
+
