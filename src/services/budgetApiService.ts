@@ -8,6 +8,11 @@ export interface BudgetApiResponse {
   error?: string;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const apiKey = (import.meta as any).env?.VITE_API_SECRET_KEY;
+  return apiKey ? { 'x-api-key': apiKey } : {};
+}
+
 export const budgetApiService = {
   async fetchBudget(): Promise<{ state: BudgetState | null; updatedAt: Date | null }> {
     const controller = new AbortController();
@@ -16,7 +21,10 @@ export const budgetApiService = {
     try {
       const res = await fetch('/api/budget', {
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          ...getAuthHeaders(),
+        },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -54,6 +62,7 @@ export const budgetApiService = {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          ...getAuthHeaders(),
         },
         body: JSON.stringify(state),
         signal: controller.signal,

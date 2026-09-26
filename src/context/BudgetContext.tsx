@@ -59,6 +59,15 @@ interface BudgetContextType {
 
   isOnline: boolean;
 
+  // Persistência direta no banco de dados (MongoDB Atlas)
+  isLoading: boolean;
+  isSaving: boolean;
+  lastSaved: Date | null;
+  saveError: string | null;
+  retrySave: () => Promise<{ success: boolean; message: string }>;
+  refreshFromDb: () => Promise<{ success: boolean; message: string }>;
+
+  // Compatibilidade com chamadas legadas
   isCloudLoading: boolean;
   isCloudSyncing: boolean;
   lastCloudSync: Date | null;
@@ -118,57 +127,93 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
-  const [isCloudLoading, setIsCloudLoading] = useState(false);
-  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
-  const [lastCloudSync, setLastCloudSync] = useState<Date | null>(null);
-  const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const isInitialMount = useRef(true);
-  const isReadyForAutoSyncRef = useRef(false);
+  const isReadyForSaveRef = useRef(false);
   const latestStateRef = useRef(state);
   latestStateRef.current = state;
 
-  const saveToCloud = async (): Promise<{ success: boolean; message: string }> => {
-    setIsCloudSyncing(true);
+  const retrySave = async (): Promise<{ success: boolean; message: string }> => {
+    setIsSaving(true);
     try {
       const res = await budgetApiService.saveBudget(latestStateRef.current);
-      setLastCloudSync(res.updatedAt);
-      setCloudSyncError(null);
-      return { success: true, message: 'Orçamento salvo no MongoDB Atlas com sucesso!' };
+      setLastSaved(res.updatedAt);
+      setSaveError(null);
+      return { success: true, message: 'Dados salvos no banco de dados com sucesso!' };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao salvar dados';
-      setCloudSyncError(msg);
+      const msg = err instanceof Error ? err.message : 'Falha ao salvar no banco de dados';
+      setSaveError(msg);
       return { success: false, message: msg };
     } finally {
-      setIsCloudSyncing(false);
+      setIsSaving(false);
     }
   };
 
-  const fetchFromCloud = async (): Promise<{ success: boolean; message: string }> => {
-    setIsCloudLoading(true);
+  const refreshFromDb = async (): Promise<{ success: boolean; message: string }> => {
+    setIsLoading(true);
     try {
       const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
       if (remoteState) {
         setState(remoteState);
         saveBudgetState(remoteState);
-        setLastCloudSync(updatedAt || new Date());
-        setCloudSyncError(null);
-        return { success: true, message: 'Dados carregados da nuvem (MongoDB) com sucesso!' };
+        setLastSaved(updatedAt || new Date());
+        setSaveError(null);
+        return { success: true, message: 'Dados carregados do banco de dados com sucesso!' };
       }
-      return { success: true, message: 'Nenhum orçamento prévio encontrado no MongoDB.' };
+      return { success: true, message: 'Nenhum orçamento prévio encontrado no banco.' };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao buscar dados';
-      setCloudSyncError(msg);
+      const msg = err instanceof Error ? err.message : 'Falha ao buscar dados no banco';
+      setSaveError(msg);
       return { success: false, message: msg };
     } finally {
-      setIsCloudLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // Carrega sempre direto do banco na inicialização
   useEffect(() => {
+    let isMounted = true;
+
+    const loadInitialFromDb = async () => {
+      setIsLoading(true);
+      try {
+        const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
+        if (!isMounted) return;
+
+        if (remoteState) {
+          setState(remoteState);
+          saveBudgetState(remoteState);
+          setLastSaved(updatedAt || new Date());
+          setSaveError(null);
+        } else {
+          // Banco vazio: persiste o estado inicial diretamente no MongoDB
+          const res = await budgetApiService.saveBudget(latestStateRef.current);
+          if (!isMounted) return;
+          setLastSaved(res.updatedAt);
+          setSaveError(null);
+        }
+      } catch (err) {
+        console.warn('[BudgetContext] Falha ao carregar do banco de dados na inicialização:', err);
+        if (!isMounted) return;
+        const msg = err instanceof Error ? err.message : 'Falha ao conectar com o banco de dados';
+        setSaveError(msg);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          isReadyForSaveRef.current = true;
+        }
+      }
+    };
+
+    loadInitialFromDb();
+
     const handleOnline = () => {
       setIsOnline(true);
-      saveToCloud().catch(() => {});
+      retrySave().catch(() => {});
     };
 
     const handleOffline = () => {
@@ -178,74 +223,45 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const isLocalEmpty =
-      state.incomes.length === 0 &&
-      state.lists.cartoes.length === 0 &&
-      state.lists.fixas.length === 0 &&
-      state.lists.vars.length === 0 &&
-      (state.oneTimeCosts?.length ?? 0) === 0;
-
-    if (isLocalEmpty) {
-      setIsCloudLoading(true);
-      budgetApiService
-        .fetchBudget()
-        .then(({ state: remoteState, updatedAt }) => {
-          if (remoteState) {
-            setState(remoteState);
-            saveBudgetState(remoteState);
-            setLastCloudSync(updatedAt || new Date());
-            setCloudSyncError(null);
-          }
-        })
-        .catch((err) => {
-          console.warn('[BudgetContext] Conexão com MongoDB Atlas na inicialização:', err);
-        })
-        .finally(() => {
-          setIsCloudLoading(false);
-          setTimeout(() => {
-            isReadyForAutoSyncRef.current = true;
-          }, 1000);
-        });
-    } else {
-      isReadyForAutoSyncRef.current = true;
-    }
-
     return () => {
+      isMounted = false;
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
+  // Salva no banco de dados para qualquer edição ou inserção
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
+    // Mantém espelho local como fallback offline
     saveBudgetState(state);
 
-    if (!isReadyForAutoSyncRef.current || isCloudLoading) {
+    if (!isReadyForSaveRef.current || isLoading) {
       return;
     }
 
+    setIsSaving(true);
     const timer = setTimeout(async () => {
-      setIsCloudSyncing(true);
       try {
         const res = await budgetApiService.saveBudget(latestStateRef.current);
-        setLastCloudSync(res.updatedAt);
-        setCloudSyncError(null);
+        setLastSaved(res.updatedAt);
+        setSaveError(null);
       } catch (err: unknown) {
-        console.warn('[BudgetContext] Falha na auto-sincronização com MongoDB Atlas:', err);
-        setCloudSyncError(err instanceof Error ? err.message : 'Falha ao sincronizar com MongoDB Atlas');
+        console.error('[BudgetContext] Falha ao salvar no banco de dados:', err);
+        setSaveError(err instanceof Error ? err.message : 'Falha ao salvar no banco de dados');
       } finally {
-        setIsCloudSyncing(false);
+        setIsSaving(false);
       }
-    }, 2500);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [state, isCloudLoading]);
+  }, [state, isLoading]);
 
   useEffect(() => {
     saveTheme(theme);
@@ -773,12 +789,20 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         theme,
         toggleTheme,
         isOnline,
-        isCloudLoading,
-        isCloudSyncing,
-        lastCloudSync,
-        cloudSyncError,
-        fetchFromCloud,
-        saveToCloud,
+        isLoading,
+        isSaving,
+        lastSaved,
+        saveError,
+        retrySave,
+        refreshFromDb,
+
+        // Compatibilidade legada
+        isCloudLoading: isLoading,
+        isCloudSyncing: isSaving,
+        lastCloudSync: lastSaved,
+        cloudSyncError: saveError,
+        fetchFromCloud: refreshFromDb,
+        saveToCloud: retrySave,
         updateSimulation,
         addNextMonth,
         addPrevMonth,

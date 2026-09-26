@@ -12,7 +12,7 @@ import { BudgetManagementModal } from './components/modals/BudgetManagementModal
 import { useBudget } from './context/BudgetContext';
 
 export const BudgetAppContent = () => {
-  const { state, isCloudLoading, fetchFromCloud } = useBudget();
+  const { state, isLoading } = useBudget();
 
   const [tab, setTab] = useState<TabId>('mes');
   const [activeMonthId, setActiveMonthId] = useState(state.months[0]?.id || '');
@@ -23,13 +23,6 @@ export const BudgetAppContent = () => {
       setActiveMonthId(state.months[0].id);
     }
   }, [state.months, activeMonthId]);
-
-  const isBudgetEmpty =
-    state.incomes.length === 0 &&
-    state.lists.cartoes.length === 0 &&
-    state.lists.fixas.length === 0 &&
-    state.lists.vars.length === 0 &&
-    (state.oneTimeCosts?.length ?? 0) === 0;
 
   const containerMaxWidth =
     tab === 'horizonte'
@@ -45,44 +38,12 @@ export const BudgetAppContent = () => {
         <StatusBar />
         <NavMenu active={tab} onSelect={setTab} />
 
-        {isCloudLoading && (
-          <div className="p-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-900 dark:text-teal-200 flex items-center gap-3 animate-pulse">
+        {isLoading && (
+          <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-3 animate-pulse shadow-xs">
             <span className="text-xl">⏳</span>
             <div>
-              <p className="font-semibold text-xs">Carregando dados da Nuvem...</p>
-              <p className="text-[11px] opacity-80">Conectando ao banco de dados em nuvem.</p>
-            </div>
-          </div>
-        )}
-
-        {!isCloudLoading && isBudgetEmpty && (
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 space-y-2.5 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">☁️</span>
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                Banco de Dados em Nuvem
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              O aplicativo sincroniza seus dados com o banco de dados em nuvem. Se já possuir dados salvos, clique no botão abaixo para recarregar ou comece cadastrando novas receitas e despesas.
-            </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => fetchFromCloud()}
-                className="text-xs px-3.5 py-2 rounded-xl font-bold bg-[#0e6b7a] text-white hover:bg-[#09525e] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <span>📥</span>
-                <span>Recarregar da Nuvem</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsInitialSetupOpen(true)}
-                className="text-xs px-3.5 py-2 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
-              >
-                <span>⚙️</span>
-                <span>Cadastrar Rendas & Despesas</span>
-              </button>
+              <p className="font-semibold text-xs text-slate-900 dark:text-slate-100">Carregando dados do banco...</p>
+              <p className="text-[11px] text-slate-400">Buscando orçamento no MongoDB Atlas.</p>
             </div>
           </div>
         )}
@@ -139,7 +100,7 @@ export const BudgetAppContent = () => {
         )}
 
         <footer className="pt-4 pb-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          FinPlan — Planejador Financeiro Pessoal • Armazenamento Local-First & Nuvem (MongoDB)
+          FinPlan — Planejador Financeiro Pessoal • Conectado ao MongoDB Atlas
         </footer>
 
         <BudgetManagementModal
