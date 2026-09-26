@@ -92,8 +92,7 @@ const {
 ```
 
 ### 3.3. Ciclo de Atualização e Debounce
-- Ações mutam o estado imutável com `setState(prev => ({ ...prev }))`.
-- O `BudgetContext` sincroniza síncronamente com `localStorage.setItem(StorageKey.AppData, ...)`.
+- Ações mutam o estado imutável em memória com `setState(prev => ({ ...prev }))` (0ms de latência).
 - Um timer de debounce de **500ms** consolida alterações e despacha para a API em segundo plano:
 ```typescript
 // Trecho real extraído de src/context/BudgetContext.tsx:

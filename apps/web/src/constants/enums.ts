@@ -27,11 +27,3 @@ export const GoalStatus = {
 } as const;
 
 export type GoalStatus = (typeof GoalStatus)[keyof typeof GoalStatus];
-
-export const StorageKey = {
-  AppData: 'finplan-app-data-v4',
-  LegacyAppData: 'finplan-app-data-v3',
-  Theme: 'finplan-theme',
-} as const;
-
-export type StorageKey = (typeof StorageKey)[keyof typeof StorageKey];

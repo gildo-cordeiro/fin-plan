@@ -20,8 +20,6 @@ import { useBudgetCalculations } from '../hooks/useBudgetCalculations';
 import { getNextMonth, getPrevMonth, generateMonthSequence } from '../utils/formatters';
 import { generateId } from '../utils/idGenerator';
 import {
-  loadBudgetState,
-  saveBudgetState,
   loadTheme,
   saveTheme,
 } from '../services/storageService';
@@ -114,16 +112,13 @@ interface BudgetContextType {
   addContribution: (goalId: string, amount: number, note?: string) => void;
   removeContribution: (goalId: string, contributionId: string) => void;
   setGoalStatus: (goalId: string, status: GoalStatus) => void;
-
-  resetToDefaults: () => void;
-  importState: (data: BudgetState) => void;
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
 export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => loadTheme());
-  const [state, setState] = useState<BudgetState>(() => loadBudgetState());
+  const [state, setState] = useState<BudgetState>(INITIAL_BUDGET_STATE);
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
@@ -159,7 +154,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
       if (remoteState) {
         setState(remoteState);
-        saveBudgetState(remoteState);
         setLastSaved(updatedAt || new Date());
         setSaveError(null);
         return { success: true, message: 'Dados carregados do banco de dados com sucesso!' };
@@ -186,7 +180,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
         if (remoteState) {
           setState(remoteState);
-          saveBudgetState(remoteState);
           setLastSaved(updatedAt || new Date());
           setSaveError(null);
         } else {
@@ -236,9 +229,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       isInitialMount.current = false;
       return;
     }
-
-    // Mantém espelho local como fallback offline
-    saveBudgetState(state);
 
     if (!isReadyForSaveRef.current || isLoading) {
       return;
@@ -770,14 +760,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }));
   };
 
-  const resetToDefaults = () => {
-    setState(INITIAL_BUDGET_STATE);
-  };
-
-  const importState = (data: BudgetState) => {
-    setState(data);
-  };
-
   const { monthlySummaries, metrics } = useBudgetCalculations(state);
 
   return (
@@ -832,8 +814,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addContribution,
         removeContribution,
         setGoalStatus,
-        resetToDefaults,
-        importState,
       }}
     >
       {children}

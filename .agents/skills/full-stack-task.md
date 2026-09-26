@@ -24,7 +24,7 @@ flowchart LR
 1. Verifique se a mudança afeta as entidades centrais em `apps/web/src/types/budget.ts` (`MonthItem`, `BudgetItem`, `OneTimeCost`, `SimulationSettings`, `FinancialGoal`, `BudgetState`) e seus equivalentes em Go em `apps/api/internal/budget/model.go`.
 2. Se novos campos forem introduzidos, adicione os valores padrão correspondentes em `apps/web/src/constants/seedData.ts`.
 3. **Migração de Esquemas Obrigatória**:
-   - Atualize a função `migrateState` em `apps/web/src/services/storageService.ts` para garantir que dados legados armazenados no `localStorage` ou no MongoDB não quebrem ao carregar campos ausentes:
+   - Atualize a função `migrateState` em `apps/web/src/services/storageService.ts` para garantir que dados legados armazenados no MongoDB ou importados via JSON não quebrem ao carregar campos ausentes:
    ```typescript
    // Exemplo de fallback defensivo em apps/web/src/services/storageService.ts:
    return {

@@ -55,7 +55,6 @@ fin-plan/
    Exponha a nova ação/estado via `apps/web/src/context/BudgetContext.tsx`. Toda
    mutação de estado deve seguir o ciclo de vida já existente:
    - atualizar o estado React imediatamente (0ms de latência percebida)
-   - espelhar no `localStorage` sob a chave `finplan-app-data-v4`
    - reagendar o debounce de 500ms para `budgetApiService.saveBudget`
      (cancelando qualquer timer anterior pendente)
 
@@ -97,8 +96,8 @@ fin-plan/
   e ser tratada como uma migração explícita em `storageService.ts`, seguindo o
   padrão já usado na migração `v3 -> v4`.
 - Nunca remova ou renomeie um campo existente sem uma etapa de migração —
-  dados antigos já persistidos no MongoDB Atlas e no `localStorage` dos
-  usuários precisam continuar sendo lidos corretamente.
+  dados antigos já persistidos no MongoDB Atlas
+  precisam continuar sendo lidos corretamente.
 - Adicione um teste de migração cobrindo o caso "documento antigo (version N-1)
   chega e é convertido para version N".
 

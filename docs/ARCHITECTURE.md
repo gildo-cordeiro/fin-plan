@@ -8,13 +8,13 @@ O repositório é estruturado como um **Monorepo** com deploys independentes ent
 
 ## 1. Visão Geral da Arquitetura
 
-O FinPlan adota o paradigma **Local-First**: toda interação do usuário é refletida instantaneamente no estado local em memória e espelhada no `localStorage` do navegador com 0ms de latência percebida, enquanto um motor matemático puro calcula projeções de fluxo de caixa e sensibilidade em tempo real; em segundo plano, um timer de debounce de **500ms** consolida e envia o estado completo da aplicação de forma atômica para um documento único no **MongoDB Atlas** através do backend Go (`/api/v1/budget`), garantindo tolerância a falhas de rede, resiliência offline e consistência entre dispositivos sem a complexidade de transações distribuídas.
+O FinPlan adota o paradigma **Reativo em Memória com Persistência Direta no Banco**: toda interação do usuário é refletida instantaneamente no estado local em memória com 0ms de latência percebida, enquanto um motor matemático puro calcula projeções de fluxo de caixa e sensibilidade em tempo real; em segundo plano, um timer de debounce de **500ms** consolida e envia o estado completo da aplicação de forma atômica para um documento único no **MongoDB Atlas** através do backend Go (`/api/v1/budget`), garantindo integridade, consistência e sincronização centralizada.
 
 ---
 
 ## 2. Diagrama de Fluxo e Persistência
 
-O fluxo de dados da aplicação abrange três camadas essenciais: interação reativa no navegador, persistência síncrona local e sincronização assíncrona com nuvem:
+O fluxo de dados da aplicação abrange duas camadas essenciais: interação reativa no navegador e persistência assíncrona com nuvem:
 
 ```mermaid
 flowchart TD
@@ -23,22 +23,21 @@ flowchart TD
         UI -->|Dispara Action| Context["BudgetContext (React Context & Hooks)"]
         
         Context -->|1. Atualização Instantânea (0ms)| LocalState["Estado em Memória (React State)"]
-        Context -->|2. Espelho Offline Imediato (0ms)| LocalStorage[("LocalStorage (finplan-app-data-v4)")]
         
-        LocalState -->|3. Recálculo Puro (0ms)| MathEngine["budgetCalculator.ts (calculateBudget)"]
-        MathEngine -->|4. Projeções e Métricas Atualizadas| UI
+        LocalState -->|2. Recálculo Puro (0ms)| MathEngine["budgetCalculator.ts (calculateBudget)"]
+        MathEngine -->|3. Projeções e Métricas Atualizadas| UI
         
-        Context -->|5. Timer de Debounce (500ms)| SyncQueue{"Debounce 500ms"}
+        Context -->|4. Timer de Debounce (500ms)| SyncQueue{"Debounce 500ms"}
     end
 
     subgraph BackendAPI["Backend REST Go (apps/api)"]
-        SyncQueue -->|6. POST /api/v1/budget (JSON State + x-api-key)| GoServer["cmd/api/main.go (HTTP Mux)"]
-        GoServer -->|7. Middleware CORS + Auth| AuthCheck{"Validação de Acesso (API_SECRET_KEY)"}
-        AuthCheck -->|8. Repository com timeout 8s| MongoDriver["Driver Oficial MongoDB Go (v1.17.1)"]
+        SyncQueue -->|5. POST /api/v1/budget (JSON State + x-api-key)| GoServer["cmd/api/main.go (HTTP Mux)"]
+        GoServer -->|6. Middleware CORS + Auth| AuthCheck{"Validação de Acesso (API_SECRET_KEY)"}
+        AuthCheck -->|7. Repository com timeout 8s| MongoDriver["Driver Oficial MongoDB Go (v1.17.1)"]
     end
 
     subgraph CloudDatabase["Persistência em Nuvem"]
-        MongoDriver -->|9. Upsert Atômico (_id: default_budget)| AtlasDB[("MongoDB Atlas: database 'finplan', collection 'budgets'")]
+        MongoDriver -->|8. Upsert Atômico (_id: default_budget)| AtlasDB[("MongoDB Atlas: database 'finplan', collection 'budgets'")]
     end
 
     %% Fluxo de Inicialização
@@ -48,19 +47,18 @@ flowchart TD
 ```
 
 ### Ciclo de Vida da Persistência:
-1. **Edição**: Qualquer alteração (valor de receita, despesa, custo pontual, meta ou slider) muta o estado React imutável.
-2. **Gravação Local**: O estado é imediatamente persistido no `localStorage` sob a chave `finplan-app-data-v4`.
-3. **Cálculo Puro**: O hook `useBudgetCalculations` reexecuta `calculateBudget` gerando `monthlySummaries` e `metrics`.
-4. **Debounce em Nuvem**: A alteração agenda a execução de `budgetApiService.saveBudget` em 500ms. Edições sucessivas durante esse intervalo cancelam o timer anterior (`clearTimeout`), consolidando apenas a versão final em um único `POST /api/v1/budget`.
-5. **Carga Inicial e Reconexão**: Na inicialização, a aplicação tenta carregar os dados mais recentes do MongoDB Atlas via `GET /api/v1/budget`. Caso não haja conexão ou o banco esteja vazio, o estado local é utilizado como fallback primário.
+1. **Edição**: Qualquer alteração (valor de receita, despesa, custo pontual, meta ou slider) muta o estado React imutável em memória.
+2. **Cálculo Puro**: O hook `useBudgetCalculations` reexecuta `calculateBudget` gerando `monthlySummaries` e `metrics` instantaneamente.
+3. **Debounce em Nuvem**: A alteração agenda a execução de `budgetApiService.saveBudget` em 500ms. Edições sucessivas durante esse intervalo cancelam o timer anterior (`clearTimeout`), consolidando apenas a versão final em um único `POST /api/v1/budget`.
+4. **Carga Inicial**: Na inicialização, a aplicação carrega diretamente os dados mais recentes do MongoDB Atlas via `GET /api/v1/budget`.
 
 ---
 
 ## 3. Decisões Arquiteturais Relevantes
 
-### 3.1. Local-First vs. Server-First
+### 3.1. Estado Reativo Otimista vs. Bloqueio por Rede
 - **Decisão**: A interface não aguarda respostas do servidor HTTP para renderizar novos valores ou confirmar inserções.
-- **Por quê**: Em ferramentas de planejamento financeiro pessoal, o usuário realiza dezenas de edições por minuto ao balancear despesas e simular cenários. O atraso de requisições de rede (100ms a 500ms por clique) inviabilizaria a sensação de controle fluido. O espelho no `localStorage` permite o uso imediato e contínuo mesmo offline.
+- **Por quê**: Em ferramentas de planejamento financeiro pessoal, o usuário realiza dezenas de edições por minuto ao balancear despesas e simular cenários. O atraso de requisições de rede (100ms a 500ms por clique) inviabilizaria a sensação de controle fluido. O estado em memória garante resposta instantânea (0ms), enquanto o debounce envia a versão consolidada ao MongoDB Atlas.
 
 ### 3.2. Backend Go Containerizado vs. Funções Serverless
 - **Decisão**: API REST centralizada e conteinerizada em Go (`apps/api/`), substituindo totalmente funções serverless legadas.

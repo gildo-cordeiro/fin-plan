@@ -13,7 +13,7 @@ O repositório adota arquitetura de **Monorepo** com deploys completamente desac
 | **Monorepo** | Docker Compose | Raiz (`/`) |
 | **Frontend Web** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React | [`apps/web/`](apps/web/) |
 | **Backend REST** | Go 1.27, `net/http` nativo, MongoDB Go Driver 1.17, Docker Distroless | [`apps/api/`](apps/api/) |
-| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`), Web Storage (`localStorage` v4) | Nuvem / Navegador |
+| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`) | Nuvem |
 | **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E) | [`apps/web/`](apps/web/) |
 | **Deploy Frontend** | Vercel (SPA estática) | Independente |
 | **Deploy Backend** | Container Docker Distroless (`apps/api/Dockerfile`) | Independente (Cloud Run, Fly.io, Railway, etc.) |

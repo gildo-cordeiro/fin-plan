@@ -316,11 +316,6 @@ async function run() {
     console.log('👉 Para migrar direto para o MongoDB Atlas:');
     console.log('   1. Adicione MONGODB_URI=mongodb+srv://... no seu .env.local');
     console.log('   2. Rode: npm run migrate:mongo');
-    console.log('\n👉 OU você pode importar o arquivo finplan-migrated-budget.json direto no App:');
-    console.log('   1. Abra o FinPlan no navegador (npm run dev)');
-    console.log('   2. Clique no botão "Backup" no topo direito');
-    console.log('   3. Cole o conteúdo do finplan-migrated-budget.json e clique em "Restaurar do Texto"');
-    console.log('   4. O FinPlan salvará tudo automaticamente!');
     return;
   }
 

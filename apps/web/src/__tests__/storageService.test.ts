@@ -1,49 +1,38 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  loadBudgetState,
-  saveBudgetState,
   migrateState,
   loadTheme,
   saveTheme,
-  parseImportedJson,
-  THEME_KEY,
 } from '../services/storageService';
 import { INITIAL_BUDGET_STATE } from '../constants/seedData';
-import type { BudgetState } from '../types/budget';
 
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      store[key] = String(value);
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
+const mockMatchMedia = vi.fn().mockImplementation((query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  dispatchEvent: vi.fn(),
+}));
 
-Object.defineProperty(globalThis, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
+const classListAdd = vi.fn();
+const classListRemove = vi.fn();
+
 Object.defineProperty(globalThis, 'window', {
   value: {
-    localStorage: localStorageMock,
-    matchMedia: () => ({ matches: false }),
+    matchMedia: mockMatchMedia,
   },
   writable: true,
 });
+
 Object.defineProperty(globalThis, 'document', {
   value: {
     documentElement: {
       classList: {
-        add: vi.fn(),
-        remove: vi.fn(),
+        add: classListAdd,
+        remove: classListRemove,
       },
     },
   },
@@ -52,32 +41,7 @@ Object.defineProperty(globalThis, 'document', {
 
 describe('storageService', () => {
   beforeEach(() => {
-    localStorageMock.clear();
     vi.clearAllMocks();
-  });
-
-  describe('saveBudgetState and loadBudgetState', () => {
-    it('salva e recupera o estado do orçamento no localStorage', () => {
-      const mockState: BudgetState = {
-        ...INITIAL_BUDGET_STATE,
-        simulation: {
-          ...INITIAL_BUDGET_STATE.simulation,
-          initialBalance: 7500,
-        },
-      };
-
-      const saved = saveBudgetState(mockState);
-      expect(saved).toBe(true);
-
-      const loaded = loadBudgetState();
-      expect(loaded.simulation.initialBalance).toBe(7500);
-    });
-
-    it('retorna INITIAL_BUDGET_STATE quando o localStorage está vazio', () => {
-      const loaded = loadBudgetState();
-      expect(loaded.version).toBe(5);
-      expect(loaded.months.length).toBeGreaterThan(0);
-    });
   });
 
   describe('migrateState', () => {
@@ -121,29 +85,25 @@ describe('storageService', () => {
     });
   });
 
-  describe('Theme persistence', () => {
-    it('salva e recupera tema light/dark', () => {
+  describe('Theme handling', () => {
+    it('aplica tema dark adicionando classe dark', () => {
       saveTheme('dark');
-      expect(localStorageMock.getItem(THEME_KEY)).toBe('dark');
+      expect(classListAdd).toHaveBeenCalledWith('dark');
+      expect(classListRemove).not.toHaveBeenCalled();
+    });
+
+    it('aplica tema light removendo classe dark', () => {
+      saveTheme('light');
+      expect(classListRemove).toHaveBeenCalledWith('dark');
+      expect(classListAdd).not.toHaveBeenCalled();
+    });
+
+    it('loadTheme detecta preferência do sistema via matchMedia', () => {
+      mockMatchMedia.mockReturnValueOnce({ matches: true });
       expect(loadTheme()).toBe('dark');
 
-      saveTheme('light');
-      expect(localStorageMock.getItem(THEME_KEY)).toBe('light');
+      mockMatchMedia.mockReturnValueOnce({ matches: false });
       expect(loadTheme()).toBe('light');
-    });
-  });
-
-  describe('parseImportedJson', () => {
-    it('faz parse e migra JSON válido com sucesso', () => {
-      const json = JSON.stringify({
-        simulation: { initialBalance: 5000 },
-      });
-      const parsed = parseImportedJson(json);
-      expect(parsed.simulation.initialBalance).toBe(5000);
-    });
-
-    it('dispara erro para JSON inválido', () => {
-      expect(() => parseImportedJson('invalid-json{')).toThrow();
     });
   });
 });
