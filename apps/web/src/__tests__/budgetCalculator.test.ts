@@ -9,6 +9,8 @@ import type { BudgetState } from '../types/budget';
 function createBaseState(): BudgetState {
   return {
     version: 5,
+    currentYear: 2026,
+    items: [],
     months: [
       { id: '2026-10', name: 'Outubro 2026', shortName: 'Out/26', year: 2026, monthIndex: 9 },
       { id: '2026-11', name: 'Novembro 2026', shortName: 'Nov/26', year: 2026, monthIndex: 10 },
@@ -24,6 +26,7 @@ function createBaseState(): BudgetState {
     incomes: [
       {
         id: 'inc-1',
+        type: 'renda',
         name: 'Salário',
         category: 'renda',
         values: { '2026-10': 8000, '2026-11': 8000, '2026-12': 10000 },
@@ -33,6 +36,7 @@ function createBaseState(): BudgetState {
       cartoes: [
         {
           id: 'card-1',
+          type: 'cartao',
           name: 'Cartão Inter',
           category: 'cartoes',
           values: { '2026-10': 2000, '2026-11': 2500, '2026-12': 3000 },
@@ -41,6 +45,7 @@ function createBaseState(): BudgetState {
       fixas: [
         {
           id: 'fix-1',
+          type: 'fixa',
           name: 'Aluguel',
           category: 'fixas',
           values: { '2026-10': 2000, '2026-11': 2000, '2026-12': 2000 },
@@ -49,6 +54,7 @@ function createBaseState(): BudgetState {
       vars: [
         {
           id: 'var-1',
+          type: 'var',
           name: 'Mercado',
           category: 'vars',
           values: { '2026-10': 1000, '2026-11': 1000, '2026-12': 1500 },

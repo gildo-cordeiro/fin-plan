@@ -13,8 +13,8 @@ O repositório adota arquitetura de **Monorepo** com deploys completamente desac
 | **Monorepo** | Docker Compose | Raiz (`/`) |
 | **Frontend Web** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React | [`apps/web/`](apps/web/) |
 | **Backend REST** | Go 1.27, `net/http` nativo, MongoDB Go Driver 1.17, Docker Distroless | [`apps/api/`](apps/api/) |
-| **Banco de Dados & Cache** | MongoDB Atlas (`default_budget`) | Nuvem |
-| **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E) | [`apps/web/`](apps/web/) |
+| **Banco de Dados & Cache** | MongoDB Atlas (coleções normalizadas: `budget_years`, `months`, `budget_items`, `one_time_costs`, `goals`) | Nuvem |
+| **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E), Go testing (`go test ./...`) | [`apps/web/`](apps/web/), [`apps/api/`](apps/api/) |
 | **Deploy Frontend** | Vercel (SPA estática) | Independente |
 | **Deploy Backend** | Container Docker Distroless (`apps/api/Dockerfile`) | Independente (Cloud Run, Fly.io, Railway, etc.) |
 
@@ -36,19 +36,18 @@ fin-plan/
 │   │   ├── vite.config.ts     # Proxy de dev para http://localhost:8080
 │   │   ├── tsconfig.json      # Configuração TypeScript estrita
 │   │   ├── src/               # Código-fonte React (componentes, hooks, context)
-│   │   ├── e2e/               # Testes ponta a ponta herméticos (Playwright)
-│   │   └── scripts/           # Scripts de migração de dados legados
+│   │   └── e2e/               # Testes ponta a ponta herméticos (Playwright)
 │   │
 │   └── api/                   # 📦 Backend Go API REST
 │       ├── Dockerfile         # Multi-stage distroless ultraleve (~20MB)
 │       ├── go.mod             # Módulo Go (github.com/gildo-cordeiro/fin-plan/apps/api)
-│       ├── cmd/api/main.go    # Entrypoint HTTP, graceful shutdown e pool MongoDB
-│       ├── internal/          # Domínio de orçamento, repositório e middlewares
+│       ├── cmd/api/main.go    # Entrypoint HTTP, graceful shutdown e auto-indexing MongoDB
+│       ├── internal/          # Domínio de orçamento, entidades atômicas e middlewares
 │       └── README.md          # Documentação específica da API Go
 │
 ├── docs/                      # 📚 Documentação Técnica Compartilhada
-│   ├── ARCHITECTURE.md        # Arquitetura Local-First, diagramas e modelo de dados
-│   └── API.md                 # Contrato formal da API REST (/api/v1/budget)
+│   ├── ARCHITECTURE.md        # Arquitetura Local-First, diagramas e modelo de dados normalizado
+│   └── API.md                 # Contrato formal da API REST (/api/v1/*)
 │
 └── .agents/                   # 🤖 Diretrizes e Skills operacionais para agentes IA
     └── skills/

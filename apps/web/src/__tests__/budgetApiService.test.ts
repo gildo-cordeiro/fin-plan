@@ -11,11 +11,34 @@ describe('budgetApiService', () => {
     vi.restoreAllMocks();
   });
 
-  it('fetchBudget retorna dados quando o documento existe no MongoDB', async () => {
-    const mockResponse = {
-      exists: true,
-      data: INITIAL_BUDGET_STATE,
-      updatedAt: '2026-09-24T19:00:00.000Z',
+  it('fetchBudgetYears lista anos disponíveis', async () => {
+    const mockYears = [
+      { id: '2026', year: 2026, simulation: INITIAL_BUDGET_STATE.simulation, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+      { id: '2027', year: 2027, simulation: INITIAL_BUDGET_STATE.simulation, createdAt: '2027-01-01', updatedAt: '2027-01-01' },
+    ];
+
+    let capturedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
+      capturedUrl = String(url);
+      return {
+        ok: true,
+        json: async () => mockYears,
+      } as unknown as Response;
+    });
+
+    const result = await budgetApiService.fetchBudgetYears();
+    expect(capturedUrl).toBe('/api/v1/budget-years');
+    expect(result).toHaveLength(2);
+    expect(result[0].year).toBe(2026);
+  });
+
+  it('fetchBudgetYear busca visão anual agregada', async () => {
+    const mockVm = {
+      year: { id: '2026', year: 2026, simulation: INITIAL_BUDGET_STATE.simulation },
+      months: INITIAL_BUDGET_STATE.months,
+      items: [],
+      oneTimeCosts: [],
+      goals: [],
     };
 
     let capturedUrl = '';
@@ -23,111 +46,121 @@ describe('budgetApiService', () => {
       capturedUrl = String(url);
       return {
         ok: true,
-        json: async () => mockResponse,
+        json: async () => mockVm,
       } as unknown as Response;
     });
 
-    const result = await budgetApiService.fetchBudget();
-    expect(capturedUrl).toBe('/api/v1/budget');
-    expect(result.state).not.toBeNull();
-    expect(result.state?.simulation.initialBalance).toBe(INITIAL_BUDGET_STATE.simulation.initialBalance);
-    expect(result.updatedAt).toEqual(new Date('2026-09-24T19:00:00.000Z'));
+    const result = await budgetApiService.fetchBudgetYear(2026);
+    expect(capturedUrl).toBe('/api/v1/budget-years/2026');
+    expect(result.year.year).toBe(2026);
+    expect(result.months).toHaveLength(INITIAL_BUDGET_STATE.months.length);
   });
 
-  it('fetchBudget retorna null quando o documento não existe', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ exists: false, data: null }),
-    } as unknown as Response);
-
-    const result = await budgetApiService.fetchBudget();
-    expect(result.state).toBeNull();
-    expect(result.updatedAt).toBeNull();
-  });
-
-  it('saveBudget envia POST com payload correto', async () => {
-    let capturedBody = '';
-    let capturedHeaders: any = null;
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
-      capturedBody = init?.body as string;
-      capturedHeaders = init?.headers;
-      return {
-        ok: true,
-        json: async () => ({ success: true, updatedAt: '2026-09-25T20:00:00.000Z' }),
-      } as unknown as Response;
-    });
-
-    const result = await budgetApiService.saveBudget(INITIAL_BUDGET_STATE);
-    expect(result.success).toBe(true);
-    expect(result.updatedAt).toEqual(new Date('2026-09-25T20:00:00.000Z'));
-    expect(capturedBody).toContain(String(INITIAL_BUDGET_STATE.simulation.initialBalance));
-    expect(capturedHeaders['Content-Type']).toBe('application/json');
-    expect(capturedHeaders['Accept']).toBe('application/json');
-  });
-
-  it('fetchBudget envia headers Accept e abort controller corretamente', async () => {
-    let capturedHeaders: any = null;
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
-      capturedHeaders = init?.headers;
-      return {
-        ok: true,
-        json: async () => ({ exists: false, data: null }),
-      } as unknown as Response;
-    });
-
-    await budgetApiService.fetchBudget();
-    expect(capturedHeaders['Accept']).toBe('application/json');
-  });
-
-  it('saveBudget lança erro quando status não for ok', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: 'Falha de conexão com MongoDB' }),
-    } as unknown as Response);
-
-    await expect(budgetApiService.saveBudget(INITIAL_BUDGET_STATE)).rejects.toThrow(
-      'Falha de conexão com MongoDB'
-    );
-  });
-
-  it('fetchBudget faz retry quando recebe 502 (servidor iniciando) e sucede na tentativa seguinte', async () => {
-    const mockResponse = {
-      exists: true,
-      data: INITIAL_BUDGET_STATE,
-      updatedAt: '2026-09-24T19:00:00.000Z',
+  it('createBudgetItem dispara POST atômico com body correto', async () => {
+    const itemData = {
+      name: 'Aluguel',
+      type: 'fixa' as const,
+      values: { '2026-10': 2500 },
     };
 
-    let callCount = 0;
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
-      callCount++;
-      if (callCount === 1) {
-        return {
-          ok: false,
-          status: 502,
-        } as unknown as Response;
-      }
+    let capturedBody = '';
+    let capturedMethod = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
+      capturedMethod = init?.method || '';
+      capturedBody = init?.body as string;
       return {
         ok: true,
-        status: 200,
-        json: async () => mockResponse,
+        json: async () => ({ id: 'fix-1', ...itemData }),
       } as unknown as Response;
     });
 
-    const result = await budgetApiService.fetchBudget({ retries: 1, timeoutMs: 5000 });
-    expect(callCount).toBe(2);
-    expect(result.state).not.toBeNull();
+    const res = await budgetApiService.createBudgetItem(itemData);
+    expect(capturedMethod).toBe('POST');
+    expect(JSON.parse(capturedBody).name).toBe('Aluguel');
+    expect(res.id).toBe('fix-1');
   });
 
-  it('fetchBudget lança mensagem amigável sobre plano gratuito quando ocorre timeout de abort', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async () => {
-      const abortError = new Error('The operation was aborted');
-      abortError.name = 'AbortError';
-      throw abortError;
+  it('updateBudgetItem dispara PATCH atômico', async () => {
+    let capturedMethod = '';
+    let capturedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
+      capturedUrl = String(url);
+      capturedMethod = init?.method || '';
+      return {
+        ok: true,
+        json: async () => ({ id: 'fix-1', name: 'Aluguel Reajustado' }),
+      } as unknown as Response;
     });
 
-    await expect(budgetApiService.fetchBudget({ retries: 0 })).rejects.toThrow(
-      'Tempo limite esgotado ao buscar dados no MongoDB. O servidor pode estar iniciando no plano gratuito.'
+    const res = await budgetApiService.updateBudgetItem('fix-1', { name: 'Aluguel Reajustado' });
+    expect(capturedMethod).toBe('PATCH');
+    expect(capturedUrl).toBe('/api/v1/budget-items/fix-1');
+    expect(res.name).toBe('Aluguel Reajustado');
+  });
+
+  it('deleteBudgetItem dispara DELETE atômico', async () => {
+    let capturedMethod = '';
+    let capturedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
+      capturedUrl = String(url);
+      capturedMethod = init?.method || '';
+      return {
+        ok: true,
+        json: async () => ({ success: true }),
+      } as unknown as Response;
+    });
+
+    const res = await budgetApiService.deleteBudgetItem('item-123');
+    expect(capturedMethod).toBe('DELETE');
+    expect(capturedUrl).toBe('/api/v1/budget-items/item-123');
+    expect(res).toBe(true);
+  });
+
+  it('updateYearSimulation dispara PATCH na rota do ano', async () => {
+    let capturedUrl = '';
+    let capturedMethod = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
+      capturedUrl = String(url);
+      capturedMethod = init?.method || '';
+      return {
+        ok: true,
+        json: async () => ({ id: '2026', year: 2026, simulation: INITIAL_BUDGET_STATE.simulation }),
+      } as unknown as Response;
+    });
+
+    const res = await budgetApiService.updateYearSimulation(2026, INITIAL_BUDGET_STATE.simulation);
+    expect(capturedMethod).toBe('PATCH');
+    expect(capturedUrl).toBe('/api/v1/budget-years/2026');
+    expect(res.year).toBe(2026);
+  });
+
+  it('addGoalContribution dispara POST na rota de aportes', async () => {
+    let capturedUrl = '';
+    let capturedMethod = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
+      capturedUrl = String(url);
+      capturedMethod = init?.method || '';
+      return {
+        ok: true,
+        json: async () => ({ id: 'goal-1', name: 'Carro', contributions: [{ id: 'c1', amount: 500, date: '2026-10-01' }] }),
+      } as unknown as Response;
+    });
+
+    const res = await budgetApiService.addGoalContribution('goal-1', { amount: 500, date: '2026-10-01' });
+    expect(capturedMethod).toBe('POST');
+    expect(capturedUrl).toBe('/api/v1/goals/goal-1/contributions');
+    expect(res.contributions).toHaveLength(1);
+  });
+
+  it('lança erro apropriado quando status HTTP não for ok', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Ano orçamentário não encontrado.' }),
+    } as unknown as Response);
+
+    await expect(budgetApiService.fetchBudgetYear(2099)).rejects.toThrow(
+      'Ano orçamentário não encontrado.'
     );
   });
 });

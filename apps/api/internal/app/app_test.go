@@ -57,7 +57,7 @@ func TestApp_Routes_HealthCheck(t *testing.T) {
 	}
 }
 
-func TestApp_Routes_Budget_UnavailableWhenNoDB(t *testing.T) {
+func TestApp_Routes_UnavailableWhenNoDB(t *testing.T) {
 	cfg := &config.Config{Port: "8080"}
 	application, err := New(context.Background(), cfg)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestApp_Routes_Budget_UnavailableWhenNoDB(t *testing.T) {
 
 	mux := application.routes()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/budget", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/budget-years", nil)
 	rec := httptest.NewRecorder()
 
 	mux.ServeHTTP(rec, req)
@@ -85,7 +85,7 @@ func TestApp_Routes_MethodNotAllowed(t *testing.T) {
 
 	mux := application.routes()
 
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/budget", nil)
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/budget-years", nil)
 	rec := httptest.NewRecorder()
 
 	mux.ServeHTTP(rec, req)

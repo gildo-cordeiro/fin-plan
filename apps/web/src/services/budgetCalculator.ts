@@ -14,10 +14,16 @@ export function calculateMonthlySummaries(state: BudgetState): MonthSummary[] {
   const varsFactor = 1 + varsPercent / 100;
   const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
 
-  const activeIncomes = incomes.filter((i) => !i.off);
-  const activeCards = (lists.cartoes || []).filter((i) => !i.off);
-  const activeFixed = (lists.fixas || []).filter((i) => !i.off);
-  const activeVars = (lists.vars || []).filter((i) => !i.off);
+  const hasItems = Array.isArray(state.items) && state.items.length > 0;
+  const rawIncomes = hasItems ? state.items.filter((i) => i.type === 'renda') : (incomes || []);
+  const rawCards = hasItems ? state.items.filter((i) => i.type === 'cartao') : (lists?.cartoes || []);
+  const rawFixed = hasItems ? state.items.filter((i) => i.type === 'fixa') : (lists?.fixas || []);
+  const rawVars = hasItems ? state.items.filter((i) => i.type === 'var') : (lists?.vars || []);
+
+  const activeIncomes = rawIncomes.filter((i) => !i.off);
+  const activeCards = rawCards.filter((i) => !i.off);
+  const activeFixed = rawFixed.filter((i) => !i.off);
+  const activeVars = rawVars.filter((i) => !i.off);
   const activeOneTime = (oneTimeCosts || []).filter((i) => !i.off);
 
   let runningAccumulated = initialBalance;

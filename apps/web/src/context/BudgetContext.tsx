@@ -7,13 +7,12 @@ import type {
   MonthSummary,
   OverallMetrics,
   FinancialGoal,
-  GoalContribution,
+  BudgetYear,
 } from '../types/budget';
 import {
-  BudgetCategory,
-  BudgetCategoryKey,
-  ExpenseCategoryKey,
+  type BudgetCategoryKey,
   GoalStatus,
+  normalizeBudgetItemType,
 } from '../constants/enums';
 import { INITIAL_BUDGET_STATE } from '../constants/seedData';
 import { useBudgetCalculations } from '../hooks/useBudgetCalculations';
@@ -25,25 +24,22 @@ import {
 } from '../services/storageService';
 import { budgetApiService } from '../services/budgetApiService';
 
-function updateCategoryItem(
-  prev: BudgetState,
-  category: BudgetCategoryKey,
-  itemId: string,
-  mutator: (item: BudgetItem) => BudgetItem
-): BudgetState {
-  const updateList = (items: BudgetItem[]) =>
-    items.map((i) => (i.id === itemId ? mutator(i) : i));
-
-  if (category === BudgetCategory.Renda) {
-    return { ...prev, incomes: updateList(prev.incomes) };
-  }
-
-  const catKey = category as ExpenseCategoryKey;
+function syncDerivedLists(items: BudgetItem[]): {
+  items: BudgetItem[];
+  incomes: BudgetItem[];
+  lists: {
+    cartoes: BudgetItem[];
+    fixas: BudgetItem[];
+    vars: BudgetItem[];
+  };
+} {
   return {
-    ...prev,
+    items,
+    incomes: items.filter((i) => i.type === 'renda'),
     lists: {
-      ...prev.lists,
-      [catKey]: updateList(prev.lists[catKey] || []),
+      cartoes: items.filter((i) => i.type === 'cartao'),
+      fixas: items.filter((i) => i.type === 'fixa'),
+      vars: items.filter((i) => i.type === 'var'),
     },
   };
 }
@@ -65,6 +61,11 @@ interface BudgetContextType {
   saveError: string | null;
   retrySave: () => Promise<{ success: boolean; message: string }>;
   refreshFromDb: () => Promise<{ success: boolean; message: string }>;
+
+  // Gestão de Anos
+  availableYears: BudgetYear[];
+  selectYear: (year: number) => Promise<void>;
+  createYear: (year: number) => Promise<void>;
 
   // Compatibilidade com chamadas legadas
   isCloudLoading: boolean;
@@ -120,6 +121,7 @@ const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => loadTheme());
   const [state, setState] = useState<BudgetState>(INITIAL_BUDGET_STATE);
+  const [availableYears, setAvailableYears] = useState<BudgetYear[]>([]);
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
@@ -130,9 +132,55 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const isLoadedRef = useRef(false);
-  const isHydratingRef = useRef(false);
   const latestStateRef = useRef(state);
   latestStateRef.current = state;
+
+  // Timers de debounce por item para digitação de valores
+  const itemValueDebounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Timer de debounce para simulação
+  const simulationDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const selectYear = async (year: number) => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const yearVm = await budgetApiService.fetchBudgetYear(year);
+      if (yearVm && yearVm.year) {
+        const derived = syncDerivedLists(yearVm.items || []);
+        setState((prev) => ({
+          ...prev,
+          currentYear: yearVm.year.year,
+          months: yearVm.months || [],
+          simulation: yearVm.year.simulation,
+          ...derived,
+          oneTimeCosts: yearVm.oneTimeCosts || [],
+          goals: yearVm.goals || [],
+        }));
+        setLastSaved(new Date());
+      }
+    } catch (err) {
+      console.error(`[BudgetContext] Falha ao carregar ano ${year}:`, err);
+      setLoadError(err instanceof Error ? err.message : 'Falha ao carregar ano');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createYear = async (year: number) => {
+    setIsLoading(true);
+    try {
+      const newYear = await budgetApiService.createBudgetYear(year, state.simulation);
+      setAvailableYears((prev) => {
+        if (prev.some((y) => y.year === year)) return prev;
+        return [...prev, newYear].sort((a, b) => a.year - b.year);
+      });
+      await selectYear(year);
+    } catch (err) {
+      console.error(`[BudgetContext] Falha ao criar ano ${year}:`, err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const retrySave = async (): Promise<{ success: boolean; message: string }> => {
     if (!isLoadedRef.current) {
@@ -144,10 +192,11 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     setIsSaving(true);
     try {
-      const res = await budgetApiService.saveBudget(latestStateRef.current);
-      setLastSaved(res.updatedAt);
+      const yr = state.currentYear || new Date().getFullYear();
+      await budgetApiService.updateYearSimulation(yr, latestStateRef.current.simulation);
+      setLastSaved(new Date());
       setSaveError(null);
-      return { success: true, message: 'Dados salvos no banco de dados com sucesso!' };
+      return { success: true, message: 'Dados salvos com sucesso!' };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha ao salvar no banco de dados';
       setSaveError(msg);
@@ -161,15 +210,25 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setIsLoading(true);
     setLoadError(null);
     try {
-      const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
-      if (remoteState) {
-        isHydratingRef.current = true;
-        setState(remoteState);
-        setLastSaved(updatedAt || new Date());
+      const currentYear = state.currentYear || new Date().getFullYear();
+      const yearVm = await budgetApiService.fetchBudgetYear(currentYear);
+      if (yearVm && yearVm.year) {
+        const derived = syncDerivedLists(yearVm.items || []);
+        setState((prev) => ({
+          ...prev,
+          currentYear: yearVm.year.year,
+          months: yearVm.months || [],
+          simulation: yearVm.year.simulation,
+          ...derived,
+          oneTimeCosts: yearVm.oneTimeCosts || [],
+          goals: yearVm.goals || [],
+        }));
+        setLastSaved(new Date());
+        isLoadedRef.current = true;
+        setLoadError(null);
+        return { success: true, message: 'Dados carregados com sucesso!' };
       }
-      isLoadedRef.current = true;
-      setLoadError(null);
-      return { success: true, message: 'Dados carregados do banco de dados com sucesso!' };
+      throw new Error(`Ano ${currentYear} não encontrado.`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha ao buscar dados no banco';
       setLoadError(msg);
@@ -179,7 +238,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Carrega sempre direto do banco na inicialização
+  // Carrega dados na inicialização
   useEffect(() => {
     let isMounted = true;
 
@@ -187,18 +246,38 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsLoading(true);
       setLoadError(null);
       try {
-        const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
-        if (!isMounted) return;
+        const targetYear = new Date().getFullYear();
 
-        if (remoteState) {
-          isHydratingRef.current = true;
-          setState(remoteState);
-          setLastSaved(updatedAt || new Date());
+        // Carrega lista de anos disponíveis em background
+        try {
+          const years = await budgetApiService.fetchBudgetYears();
+          if (isMounted && years.length > 0) {
+            setAvailableYears(years);
+          }
+        } catch {
+          // Ignora se servidor estiver offline
+        }
+
+        const yearVm = await budgetApiService.fetchBudgetYear(targetYear);
+        if (!isMounted) return;
+        if (yearVm && yearVm.year) {
+          const derived = syncDerivedLists(yearVm.items || []);
+          setState((prev) => ({
+            ...prev,
+            currentYear: yearVm.year.year,
+            months: yearVm.months || [],
+            simulation: yearVm.year.simulation,
+            ...derived,
+            oneTimeCosts: yearVm.oneTimeCosts || [],
+            goals: yearVm.goals || [],
+          }));
+          setLastSaved(new Date());
+          isLoadedRef.current = true;
+          return;
         }
         isLoadedRef.current = true;
-        setLoadError(null);
       } catch (err) {
-        console.warn('[BudgetContext] Falha ao carregar do banco de dados na inicialização:', err);
+        console.warn('[BudgetContext] Falha ao carregar do banco de dados:', err);
         if (!isMounted) return;
         const msg = err instanceof Error ? err.message : 'Falha ao conectar com o banco de dados';
         setLoadError(msg);
@@ -213,11 +292,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const handleOnline = () => {
       setIsOnline(true);
-      if (isLoadedRef.current) {
-        retrySave().catch(() => {});
-      } else {
-        refreshFromDb().catch(() => {});
-      }
+      refreshFromDb().catch(() => {});
     };
 
     const handleOffline = () => {
@@ -234,41 +309,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, []);
 
-  // Salva no banco de dados para qualquer edição ou inserção do usuário
-  useEffect(() => {
-    if (!isLoadedRef.current) {
-      return;
-    }
-
-    if (isHydratingRef.current) {
-      isHydratingRef.current = false;
-      return;
-    }
-
-    setIsSaving(true);
-    const timer = setTimeout(async () => {
-      if (!isLoadedRef.current) {
-        setIsSaving(false);
-        return;
-      }
-
-      try {
-        const res = await budgetApiService.saveBudget(latestStateRef.current);
-        setLastSaved(res.updatedAt);
-        setSaveError(null);
-      } catch (err: unknown) {
-        console.error('[BudgetContext] Falha ao salvar no banco de dados:', err);
-        setSaveError(err instanceof Error ? err.message : 'Falha ao salvar no banco de dados');
-      } finally {
-        setIsSaving(false);
-      }
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [state]);
-
   useEffect(() => {
     saveTheme(theme);
   }, [theme]);
@@ -282,6 +322,19 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       simulation: { ...prev.simulation, ...patch },
     }));
+
+    if (simulationDebounceTimerRef.current) {
+      clearTimeout(simulationDebounceTimerRef.current);
+    }
+    simulationDebounceTimerRef.current = setTimeout(async () => {
+      try {
+        await budgetApiService.updateYearSimulation(latestStateRef.current.currentYear, patch);
+        setLastSaved(new Date());
+        setSaveError(null);
+      } catch (err) {
+        console.error('[BudgetContext] Falha ao salvar simulação no banco:', err);
+      }
+    }, 400);
   };
 
   const addNextMonth = () => {
@@ -290,24 +343,23 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const nextM = getNextMonth(lastMonth);
       const newMonths = [...prev.months, nextM];
 
-      const copyValues = (items: BudgetItem[]): BudgetItem[] =>
-        items.map((item) => ({
-          ...item,
-          values: {
-            ...item.values,
-            [nextM.id]: item.values[lastMonth.id] !== undefined ? item.values[lastMonth.id] : 0,
-          },
-        }));
+      const newItems = prev.items.map((item) => ({
+        ...item,
+        values: {
+          ...item.values,
+          [nextM.id]: item.values[lastMonth.id] !== undefined ? item.values[lastMonth.id] : 0,
+        },
+      }));
+
+      const derived = syncDerivedLists(newItems);
+
+      // Persiste mês na API
+      budgetApiService.addMonthToYear(nextM.year, nextM).catch(() => {});
 
       return {
         ...prev,
         months: newMonths,
-        incomes: copyValues(prev.incomes),
-        lists: {
-          cartoes: copyValues(prev.lists.cartoes),
-          fixas: copyValues(prev.lists.fixas),
-          vars: copyValues(prev.lists.vars),
-        },
+        ...derived,
       };
     });
   };
@@ -318,24 +370,22 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const prevM = getPrevMonth(firstMonth);
       const newMonths = [prevM, ...prev.months];
 
-      const copyValues = (items: BudgetItem[]): BudgetItem[] =>
-        items.map((item) => ({
-          ...item,
-          values: {
-            ...item.values,
-            [prevM.id]: item.values[firstMonth.id] !== undefined ? item.values[firstMonth.id] : 0,
-          },
-        }));
+      const newItems = prev.items.map((item) => ({
+        ...item,
+        values: {
+          ...item.values,
+          [prevM.id]: item.values[firstMonth.id] !== undefined ? item.values[firstMonth.id] : 0,
+        },
+      }));
+
+      const derived = syncDerivedLists(newItems);
+
+      budgetApiService.addMonthToYear(prevM.year, prevM).catch(() => {});
 
       return {
         ...prev,
         months: newMonths,
-        incomes: copyValues(prev.incomes),
-        lists: {
-          cartoes: copyValues(prev.lists.cartoes),
-          fixas: copyValues(prev.lists.fixas),
-          vars: copyValues(prev.lists.vars),
-        },
+        ...derived,
       };
     });
   };
@@ -345,22 +395,18 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (prev.months.length <= 1) return prev;
       const newMonths = prev.months.filter((m) => m.id !== monthId);
 
-      const stripValues = (items: BudgetItem[]): BudgetItem[] =>
-        items.map((item) => {
-          const newVals = { ...item.values };
-          delete newVals[monthId];
-          return { ...item, values: newVals };
-        });
+      const newItems = prev.items.map((item) => {
+        const newVals = { ...item.values };
+        delete newVals[monthId];
+        return { ...item, values: newVals };
+      });
+
+      const derived = syncDerivedLists(newItems);
 
       return {
         ...prev,
         months: newMonths,
-        incomes: stripValues(prev.incomes),
-        lists: {
-          cartoes: stripValues(prev.lists.cartoes),
-          fixas: stripValues(prev.lists.fixas),
-          vars: stripValues(prev.lists.vars),
-        },
+        ...derived,
       };
     });
   };
@@ -371,26 +417,22 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const firstMonth = prev.months[0];
       const newMonths = generateMonthSequence(firstMonth.year, firstMonth.monthIndex, count);
 
-      const syncValues = (items: BudgetItem[]): BudgetItem[] =>
-        items.map((item) => {
-          const newVals: Record<string, number> = {};
-          const existingVals = Object.values(item.values);
-          const defaultVal = existingVals.length > 0 ? existingVals[existingVals.length - 1] : 0;
-          newMonths.forEach((m) => {
-            newVals[m.id] = item.values[m.id] !== undefined ? item.values[m.id] : defaultVal;
-          });
-          return { ...item, values: newVals };
+      const newItems = prev.items.map((item) => {
+        const newVals: Record<string, number> = {};
+        const existingVals = Object.values(item.values);
+        const defaultVal = existingVals.length > 0 ? existingVals[existingVals.length - 1] : 0;
+        newMonths.forEach((m) => {
+          newVals[m.id] = item.values[m.id] !== undefined ? item.values[m.id] : defaultVal;
         });
+        return { ...item, values: newVals };
+      });
+
+      const derived = syncDerivedLists(newItems);
 
       return {
         ...prev,
         months: newMonths,
-        incomes: syncValues(prev.incomes),
-        lists: {
-          cartoes: syncValues(prev.lists.cartoes),
-          fixas: syncValues(prev.lists.fixas),
-          vars: syncValues(prev.lists.vars),
-        },
+        ...derived,
       };
     });
   };
@@ -399,38 +441,35 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setState((prev) => {
       const newMonths = generateMonthSequence(startYear, startMonthIndex, count);
 
-      const syncValues = (items: BudgetItem[]): BudgetItem[] =>
-        items.map((item) => {
-          const newVals: Record<string, number> = {};
-          const existingVals = Object.values(item.values);
-          const defaultVal = existingVals.length > 0 ? existingVals[existingVals.length - 1] : 0;
-          newMonths.forEach((m) => {
-            newVals[m.id] = item.values[m.id] !== undefined ? item.values[m.id] : defaultVal;
-          });
-          return { ...item, values: newVals };
+      const newItems = prev.items.map((item) => {
+        const newVals: Record<string, number> = {};
+        const existingVals = Object.values(item.values);
+        const defaultVal = existingVals.length > 0 ? existingVals[existingVals.length - 1] : 0;
+        newMonths.forEach((m) => {
+          newVals[m.id] = item.values[m.id] !== undefined ? item.values[m.id] : defaultVal;
         });
+        return { ...item, values: newVals };
+      });
+
+      const derived = syncDerivedLists(newItems);
 
       return {
         ...prev,
         months: newMonths,
-        incomes: syncValues(prev.incomes),
-        lists: {
-          cartoes: syncValues(prev.lists.cartoes),
-          fixas: syncValues(prev.lists.fixas),
-          vars: syncValues(prev.lists.vars),
-        },
+        ...derived,
       };
     });
   };
 
   const addItem = (category: BudgetCategoryKey, customName?: string) => {
+    const itemType = normalizeBudgetItemType(category);
     const defaultName =
       customName ||
-      (category === BudgetCategory.Renda
+      (itemType === 'renda'
         ? 'Nova Fonte de Renda'
-        : category === 'cartoes'
+        : itemType === 'cartao'
         ? 'Novo Cartão'
-        : category === 'fixas'
+        : itemType === 'fixa'
         ? 'Nova Despesa Fixa'
         : 'Nova Despesa Variável');
 
@@ -438,20 +477,23 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newItem: BudgetItem = {
       id,
-      name: defaultName,
+      type: itemType,
       category,
+      name: defaultName,
       values: state.months.reduce((acc, m) => ({ ...acc, [m.id]: 0 }), {}),
     };
 
     setState((prev) => {
-      if (category === BudgetCategory.Renda) {
-        return { ...prev, incomes: [...prev.incomes, newItem] };
-      }
-      const catKey = category as ExpenseCategoryKey;
+      const updatedItems = [...prev.items, newItem];
       return {
         ...prev,
-        lists: { ...prev.lists, [catKey]: [...(prev.lists[catKey] || []), newItem] },
+        ...syncDerivedLists(updatedItems),
       };
+    });
+
+    // Persistência atômica imediata
+    budgetApiService.createBudgetItem(newItem).catch((err) => {
+      console.error('[BudgetContext] Falha ao criar item atômico:', err);
     });
   };
 
@@ -468,14 +510,15 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     monthId: string;
     repeatForward?: boolean;
   }) => {
+    const itemType = normalizeBudgetItemType(category);
     const numVal = isNaN(value) ? 0 : value;
     const cleanName =
       name.trim() ||
-      (category === BudgetCategory.Renda
+      (itemType === 'renda'
         ? 'Nova Fonte de Renda'
-        : category === 'cartoes'
+        : itemType === 'cartao'
         ? 'Novo Cartão'
-        : category === 'fixas'
+        : itemType === 'fixa'
         ? 'Nova Despesa Fixa'
         : 'Nova Despesa Variável');
 
@@ -494,140 +537,202 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const newItem: BudgetItem = {
       id,
-      name: cleanName,
+      type: itemType,
       category,
+      name: cleanName,
       values,
     };
 
     setState((prev) => {
-      if (category === BudgetCategory.Renda) {
-        return { ...prev, incomes: [...prev.incomes, newItem] };
-      }
-      const catKey = category as ExpenseCategoryKey;
+      const updatedItems = [...prev.items, newItem];
       return {
         ...prev,
-        lists: { ...prev.lists, [catKey]: [...(prev.lists[catKey] || []), newItem] },
+        ...syncDerivedLists(updatedItems),
       };
+    });
+
+    budgetApiService.createBudgetItem(newItem).catch((err) => {
+      console.error('[BudgetContext] Falha ao criar item atômico:', err);
     });
   };
 
-  const removeItem = (category: BudgetCategoryKey, itemId: string): BudgetItem | undefined => {
-    const item =
-      category === BudgetCategory.Renda
-        ? state.incomes.find((i) => i.id === itemId)
-        : (state.lists[category as ExpenseCategoryKey] || []).find((i) => i.id === itemId);
-
+  const removeItem = (_category: BudgetCategoryKey, itemId: string): BudgetItem | undefined => {
+    const item = state.items.find((i) => i.id === itemId);
     if (!item) return undefined;
 
     setState((prev) => {
-      if (category === BudgetCategory.Renda) {
-        return { ...prev, incomes: prev.incomes.filter((i) => i.id !== itemId) };
-      }
-      const catKey = category as ExpenseCategoryKey;
+      const updatedItems = prev.items.filter((i) => i.id !== itemId);
       return {
         ...prev,
-        lists: {
-          ...prev.lists,
-          [catKey]: (prev.lists[catKey] || []).filter((i) => i.id !== itemId),
-        },
+        ...syncDerivedLists(updatedItems),
       };
+    });
+
+    budgetApiService.deleteBudgetItem(itemId).catch((err) => {
+      console.error('[BudgetContext] Falha ao remover item atômico:', err);
     });
 
     return item;
   };
 
-  const restoreItem = (category: BudgetCategoryKey, item: BudgetItem) => {
+  const restoreItem = (_category: BudgetCategoryKey, item: BudgetItem) => {
     setState((prev) => {
-      if (category === BudgetCategory.Renda) {
-        return { ...prev, incomes: [...prev.incomes, item] };
-      }
-      const catKey = category as ExpenseCategoryKey;
+      const updatedItems = [...prev.items, item];
       return {
         ...prev,
-        lists: {
-          ...prev.lists,
-          [catKey]: [...(prev.lists[catKey] || []), item],
-        },
+        ...syncDerivedLists(updatedItems),
       };
+    });
+
+    budgetApiService.createBudgetItem(item).catch((err) => {
+      console.error('[BudgetContext] Falha ao restaurar item atômico:', err);
     });
   };
 
-  const updateItemName = (category: BudgetCategoryKey, itemId: string, name: string) => {
+  const updateItemName = (_category: BudgetCategoryKey, itemId: string, name: string) => {
     const cleanName = name.trim();
     if (!cleanName) return;
-    setState((prev) => updateCategoryItem(prev, category, itemId, (i) => ({ ...i, name: cleanName })));
+
+    setState((prev) => {
+      const updatedItems = prev.items.map((i) =>
+        i.id === itemId ? { ...i, name: cleanName } : i
+      );
+      return {
+        ...prev,
+        ...syncDerivedLists(updatedItems),
+      };
+    });
+
+    budgetApiService.updateBudgetItem(itemId, { name: cleanName }).catch((err) => {
+      console.error('[BudgetContext] Falha ao atualizar nome do item:', err);
+    });
   };
 
-  const toggleItemActive = (category: BudgetCategoryKey, itemId: string) => {
-    setState((prev) => updateCategoryItem(prev, category, itemId, (i) => ({ ...i, off: !i.off })));
+  const toggleItemActive = (_category: BudgetCategoryKey, itemId: string) => {
+    let nextOff = false;
+    setState((prev) => {
+      const updatedItems = prev.items.map((i) => {
+        if (i.id === itemId) {
+          nextOff = !i.off;
+          return { ...i, off: nextOff };
+        }
+        return i;
+      });
+      return {
+        ...prev,
+        ...syncDerivedLists(updatedItems),
+      };
+    });
+
+    budgetApiService.updateBudgetItem(itemId, { off: nextOff }).catch((err) => {
+      console.error('[BudgetContext] Falha ao alternar estado do item:', err);
+    });
   };
 
   const updateItemValue = (
-    category: BudgetCategoryKey,
+    _category: BudgetCategoryKey,
     itemId: string,
     monthId: string,
     value: number
   ) => {
     const numVal = isNaN(value) ? 0 : value;
-    setState((prev) =>
-      updateCategoryItem(prev, category, itemId, (i) => ({
-        ...i,
-        values: { ...i.values, [monthId]: numVal },
-      }))
-    );
+
+    setState((prev) => {
+      const updatedItems = prev.items.map((i) =>
+        i.id === itemId
+          ? { ...i, values: { ...i.values, [monthId]: numVal } }
+          : i
+      );
+      return {
+        ...prev,
+        ...syncDerivedLists(updatedItems),
+      };
+    });
+
+    // Debounce de 400ms por item durante a digitação de valores
+    const existingTimer = itemValueDebounceTimersRef.current.get(itemId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSaving(true);
+        await budgetApiService.updateBudgetItem(itemId, {
+          values: { [monthId]: numVal },
+        });
+        setLastSaved(new Date());
+        setSaveError(null);
+      } catch (err) {
+        console.error('[BudgetContext] Falha ao atualizar valor do item:', err);
+        setSaveError(err instanceof Error ? err.message : 'Falha ao salvar valor');
+      } finally {
+        setIsSaving(false);
+        itemValueDebounceTimersRef.current.delete(itemId);
+      }
+    }, 400);
+
+    itemValueDebounceTimersRef.current.set(itemId, timer);
   };
 
-  const repeatFirstMonthAcrossAll = (category: BudgetCategoryKey, itemId: string) => {
+  const repeatFirstMonthAcrossAll = (_category: BudgetCategoryKey, itemId: string) => {
     const firstMonthId = state.months[0]?.id;
     if (!firstMonthId) return;
 
-    const findItem = (items: BudgetItem[]) => items.find((i) => i.id === itemId);
-    const item =
-      category === BudgetCategory.Renda
-        ? findItem(state.incomes)
-        : findItem(state.lists[category as ExpenseCategoryKey] || []);
-
+    const item = state.items.find((i) => i.id === itemId);
     if (!item) return;
     const baseValue = item.values[firstMonthId] ?? 0;
 
-    setState((prev) =>
-      updateCategoryItem(prev, category, itemId, (i) => {
-        const newVals: Record<string, number> = {};
-        prev.months.forEach((m) => {
-          newVals[m.id] = baseValue;
-        });
-        return { ...i, values: newVals };
-      })
-    );
+    const newVals: Record<string, number> = {};
+    state.months.forEach((m) => {
+      newVals[m.id] = baseValue;
+    });
+
+    setState((prev) => {
+      const updatedItems = prev.items.map((i) =>
+        i.id === itemId ? { ...i, values: newVals } : i
+      );
+      return {
+        ...prev,
+        ...syncDerivedLists(updatedItems),
+      };
+    });
+
+    budgetApiService.updateBudgetItem(itemId, { values: newVals }).catch((err) => {
+      console.error('[BudgetContext] Falha ao repetir valor de item:', err);
+    });
   };
 
   const repeatValueForward = (
-    category: BudgetCategoryKey,
+    _category: BudgetCategoryKey,
     itemId: string,
     fromMonthId: string
   ) => {
-    const findItem = (items: BudgetItem[]) => items.find((i) => i.id === itemId);
-    const item =
-      category === BudgetCategory.Renda
-        ? findItem(state.incomes)
-        : findItem(state.lists[category as ExpenseCategoryKey] || []);
-
+    const item = state.items.find((i) => i.id === itemId);
     if (!item) return;
 
     const fromIdx = state.months.findIndex((m) => m.id === fromMonthId);
     if (fromIdx === -1) return;
 
     const valToRepeat = item.values[fromMonthId] ?? 0;
+    const newVals = { ...item.values };
+    for (let idx = fromIdx; idx < state.months.length; idx++) {
+      newVals[state.months[idx].id] = valToRepeat;
+    }
 
-    setState((prev) =>
-      updateCategoryItem(prev, category, itemId, (i) => {
-        const newVals = { ...i.values };
-        for (let idx = fromIdx; idx < prev.months.length; idx++) {
-          newVals[prev.months[idx].id] = valToRepeat;
-        }
-        return { ...i, values: newVals };
-      })
-    );
+    setState((prev) => {
+      const updatedItems = prev.items.map((i) =>
+        i.id === itemId ? { ...i, values: newVals } : i
+      );
+      return {
+        ...prev,
+        ...syncDerivedLists(updatedItems),
+      };
+    });
+
+    budgetApiService.updateBudgetItem(itemId, { values: newVals }).catch((err) => {
+      console.error('[BudgetContext] Falha ao repetir valor para frente:', err);
+    });
   };
 
   const addOneTimeCost = (initial?: Partial<Omit<OneTimeCost, 'id'>>) => {
@@ -644,6 +749,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       oneTimeCosts: [...(prev.oneTimeCosts || []), newItem],
     }));
+
+    budgetApiService.createOneTimeCost(newItem).catch((err) => {
+      console.error('[BudgetContext] Falha ao criar custo pontual:', err);
+    });
   };
 
   const removeOneTimeCost = (id: string): OneTimeCost | undefined => {
@@ -655,6 +764,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       oneTimeCosts: prev.oneTimeCosts.filter((i) => i.id !== id),
     }));
 
+    budgetApiService.deleteOneTimeCost(id).catch((err) => {
+      console.error('[BudgetContext] Falha ao remover custo pontual:', err);
+    });
+
     return item;
   };
 
@@ -663,6 +776,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       oneTimeCosts: [...(prev.oneTimeCosts || []), item],
     }));
+
+    budgetApiService.createOneTimeCost(item).catch((err) => {
+      console.error('[BudgetContext] Falha ao restaurar custo pontual:', err);
+    });
   };
 
   const updateOneTimeCost = (id: string, patch: Partial<Omit<OneTimeCost, 'id'>>) => {
@@ -672,6 +789,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         i.id === id ? { ...i, ...patch } : i
       ),
     }));
+
+    budgetApiService.updateOneTimeCost(id, patch).catch((err) => {
+      console.error('[BudgetContext] Falha ao atualizar custo pontual:', err);
+    });
   };
 
   const updateOneTimeValue = (itemId: string, value: number) => {
@@ -688,6 +809,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       oneTimeCosts: (prev.oneTimeCosts || []).map((i) => ({ ...i, targetMonthId })),
     }));
+
+    (state.oneTimeCosts || []).forEach((item) => {
+      budgetApiService.updateOneTimeCost(item.id, { targetMonthId }).catch(() => {});
+    });
   };
 
   const addGoal = (initial?: Partial<Omit<FinancialGoal, 'id' | 'contributions'>>) => {
@@ -706,6 +831,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       goals: [...(prev.goals || []), newGoal],
     }));
+
+    budgetApiService.createGoal(newGoal).catch((err) => {
+      console.error('[BudgetContext] Falha ao criar meta:', err);
+    });
   };
 
   const removeGoal = (goalId: string): FinancialGoal | undefined => {
@@ -717,6 +846,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       goals: (prev.goals || []).filter((g) => g.id !== goalId),
     }));
 
+    budgetApiService.deleteGoal(goalId).catch((err) => {
+      console.error('[BudgetContext] Falha ao remover meta:', err);
+    });
+
     return goal;
   };
 
@@ -725,6 +858,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       goals: [...(prev.goals || []), goal],
     }));
+
+    budgetApiService.createGoal(goal).catch((err) => {
+      console.error('[BudgetContext] Falha ao restaurar meta:', err);
+    });
   };
 
   const updateGoal = (
@@ -735,15 +872,20 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       goals: (prev.goals || []).map((g) => (g.id === goalId ? { ...g, ...patch } : g)),
     }));
+
+    budgetApiService.updateGoal(goalId, patch).catch((err) => {
+      console.error('[BudgetContext] Falha ao atualizar meta:', err);
+    });
   };
 
   const addContribution = (goalId: string, amount: number, note?: string) => {
     const numAmount = isNaN(amount) ? 0 : amount;
     if (numAmount <= 0) return;
 
-    const contribution: GoalContribution = {
+    const date = new Date().toISOString().slice(0, 10);
+    const contribution = {
       id: generateId(),
-      date: new Date().toISOString().slice(0, 10),
+      date,
       amount: numAmount,
       note,
     };
@@ -756,6 +898,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           : g
       ),
     }));
+
+    budgetApiService.addGoalContribution(goalId, { amount: numAmount, note, date }).catch((err) => {
+      console.error('[BudgetContext] Falha ao adicionar contribuição à meta:', err);
+    });
   };
 
   const removeContribution = (goalId: string, contributionId: string) => {
@@ -767,6 +913,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           : g
       ),
     }));
+
+    budgetApiService.deleteGoalContribution(goalId, contributionId).catch((err) => {
+      console.error('[BudgetContext] Falha ao remover contribuição da meta:', err);
+    });
   };
 
   const setGoalStatus = (goalId: string, status: GoalStatus) => {
@@ -774,6 +924,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...prev,
       goals: (prev.goals || []).map((g) => (g.id === goalId ? { ...g, status } : g)),
     }));
+
+    budgetApiService.updateGoal(goalId, { status }).catch((err) => {
+      console.error('[BudgetContext] Falha ao atualizar status da meta:', err);
+    });
   };
 
   const { monthlySummaries, metrics } = useBudgetCalculations(state);
@@ -795,6 +949,11 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         retrySave,
         refreshFromDb,
 
+        // Gestão de anos
+        availableYears,
+        selectYear,
+        createYear,
+
         // Compatibilidade legada
         isCloudLoading: isLoading,
         isCloudSyncing: isSaving,
@@ -802,6 +961,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         cloudSyncError: saveError || loadError,
         fetchFromCloud: refreshFromDb,
         saveToCloud: retrySave,
+
         updateSimulation,
         addNextMonth,
         addPrevMonth,

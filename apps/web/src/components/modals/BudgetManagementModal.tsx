@@ -5,7 +5,7 @@ import { Modal } from '../ui/Modal';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { CATEGORY_DEFINITIONS } from '../../constants/categories';
-import type { ExpenseCategoryKey } from '../../constants/enums';
+import { normalizeBudgetItemType, type ExpenseCategoryKey } from '../../constants/enums';
 import type { BudgetItem } from '../../types/budget';
 
 interface BudgetManagementModalProps {
@@ -67,10 +67,9 @@ export const BudgetManagementModal = ({
 
   if (!currentMonth) return null;
 
-  const currentItems: BudgetItem[] =
-    activeTab === 'renda'
-      ? state.incomes
-      : state.lists[activeTab as ExpenseCategoryKey] || [];
+  const currentItems: BudgetItem[] = state.items.filter(
+    (i) => i.type === normalizeBudgetItemType(activeTab)
+  );
 
   const categoryTotal = currentItems
     .filter((i) => !i.off)

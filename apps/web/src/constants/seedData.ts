@@ -6,6 +6,20 @@ export const INITIAL_MONTHS: MonthItem[] = generateMonthSequence(currentYear, 9,
 
 export const INITIAL_BUDGET_STATE: BudgetState = {
   version: 5,
+  currentYear,
+  years: [
+    {
+      id: String(currentYear),
+      year: currentYear,
+      simulation: {
+        varsPercent: 0,
+        rendaPercent: 0,
+        oneTimeMarginPercent: 0,
+        initialBalance: 0,
+        emergencyReserve: 0,
+      },
+    },
+  ],
   months: INITIAL_MONTHS,
   simulation: {
     varsPercent: 0,
@@ -14,6 +28,7 @@ export const INITIAL_BUDGET_STATE: BudgetState = {
     initialBalance: 0,
     emergencyReserve: 0,
   },
+  items: [],
   incomes: [],
   lists: {
     cartoes: [],

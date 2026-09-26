@@ -2,7 +2,7 @@
 
 Esta documentação descreve todos os endpoints, contratos de requisição/resposta, cabeçalhos e regras de erro da camada de persistência REST do **FinPlan**.
 
-A implementação do backend localiza-se em [`apps/api/`](../apps/api/) e é servida como uma API REST compilada em Go com MongoDB Go Driver oficial.
+A implementação do backend localiza-se em [`apps/api/`](../apps/api/) e é servida como uma API REST compilada em Go com o driver oficial do MongoDB.
 
 ---
 
@@ -19,283 +19,199 @@ Se a chave for omitida ou divergir do valor de `API_SECRET_KEY`, a API responder
 Todas as respostas incluem os seguintes cabeçalhos CORS:
 - `Access-Control-Allow-Origin: *`
 - `Access-Control-Allow-Credentials: true`
-- `Access-Control-Allow-Methods: GET,OPTIONS,POST`
+- `Access-Control-Allow-Methods: GET,OPTIONS,POST,PATCH,DELETE`
 - `Access-Control-Allow-Headers: X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-api-key, Authorization`
 
 ---
 
-## 📦 Recursos e Endpoints
+## 📦 Recursos e Endpoints da Nova API (Domínio Normalizado)
 
 ### 1. `GET /api/v1/health`
 Health check para orquestradores (Docker, Kubernetes, Cloud Run).
-
 - **Método**: `GET`
-- **Autenticação**: Não requerida
-- **Resposta**:
-  - `200 OK`:
-    ```json
-    {
-      "status": "ok"
-    }
-    ```
+- **Resposta**: `200 OK` `{ "status": "ok" }`
 
 ---
 
-### 2. `OPTIONS /api/v1/budget`
-Executa a validação de pré-vôo (preflight) para clientes CORS.
+### 2. Anos Orçamentários (`budget_years`) & Meses (`months`)
 
-- **Método**: `OPTIONS`
-- **Autenticação**: Não requerida
-- **Resposta**:
-  - `200 OK` (sem corpo, apenas cabeçalhos CORS)
-
----
-
-### 3. `GET /api/v1/budget`
-Recupera o estado mais recente do orçamento armazenado no MongoDB Atlas (`_id: 'default_budget'`).
-
-- **Método**: `GET`
-- **Autenticação**: Obrigatória via `x-api-key` ou `Authorization` caso `API_SECRET_KEY` esteja definida.
-- **Cabeçalhos de Requisição**:
-  ```http
-  Accept: application/json
-  x-api-key: <chave_secreta_opcional>
-  ```
-- **Respostas de Sucesso**:
-  - **`200 OK` — Orçamento encontrado**:
-    ```json
+#### `GET /api/v1/budget-years`
+Retorna todos os anos orçamentários cadastrados no sistema.
+- **Resposta**: `200 OK`
+  ```json
+  [
     {
-      "exists": true,
-      "data": {
-        "version": 5,
-        "months": [
-          {
-            "id": "2026-10",
-            "name": "Outubro 2026",
-            "shortName": "Out/26",
-            "year": 2026,
-            "monthIndex": 9
-          }
-        ],
-        "simulation": {
-          "varsPercent": 0,
-          "rendaPercent": 0,
-          "oneTimeMarginPercent": 0,
-          "initialBalance": 10000,
-          "emergencyReserve": 5000
-        },
-        "incomes": [
-          {
-            "id": "550e8400-e29b-41d4-a716-446655440000",
-            "name": "Salário Principal",
-            "category": "renda",
-            "values": {
-              "2026-10": 8000
-            },
-            "off": false
-          }
-        ],
-        "lists": {
-          "cartoes": [],
-          "fixas": [],
-          "vars": []
-        },
-        "oneTimeCosts": [],
-        "goals": []
+      "id": "2026",
+      "year": 2026,
+      "simulation": {
+        "varsPercent": 0,
+        "rendaPercent": 0,
+        "oneTimeMarginPercent": 0,
+        "initialBalance": 10000,
+        "emergencyReserve": 5000
       },
-      "updatedAt": "2026-09-26T12:00:00.000Z"
+      "createdAt": "2026-09-26T12:00:00Z",
+      "updatedAt": "2026-09-26T12:00:00Z"
     }
-    ```
-  - **`200 OK` — Documento ainda não inicializado no banco**:
-    ```json
-    {
-      "exists": false,
-      "data": null
-    }
-    ```
-
-- **Respostas de Erro**:
-  - **`401 Unauthorized`**:
-    ```json
-    {
-      "error": "Acesso não autorizado. Chave de API ausente ou inválida."
-    }
-    ```
-  - **`503 Service Unavailable`** (Variável `MONGODB_URI` ausente no ambiente):
-    ```json
-    {
-      "error": "MONGODB_URI não configurada nas variáveis de ambiente. O servidor está ativo mas sem conexão com o banco de dados."
-    }
-    ```
-  - **`500 Internal Server Error`** (Timeout ou falha de rede com o cluster MongoDB):
-    ```json
-    {
-      "error": "Server selection timed out after 8000 ms"
-    }
-    ```
-
----
-
-### 4. `POST /api/v1/budget`
-Persiste atomicamente o estado completo do orçamento no documento único `default_budget` via `updateOne` com `{ upsert: true }`.
-
-- **Método**: `POST`
-- **Autenticação**: Obrigatória via `x-api-key` ou `Authorization` caso `API_SECRET_KEY` esteja definida.
-- **Cabeçalhos de Requisição**:
-  ```http
-  Content-Type: application/json
-  Accept: application/json
-  x-api-key: <chave_secreta_opcional>
+  ]
   ```
-- **Corpo da Requisição (Payload)**: Objeto JSON representando o `BudgetState` completo:
+
+#### `GET /api/v1/budget-years/{year}`
+Retorna a **visão anual agregada** pronta para renderizar o frontend em 1 única requisição (join server-side em Go).
+- **Resposta**: `200 OK`
   ```json
   {
-    "version": 5,
+    "year": {
+      "id": "2026",
+      "year": 2026,
+      "simulation": { ... }
+    },
     "months": [
       {
         "id": "2026-10",
+        "budgetYearId": "2026",
         "name": "Outubro 2026",
         "shortName": "Out/26",
         "year": 2026,
         "monthIndex": 9
-      },
-      {
-        "id": "2026-11",
-        "name": "Novembro 2026",
-        "shortName": "Nov/26",
-        "year": 2026,
-        "monthIndex": 10
       }
     ],
-    "simulation": {
-      "varsPercent": 0,
-      "rendaPercent": 0,
-      "oneTimeMarginPercent": 0,
-      "initialBalance": 10000,
-      "emergencyReserve": 5000
-    },
-    "incomes": [
+    "items": [
       {
         "id": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "renda",
         "name": "Salário Líquido",
-        "category": "renda",
-        "values": {
-          "2026-10": 8500,
-          "2026-11": 8500
-        },
-        "off": false
+        "values": { "2026-10": 8500 }
       }
     ],
-    "lists": {
-      "cartoes": [
-        {
-          "id": "550e8400-e29b-41d4-a716-446655440001",
-          "name": "Cartão Crédito XP",
-          "category": "cartoes",
-          "values": {
-            "2026-10": 2100,
-            "2026-11": 1800
-          },
-          "off": false
-        }
-      ],
-      "fixas": [
-        {
-          "id": "550e8400-e29b-41d4-a716-446655440002",
-          "name": "Aluguel",
-          "category": "fixas",
-          "values": {
-            "2026-10": 2500,
-            "2026-11": 2500
-          },
-          "off": false
-        }
-      ],
-      "vars": [
-        {
-          "id": "550e8400-e29b-41d4-a716-446655440003",
-          "name": "Supermercado",
-          "category": "vars",
-          "values": {
-            "2026-10": 1300,
-            "2026-11": 1300
-          },
-          "off": false
-        }
-      ]
-    },
-    "oneTimeCosts": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440004",
-        "name": "Caução / Mudança",
-        "value": 4500,
-        "targetMonthId": "2026-11",
-        "off": false
-      }
-    ],
-    "goals": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440005",
-        "name": "Reserva de Emergência",
-        "targetAmount": 30000,
-        "status": "ativa",
-        "contributions": [
-          {
-            "id": "550e8400-e29b-41d4-a716-446655440006",
-            "date": "2026-09-26",
-            "amount": 2000,
-            "note": "Aporte inicial"
-          }
-        ]
-      }
-    ]
+    "oneTimeCosts": [ ... ],
+    "goals": [ ... ]
   }
   ```
 
-- **Respostas de Sucesso**:
-  - **`200 OK`**:
-    ```json
-    {
-      "success": true,
-      "message": "Orçamento persistido no MongoDB Atlas com sucesso.",
-      "updatedAt": "2026-09-26T12:05:30.123Z"
+#### `POST /api/v1/budget-years`
+Cria um novo ano fiscal. Automaticamente inicializa os 12 meses correspondentes.
+- **Payload**:
+  ```json
+  {
+    "year": 2027,
+    "simulation": {
+      "initialBalance": 15000,
+      "emergencyReserve": 10000
     }
-    ```
+  }
+  ```
 
-- **Respostas de Erro**:
-  - **`400 Bad Request`** (Corpo ausente, JSON malformado ou payload inválido):
-    ```json
-    {
-      "error": "Corpo da requisição inválido ou ausente."
-    }
-    ```
-  - **`401 Unauthorized`**:
-    ```json
-    {
-      "error": "Acesso não autorizado. Chave de API ausente ou inválida."
-    }
-    ```
-  - **`503 Service Unavailable`** (`MONGODB_URI` não configurada no servidor):
-    ```json
-    {
-      "error": "MONGODB_URI não configurada nas variáveis de ambiente."
-    }
-    ```
-  - **`500 Internal Server Error`**:
-    ```json
-    {
-      "error": "Erro interno do servidor"
-    }
-    ```
+#### `PATCH /api/v1/budget-years/{year}`
+Atualiza atomicamente as premissas de simulação daquele ano orçamentário.
+- **Payload**:
+  ```json
+  {
+    "varsPercent": 10,
+    "initialBalance": 12000
+  }
+  ```
+
+#### `POST /api/v1/budget-years/{year}/months`
+Adiciona um mês personalizado ao ano fiscal.
 
 ---
 
-### 5. Métodos Não Suportados
-Qualquer outro método HTTP (ex: `PUT`, `DELETE`, `PATCH`) disparado contra `/api/v1/budget` retornará:
-- **Status de Resposta**: `405 Method Not Allowed`
-- **Corpo**:
+### 3. Itens de Orçamento (`budget_items`)
+
+Substitui as listas fixas monolíticas. O campo `type` define se o item é `renda`, `cartao`, `fixa` ou `var`. Um item pode conter valores trans-anuais mapeados por `monthId`.
+
+#### `POST /api/v1/budget-items`
+Cria um item de orçamento de forma atômica.
+- **Payload**:
   ```json
   {
-    "error": "Método {METHOD} não suportado."
+    "name": "Aluguel",
+    "type": "fixa",
+    "values": {
+      "2026-10": 2500,
+      "2026-11": 2500
+    },
+    "off": false
   }
   ```
+- **Resposta**: `201 Created` com o objeto `BudgetItem`.
+
+#### `GET /api/v1/budget-items`
+Lista todos os itens de orçamento. Suporta filtro por query parameter: `?type=renda`.
+
+#### `GET /api/v1/budget-items/{id}`
+Recupera um item específico pelo ID.
+
+#### `PATCH /api/v1/budget-items/{id}`
+Edição atômica pontual. Altera apenas os campos enviados (e atualiza chaves em `values` sem sobrescrever os outros meses).
+- **Payload**:
+  ```json
+  {
+    "values": {
+      "2026-10": 2700
+    }
+  }
+  ```
+
+#### `DELETE /api/v1/budget-items/{id}`
+Exclui atomicamente o item.
+- **Resposta**: `200 OK` `{ "success": true, "message": "Item de orçamento excluído com sucesso." }`
+
+---
+
+### 4. Custos Pontuais (`one_time_costs`)
+
+#### `POST /api/v1/one-time-costs`
+Cria um custo pontual.
+- **Payload**:
+  ```json
+  {
+    "name": "Reforma do Quarto",
+    "value": 3500,
+    "targetMonthId": "2026-11"
+  }
+  ```
+
+#### `PATCH /api/v1/one-time-costs/{id}`
+Atualiza campos do custo pontual.
+
+#### `DELETE /api/v1/one-time-costs/{id}`
+Exclui atomicamente o custo pontual.
+
+---
+
+### 5. Metas Financeiras (`goals`) & Aportes
+
+#### `POST /api/v1/goals`
+Cria uma nova meta financeira.
+- **Payload**:
+  ```json
+  {
+    "name": "Viagem de Férias",
+    "targetAmount": 12000,
+    "icon": "✈️",
+    "color": "#0e6b7a",
+    "status": "ativa"
+  }
+  ```
+
+#### `PATCH /api/v1/goals/{id}`
+Atualiza metadados ou status da meta (`ativa`, `concluida`, `pausada`).
+
+#### `DELETE /api/v1/goals/{id}`
+Exclui a meta e todos os seus aportes.
+
+#### `POST /api/v1/goals/{id}/contributions`
+Registra um novo aporte atomicamente utilizando operador `$push` no MongoDB.
+- **Payload**:
+  ```json
+  {
+    "amount": 1000,
+    "note": "Depósito mensal",
+    "date": "2026-10-15"
+  }
+  ```
+
+#### `DELETE /api/v1/goals/{id}/contributions/{contributionId}`
+Remove um aporte atomicamente utilizando operador `$pull` no MongoDB.

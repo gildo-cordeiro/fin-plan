@@ -1,5 +1,7 @@
-import type { BudgetState } from '../types/budget';
+import type { BudgetState, BudgetItem } from '../types/budget';
+import { normalizeBudgetItemType } from '../constants/enums';
 import { INITIAL_BUDGET_STATE } from '../constants/seedData';
+
 export function migrateState(raw: unknown): BudgetState {
   if (!raw || typeof raw !== 'object') {
     return INITIAL_BUDGET_STATE;
@@ -19,19 +21,65 @@ export function migrateState(raw: unknown): BudgetState {
     }));
   }
 
+  const items: BudgetItem[] = Array.isArray(data.items)
+    ? data.items.map((i: any) => ({
+        ...i,
+        type: i.type || normalizeBudgetItemType(i.category || 'renda'),
+      }))
+    : [
+        ...(Array.isArray(data.incomes)
+          ? data.incomes.map((i: any) => ({ ...i, type: 'renda' as const }))
+          : []),
+        ...(Array.isArray(data.lists?.cartoes)
+          ? data.lists.cartoes.map((i: any) => ({ ...i, type: 'cartao' as const }))
+          : []),
+        ...(Array.isArray(data.lists?.fixas)
+          ? data.lists.fixas.map((i: any) => ({ ...i, type: 'fixa' as const }))
+          : []),
+        ...(Array.isArray(data.lists?.vars)
+          ? data.lists.vars.map((i: any) => ({ ...i, type: 'var' as const }))
+          : []),
+      ];
+
+  const incomes = items.filter((i) => i.type === 'renda');
+  const cartoes = items.filter((i) => i.type === 'cartao');
+  const fixas = items.filter((i) => i.type === 'fixa');
+  const vars = items.filter((i) => i.type === 'var');
+
+  const currentYear =
+    typeof data.currentYear === 'number'
+      ? data.currentYear
+      : data.months?.[0]?.year || INITIAL_BUDGET_STATE.currentYear;
+
+  const simulation = {
+    ...INITIAL_BUDGET_STATE.simulation,
+    ...(data.simulation ?? {}),
+  };
+
+  const years =
+    Array.isArray(data.years) && data.years.length > 0
+      ? data.years
+      : [
+          {
+            id: String(currentYear),
+            year: currentYear,
+            simulation,
+          },
+        ];
+
   return {
     ...INITIAL_BUDGET_STATE,
     version: 5,
+    currentYear,
+    years,
     months: Array.isArray(data.months) && data.months.length > 0 ? data.months : INITIAL_BUDGET_STATE.months,
-    simulation: {
-      ...INITIAL_BUDGET_STATE.simulation,
-      ...(data.simulation ?? {}),
-    },
-    incomes: Array.isArray(data.incomes) ? data.incomes : INITIAL_BUDGET_STATE.incomes,
+    simulation,
+    items,
+    incomes,
     lists: {
-      cartoes: Array.isArray(data.lists?.cartoes) ? data.lists.cartoes : [],
-      fixas: Array.isArray(data.lists?.fixas) ? data.lists.fixas : [],
-      vars: Array.isArray(data.lists?.vars) ? data.lists.vars : [],
+      cartoes,
+      fixas,
+      vars,
     },
     oneTimeCosts,
     goals: Array.isArray(data.goals) ? data.goals : INITIAL_BUDGET_STATE.goals,

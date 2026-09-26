@@ -39,16 +39,21 @@ export const MonthBudgetView = ({
   const month = state.months.find((m) => m.id === monthId);
   if (!summary || !month) return null;
 
-  const rawIncome = state.incomes
+  const incomeItems = state.items.filter((i) => i.type === 'renda');
+  const cardItems = state.items.filter((i) => i.type === 'cartao');
+  const fixedItems = state.items.filter((i) => i.type === 'fixa');
+  const varItems = state.items.filter((i) => i.type === 'var');
+
+  const rawIncome = incomeItems
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
-  const rawCards = state.lists.cartoes
+  const rawCards = cardItems
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
-  const rawFixed = state.lists.fixas
+  const rawFixed = fixedItems
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
-  const rawVars = state.lists.vars
+  const rawVars = varItems
     .filter((i) => !i.off)
     .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
 
@@ -314,7 +319,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawIncome)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {state.incomes.filter((i) => !i.off).length} fontes ativas
+                {incomeItems.filter((i) => !i.off).length} fontes ativas
               </span>
             </div>
           </div>
@@ -337,7 +342,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawCards)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {state.lists.cartoes.filter((i) => !i.off).length} faturas ativas
+                {cardItems.filter((i) => !i.off).length} faturas ativas
               </span>
             </div>
           </div>
@@ -360,7 +365,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawFixed)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {state.lists.fixas.filter((i) => !i.off).length} contas recorrentes
+                {fixedItems.filter((i) => !i.off).length} contas recorrentes
               </span>
             </div>
           </div>
@@ -383,7 +388,7 @@ export const MonthBudgetView = ({
                 {state.simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {state.lists.vars.filter((i) => !i.off).length} estimativas de consumo
+                {varItems.filter((i) => !i.off).length} estimativas de consumo
               </span>
             </div>
           </div>
@@ -407,7 +412,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-emerald-600 dark:text-emerald-400"
           defaultOpen={false}
         >
-          {renderItems(state.incomes, 'renda', false)}
+          {renderItems(incomeItems, 'renda', false)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -417,7 +422,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-orange-600 dark:text-orange-400"
           defaultOpen={false}
         >
-          {renderItems(state.lists.cartoes, 'cartoes', true)}
+          {renderItems(cardItems, 'cartoes', true)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -427,7 +432,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-blue-600 dark:text-blue-400"
           defaultOpen={false}
         >
-          {renderItems(state.lists.fixas, 'fixas', true)}
+          {renderItems(fixedItems, 'fixas', true)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -456,7 +461,7 @@ export const MonthBudgetView = ({
               </span>
             </div>
           )}
-          {renderItems(state.lists.vars, 'vars', true)}
+          {renderItems(varItems, 'vars', true)}
         </CollapsibleSection>
 
         {oneTime > 0 && (

@@ -53,6 +53,10 @@ describe('storageService', () => {
 
       const state = migrateState(partialRaw);
       expect(state.version).toBe(5);
+      expect(state.currentYear).toBeDefined();
+      expect(state.years).toHaveLength(1);
+      expect(state.items).toHaveLength(1);
+      expect(state.items[0].type).toBe('renda');
       expect(state.simulation.initialBalance).toBe(12000);
       expect(state.incomes).toHaveLength(1);
       expect(state.lists.cartoes).toEqual([]);

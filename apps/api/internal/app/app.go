@@ -9,10 +9,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budget"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetyear"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/config"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/middleware"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/onetimecost"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -33,8 +37,12 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		}
 		a.mongoClient = client
 		log.Println("[INFO] Conectado ao MongoDB Atlas com sucesso.")
+
+		if err := ensureIndexes(ctx, client.Database(cfg.MongoDBName)); err != nil {
+			log.Printf("[WARN] Falha ao verificar/criar índices do MongoDB: %v", err)
+		}
 	} else {
-		log.Println("[WARN] MONGODB_URI não configurada. O servidor vai iniciar, mas retornará 503 nas rotas de budget.")
+		log.Println("[WARN] MONGODB_URI não configurada. O servidor vai iniciar, mas retornará 503 nas rotas que exigem banco de dados.")
 	}
 
 	router := a.routes()
@@ -63,10 +71,29 @@ func (a *App) routes() *http.ServeMux {
 	})
 
 	if a.mongoClient != nil {
-		repo := budget.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
-		svc := budget.NewService(repo)
-		h := budget.NewHandler(svc)
-		h.RegisterRoutes(mux)
+		// Atomic budget-items
+		itemRepo := budgetitem.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		itemSvc := budgetitem.NewService(itemRepo)
+		itemH := budgetitem.NewHandler(itemSvc)
+		itemH.RegisterRoutes(mux)
+
+		// Atomic one-time-costs
+		costRepo := onetimecost.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		costSvc := onetimecost.NewService(costRepo)
+		costH := onetimecost.NewHandler(costSvc)
+		costH.RegisterRoutes(mux)
+
+		// Atomic goals & contributions
+		goalRepo := goal.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		goalSvc := goal.NewService(goalRepo)
+		goalH := goal.NewHandler(goalSvc)
+		goalH.RegisterRoutes(mux)
+
+		// Budget years, months and aggregated view model
+		yearRepo := budgetyear.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		yearSvc := budgetyear.NewService(yearRepo)
+		yearH := budgetyear.NewHandler(yearSvc)
+		yearH.RegisterRoutes(mux)
 	} else {
 		unavailableHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -75,15 +102,8 @@ func (a *App) routes() *http.ServeMux {
 				"error": "MONGODB_URI não configurada nas variáveis de ambiente. O servidor está ativo mas sem conexão com o banco de dados.",
 			})
 		}
-		mux.HandleFunc("GET /api/v1/budget", unavailableHandler)
-		mux.HandleFunc("POST /api/v1/budget", unavailableHandler)
-		mux.HandleFunc("/api/v1/budget", func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": fmt.Sprintf("Método %s não suportado.", r.Method),
-			})
-		})
+		mux.HandleFunc("GET /api/v1/budget-years", unavailableHandler)
+		mux.HandleFunc("GET /api/v1/budget-items", unavailableHandler)
 	}
 
 	return mux
@@ -143,4 +163,43 @@ func connectMongo(ctx context.Context, uri string) (*mongo.Client, error) {
 	}
 
 	return client, nil
+}
+
+func ensureIndexes(ctx context.Context, db *mongo.Database) error {
+	idxCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Index: months.budgetYearId
+	_, err := db.Collection(budgetyear.CollectionMonths).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "budgetYearId", Value: 1}},
+		Options: options.Index().SetName("idx_months_budgetYearId"),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Index: budget_years.year (unique)
+	_, err = db.Collection(budgetyear.CollectionBudgetYears).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "year", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("idx_budget_years_year_unique"),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Index: one_time_costs.targetMonthId
+	_, err = db.Collection(onetimecost.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "targetMonthId", Value: 1}},
+		Options: options.Index().SetName("idx_onetimecosts_targetMonthId"),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Index: budget_items.type
+	_, err = db.Collection(budgetitem.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "type", Value: 1}},
+		Options: options.Index().SetName("idx_budgetitems_type"),
+	})
+	return err
 }

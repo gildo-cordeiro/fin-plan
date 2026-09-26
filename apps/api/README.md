@@ -11,15 +11,13 @@ api/
 │       └── main.go              # Entrypoint enxuto (signal.NotifyContext + app.Run)
 ├── internal/
 │   ├── app/
-│   │   ├── app.go               # Application bootstrap (centraliza banco, DI, rotas, shutdown)
+│   │   ├── app.go               # Application bootstrap (centraliza banco, DI, auto-indexing, rotas, shutdown)
 │   │   └── app_test.go          # Testes unitários do ciclo de vida da aplicação
-│   ├── budget/
-│   │   ├── handler.go           # HTTP handler (parse de request, status codes, headers)
-│   │   ├── handler_test.go      # Testes unitários do Handler
-│   │   ├── service.go           # Regra de negócio pura (sem I/O direto)
-│   │   ├── service_test.go      # Testes unitários do Service
-│   │   ├── repository.go        # BudgetRepository interface + MongoRepository (única com mongo-driver)
-│   │   └── model.go             # Structs Go ≡ BudgetState do TypeScript
+│   ├── budgetitem/              # Itens orçamentários trans-anuais (CRUD atômico)
+│   ├── budgetyear/              # Anos orçamentários, meses e agregação YearViewModel
+│   ├── goal/                    # Metas financeiras e aportes atômicos ($push/$pull)
+│   ├── onetimecost/             # Custos pontuais com targetMonthId
+│   ├── httputil/                # Respostas padronizadas (WriteJSON/WriteError) e UUIDv4
 │   ├── middleware/
 │   │   ├── auth.go              # API key (x-api-key / Authorization: Bearer)
 │   │   └── cors.go              # Headers CORS idênticos ao contrato atual
@@ -32,11 +30,44 @@ api/
 
 ## Endpoints
 
+### Anos Orçamentários (`BudgetYear`)
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/api/v1/budget` | Retorna o documento `default_budget` (`{ exists, data, updatedAt }`) |
-| `POST` | `/api/v1/budget` | Upsert atômico do `BudgetState` completo |
-| `OPTIONS` | `/api/v1/budget` | Preflight CORS (200 imediato) |
+| `GET` | `/api/v1/budget-years` | Lista todos os anos orçamentários cadastrados |
+| `POST` | `/api/v1/budget-years` | Cria um novo ano orçamentário (auto-semeia 12 meses) |
+| `GET` | `/api/v1/budget-years/{year}` | Retorna visão agregada do ano (`YearViewModel`) |
+| `PATCH` | `/api/v1/budget-years/{year}` | Atualiza parâmetros de simulação daquele ano |
+| `POST` | `/api/v1/budget-years/{year}/months` | Adiciona um mês específico ao ano orçamentário |
+
+### Itens de Orçamento (`BudgetItem` — Trans-anuais)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/v1/budget-items` | Lista todos os itens orçamentários (filtro opcional `?type=`) |
+| `POST` | `/api/v1/budget-items` | Cria um novo item orçamentário com ID UUIDv4 |
+| `PATCH` | `/api/v1/budget-items/{id}` | Atualização atômica de campos ou valores mensais |
+| `DELETE` | `/api/v1/budget-items/{id}` | Exclui um item orçamentário |
+
+### Custos Pontuais (`OneTimeCost`)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/v1/one-time-costs` | Lista todos os custos pontuais |
+| `POST` | `/api/v1/one-time-costs` | Cria um custo pontual |
+| `PATCH` | `/api/v1/one-time-costs/{id}` | Atualiza nome, valor, mês alvo ou ativação |
+| `DELETE` | `/api/v1/one-time-costs/{id}` | Remove um custo pontual |
+
+### Metas Financeiras (`Goal`)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/v1/goals` | Lista todas as metas financeiras |
+| `POST` | `/api/v1/goals` | Cria uma nova meta |
+| `PATCH` | `/api/v1/goals/{id}` | Atualiza dados da meta (nome, valor alvo, status) |
+| `DELETE` | `/api/v1/goals/{id}` | Remove uma meta |
+| `POST` | `/api/v1/goals/{id}/contributions` | Registra aporte atômico na meta (MongoDB `$push`) |
+| `DELETE` | `/api/v1/goals/{id}/contributions/{contribId}` | Estorna aporte atômico da meta (MongoDB `$pull`) |
+
+### Sistema
+| Método | Rota | Descrição |
+|--------|------|-----------|
 | `GET` | `/api/v1/health` | Health check (`{ "status": "ok" }`) |
 
 O contrato de request/response (campos, status codes, mensagens de erro) é **idêntico** ao documentado em [`docs/API.md`](../docs/API.md), com o prefixo `/api/v1/` adicionado para versionamento.
@@ -110,41 +141,40 @@ docker run -p 8080:8080 \
 # Health check
 curl http://localhost:8080/api/v1/health
 
-# GET budget (sem auth no modo aberto)
-curl http://localhost:8080/api/v1/budget
+# GET Budget Years (lista anos disponíveis)
+curl http://localhost:8080/api/v1/budget-years
 
-# GET budget (com auth)
-curl -H "x-api-key: SUA_CHAVE" http://localhost:8080/api/v1/budget
+# GET Year View Model (visão anual agregada)
+curl http://localhost:8080/api/v1/budget-years/2026
 
-# POST budget
-curl -X POST http://localhost:8080/api/v1/budget \
+# POST Budget Item (cria item atômico)
+curl -X POST http://localhost:8080/api/v1/budget-items \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SUA_CHAVE" \
-  -d '{"version":5,"months":[],"simulation":{"varsPercent":0,"rendaPercent":0,"oneTimeMarginPercent":0,"initialBalance":0,"emergencyReserve":0},"incomes":[],"lists":{"cartoes":[],"fixas":[],"vars":[]},"oneTimeCosts":[],"goals":[]}'
+  -d '{"name":"Aluguel","type":"fixa","values":{"2026-10":2500}}'
 ```
 
 ## Changelog
 
-### ✅ Implementado (v1)
+### ✅ Implementado (v2 — Domínio Normalizado & Escrita Atômica)
+
+- [x] **Domínio Normalizado**: coleções `budget_years`, `months`, `budget_items`, `one_time_costs`, `goals`
+- [x] **Auto-indexing Inicial**: verificação e criação de índices únicos e de chave estrangeira na inicialização do servidor
+- [x] **Agregação Anual**: `GET /api/v1/budget-years/{year}` com join server-side em Go gerando `YearViewModel`
+- [x] **CRUD Atômico**: endpoints REST com UUIDv4 para itens, custos pontuais e metas
+- [x] **Aportes Atômicos**: `$push` e `$pull` em `goals` sem reescrever o orçamento
+- [x] **Simulação por Ano**: `PATCH /api/v1/budget-years/{year}` com premissas anuais
+- [x] **Testes Automatizados em Go**: cobertura de handlers, services e mocks de repositório em todas as entidades
+- [x] **Eliminação de Legado**: remoção completa de endpoints monolíticos legados (`/api/v1/budget`)
+
+### ✅ Implementado (v1 — Fundação Go)
 
 - [x] `GET /api/v1/budget` — leitura do documento único `default_budget`
 - [x] `POST /api/v1/budget` — upsert atômico com `updateOne + upsert: true`
 - [x] `GET /api/v1/health` — health check
 - [x] Autenticação por API key (header `x-api-key` ou `Authorization: Bearer`)
-- [x] CORS com headers idênticos ao contrato existente
+- [x] CORS com headers idênticos ao contrato existente (`GET, OPTIONS, POST, PATCH, DELETE`)
 - [x] Graceful shutdown (SIGTERM/SIGINT)
 - [x] Timeouts explícitos no MongoDB (8s) e no servidor HTTP (15s)
 - [x] Dockerfile multi-stage (golang:1.23-alpine → distroless/static)
 - [x] docker-compose.yml na raiz do monorepo
-- [x] Structs Go compatíveis campo-a-campo com o `BudgetState` TypeScript
-- [x] Mensagens de erro em português, idênticas ao `docs/API.md`
 - [x] Configuração 12-factor via env vars + `.env` para dev
-
-### 🔜 Pendente (próximas iterações)
-
-- [ ] **Especificação OpenAPI/Swagger** — gerar spec para o contrato `/api/v1/*` (permitirá gerar client Retrofit/OkHttp do Android automaticamente)
-- [ ] **Definir plataforma de deploy** — Cloud Run, Fly.io, Railway ou VPS
-- [ ] **Migração de tráfego** — redirecionar o frontend do endpoint Vercel para o Go backend (decisão manual após validação)
-- [ ] **Testes automatizados em Go** — unit tests para handlers e repository
-- [ ] **Multi-tenancy (userId)** — a camada de Repository já está preparada para filtrar por `userId` sem alterar handlers
-- [ ] **CI/CD** — GitHub Actions para build, test e push da imagem Docker

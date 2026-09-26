@@ -4,14 +4,23 @@ export const ExpenseCategory = {
   Vars: 'vars',
 } as const;
 
-export type ExpenseCategoryKey = (typeof ExpenseCategory)[keyof typeof ExpenseCategory];
+export type ExpenseCategoryKey = (typeof ExpenseCategory)[keyof typeof ExpenseCategory] | 'cartao' | 'fixa' | 'var';
 
 export const BudgetCategory = {
   ...ExpenseCategory,
   Renda: 'renda',
 } as const;
 
-export type BudgetCategoryKey = (typeof BudgetCategory)[keyof typeof BudgetCategory];
+export type BudgetCategoryKey = (typeof BudgetCategory)[keyof typeof BudgetCategory] | 'cartao' | 'fixa' | 'var';
+
+export type BudgetItemType = 'renda' | 'cartao' | 'fixa' | 'var';
+
+export function normalizeBudgetItemType(category: string): BudgetItemType {
+  if (category === 'cartoes' || category === 'cartao') return 'cartao';
+  if (category === 'fixas' || category === 'fixa') return 'fixa';
+  if (category === 'vars' || category === 'var') return 'var';
+  return 'renda';
+}
 
 export const ItemStatus = {
   Ativo: 'ativo',

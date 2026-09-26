@@ -1,4 +1,4 @@
-import type { ExpenseCategoryKey, GoalStatus } from '../constants/enums';
+import type { ExpenseCategoryKey, GoalStatus, BudgetItemType } from '../constants/enums';
 export * from '../constants/enums';
 
 export interface MonthItem {
@@ -11,12 +11,14 @@ export interface MonthItem {
 
 export interface BudgetItem {
   id: string;
+  type: BudgetItemType;
   name: string;
-  category: ExpenseCategoryKey | 'renda';
   values: Record<string, number>;
   off?: boolean;
   notes?: string;
   dueDate?: number;
+  // Compatibilidade transitória
+  category?: ExpenseCategoryKey | 'renda';
 }
 
 export interface OneTimeCost {
@@ -34,6 +36,14 @@ export interface SimulationSettings {
   oneTimeMarginPercent: number;
   initialBalance: number;
   emergencyReserve: number;
+}
+
+export interface BudgetYear {
+  id: string;
+  year: number;
+  simulation: SimulationSettings;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MonthSummary {
@@ -79,10 +89,22 @@ export interface FinancialGoal {
   contributions: GoalContribution[];
 }
 
+export interface YearViewModel {
+  year: BudgetYear;
+  months: MonthItem[];
+  items: BudgetItem[];
+  oneTimeCosts: OneTimeCost[];
+  goals: FinancialGoal[];
+}
+
 export interface BudgetState {
   version: number;
+  currentYear: number;
+  years?: BudgetYear[];
   months: MonthItem[];
   simulation: SimulationSettings;
+  items: BudgetItem[];
+  // Arrays derivados / legados mantidos para compatibilidade com componentes e testes
   incomes: BudgetItem[];
   lists: {
     cartoes: BudgetItem[];
