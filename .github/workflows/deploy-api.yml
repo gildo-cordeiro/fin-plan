@@ -1,0 +1,34 @@
+name: Deploy API (Render)
+
+on:
+  workflow_dispatch:
+    inputs:
+      clear_cache:
+        description: 'Limpar cache de build no Render?'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    name: Trigger Deploy no Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validar Secret do Deploy Hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "::error::Secret RENDER_DEPLOY_HOOK_URL não configurada no repositório. Obtenha a URL do Deploy Hook nas configurações do serviço no Render (Settings -> Deploy Hook) e adicione em Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Disparar Deploy no Render
+        run: |
+          if [ "${{ github.event.inputs.clear_cache }}" = "true" ]; then
+            echo "Disparando deploy com limpeza de cache..."
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}&clearCache=clear"
+          else
+            echo "Disparando deploy normal..."
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          fi
+          echo "Deploy disparado com sucesso no Render!"

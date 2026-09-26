@@ -162,10 +162,30 @@ npm run test:e2e
 - Nas configurações de variáveis da Vercel, adicione `VITE_API_URL` apontando para a URL pública onde sua API Go estiver hospedada (ou configure um rewrite no `vercel.json`).
 
 ### Backend Go (`apps/api`)
-- **Google Cloud Run / AWS ECS / Fly.io / Railway / VPS**:
+- **Render / Fly.io / Google Cloud Run / Railway / VPS**:
   - Compile a imagem a partir de `apps/api/Dockerfile`.
   - Imagem baseada em `gcr.io/distroless/static:nonroot`, segura, sem binários shell e pesando ~20 MB.
   - Configure as variáveis `MONGODB_URI`, `MONGODB_DB_NAME`, `PORT` e `API_SECRET_KEY`.
+
+---
+
+## 🤖 GitHub Actions (Workflows Manuais e CI)
+
+O repositório possui workflows com gatilho manual (`workflow_dispatch`), permitindo acionar deploys ou validações diretamente pela aba **Actions** no GitHub:
+
+| Workflow | Arquivo | Gatilho | Descrição |
+|---|---|---|---|
+| **Deploy Web (Vercel)** | [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml) | Manual (`workflow_dispatch`) | Testa e faz o deploy do `apps/web` na Vercel (Production ou Preview). |
+| **Deploy API (Render)** | [`.github/workflows/deploy-api.yml`](.github/workflows/deploy-api.yml) | Manual (`workflow_dispatch`) | Dispara o Deploy Hook no Render para recompilar e subir a API Go. |
+| **CI (Testes & Build)** | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Push / PR / Manual | Executa testes e typecheck do Frontend e compilação da API Go. |
+
+### Configuração de Secrets no GitHub (`Settings -> Secrets and variables -> Actions`):
+- Para o **Deploy Web (Vercel)**:
+  - `VERCEL_TOKEN`: Token pessoal de acesso da Vercel (*Account Settings -> Tokens*).
+  - `VERCEL_ORG_ID`: ID do time ou conta na Vercel.
+  - `VERCEL_PROJECT_ID`: ID do projeto do frontend na Vercel.
+- Para o **Deploy API (Render)**:
+  - `RENDER_DEPLOY_HOOK_URL`: URL do Deploy Hook gerada no painel do Render (*Settings -> Deploy Hook*).
 
 ---
 
