@@ -61,6 +61,7 @@ interface BudgetContextType {
   isLoading: boolean;
   isSaving: boolean;
   lastSaved: Date | null;
+  loadError: string | null;
   saveError: string | null;
   retrySave: () => Promise<{ success: boolean; message: string }>;
   refreshFromDb: () => Promise<{ success: boolean; message: string }>;
@@ -125,14 +126,22 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const isInitialMount = useRef(true);
-  const isReadyForSaveRef = useRef(false);
+  const isLoadedRef = useRef(false);
+  const isHydratingRef = useRef(false);
   const latestStateRef = useRef(state);
   latestStateRef.current = state;
 
   const retrySave = async (): Promise<{ success: boolean; message: string }> => {
+    if (!isLoadedRef.current) {
+      return {
+        success: false,
+        message: 'Não é possível salvar: os dados do banco ainda não foram carregados.',
+      };
+    }
+
     setIsSaving(true);
     try {
       const res = await budgetApiService.saveBudget(latestStateRef.current);
@@ -150,18 +159,20 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const refreshFromDb = async (): Promise<{ success: boolean; message: string }> => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
       if (remoteState) {
+        isHydratingRef.current = true;
         setState(remoteState);
         setLastSaved(updatedAt || new Date());
-        setSaveError(null);
-        return { success: true, message: 'Dados carregados do banco de dados com sucesso!' };
       }
-      return { success: true, message: 'Nenhum orçamento prévio encontrado no banco.' };
+      isLoadedRef.current = true;
+      setLoadError(null);
+      return { success: true, message: 'Dados carregados do banco de dados com sucesso!' };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Falha ao buscar dados no banco';
-      setSaveError(msg);
+      setLoadError(msg);
       return { success: false, message: msg };
     } finally {
       setIsLoading(false);
@@ -174,30 +185,26 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const loadInitialFromDb = async () => {
       setIsLoading(true);
+      setLoadError(null);
       try {
         const { state: remoteState, updatedAt } = await budgetApiService.fetchBudget();
         if (!isMounted) return;
 
         if (remoteState) {
+          isHydratingRef.current = true;
           setState(remoteState);
           setLastSaved(updatedAt || new Date());
-          setSaveError(null);
-        } else {
-          // Banco vazio: persiste o estado inicial diretamente no MongoDB
-          const res = await budgetApiService.saveBudget(latestStateRef.current);
-          if (!isMounted) return;
-          setLastSaved(res.updatedAt);
-          setSaveError(null);
         }
+        isLoadedRef.current = true;
+        setLoadError(null);
       } catch (err) {
         console.warn('[BudgetContext] Falha ao carregar do banco de dados na inicialização:', err);
         if (!isMounted) return;
         const msg = err instanceof Error ? err.message : 'Falha ao conectar com o banco de dados';
-        setSaveError(msg);
+        setLoadError(msg);
       } finally {
         if (isMounted) {
           setIsLoading(false);
-          isReadyForSaveRef.current = true;
         }
       }
     };
@@ -206,7 +213,11 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const handleOnline = () => {
       setIsOnline(true);
-      retrySave().catch(() => {});
+      if (isLoadedRef.current) {
+        retrySave().catch(() => {});
+      } else {
+        refreshFromDb().catch(() => {});
+      }
     };
 
     const handleOffline = () => {
@@ -223,19 +234,24 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
   }, []);
 
-  // Salva no banco de dados para qualquer edição ou inserção
+  // Salva no banco de dados para qualquer edição ou inserção do usuário
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    if (!isLoadedRef.current) {
       return;
     }
 
-    if (!isReadyForSaveRef.current || isLoading) {
+    if (isHydratingRef.current) {
+      isHydratingRef.current = false;
       return;
     }
 
     setIsSaving(true);
     const timer = setTimeout(async () => {
+      if (!isLoadedRef.current) {
+        setIsSaving(false);
+        return;
+      }
+
       try {
         const res = await budgetApiService.saveBudget(latestStateRef.current);
         setLastSaved(res.updatedAt);
@@ -251,7 +267,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return () => {
       clearTimeout(timer);
     };
-  }, [state, isLoading]);
+  }, [state]);
 
   useEffect(() => {
     saveTheme(theme);
@@ -774,6 +790,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         isLoading,
         isSaving,
         lastSaved,
+        loadError,
         saveError,
         retrySave,
         refreshFromDb,
@@ -782,7 +799,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         isCloudLoading: isLoading,
         isCloudSyncing: isSaving,
         lastCloudSync: lastSaved,
-        cloudSyncError: saveError,
+        cloudSyncError: saveError || loadError,
         fetchFromCloud: refreshFromDb,
         saveToCloud: retrySave,
         updateSimulation,

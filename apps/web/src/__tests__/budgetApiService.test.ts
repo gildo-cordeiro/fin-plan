@@ -90,4 +90,44 @@ describe('budgetApiService', () => {
       'Falha de conexão com MongoDB'
     );
   });
+
+  it('fetchBudget faz retry quando recebe 502 (servidor iniciando) e sucede na tentativa seguinte', async () => {
+    const mockResponse = {
+      exists: true,
+      data: INITIAL_BUDGET_STATE,
+      updatedAt: '2026-09-24T19:00:00.000Z',
+    };
+
+    let callCount = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          ok: false,
+          status: 502,
+        } as unknown as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as unknown as Response;
+    });
+
+    const result = await budgetApiService.fetchBudget({ retries: 1, timeoutMs: 5000 });
+    expect(callCount).toBe(2);
+    expect(result.state).not.toBeNull();
+  });
+
+  it('fetchBudget lança mensagem amigável sobre plano gratuito quando ocorre timeout de abort', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async () => {
+      const abortError = new Error('The operation was aborted');
+      abortError.name = 'AbortError';
+      throw abortError;
+    });
+
+    await expect(budgetApiService.fetchBudget({ retries: 0 })).rejects.toThrow(
+      'Tempo limite esgotado ao buscar dados no MongoDB. O servidor pode estar iniciando no plano gratuito.'
+    );
+  });
 });

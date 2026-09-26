@@ -6,9 +6,11 @@ export const Header = () => {
     toggleTheme,
     isLoading,
     isSaving,
+    loadError,
     saveError,
     lastSaved,
     retrySave,
+    refreshFromDb,
   } = useBudget();
 
   return (
@@ -21,7 +23,12 @@ export const Header = () => {
           {isLoading ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>Carregando do banco de dados...</span>
+              <span>Conectando ao banco de dados (aguardando servidor)...</span>
+            </>
+          ) : loadError ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+              <span className="text-rose-600 dark:text-rose-400 font-medium">Falha ao conectar com o banco</span>
             </>
           ) : isSaving ? (
             <>
@@ -48,7 +55,20 @@ export const Header = () => {
       </div>
 
       <div className="flex items-center gap-1.5">
-        {saveError && (
+        {loadError && (
+          <button
+            type="button"
+            onClick={() => refreshFromDb()}
+            aria-label="Tentar reconectar e carregar do banco de dados"
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 font-semibold transition-all flex items-center gap-1 cursor-pointer"
+            title="Clique para reconectar ao servidor e carregar seus dados"
+          >
+            <span>🔄</span>
+            <span>Reconectar</span>
+          </button>
+        )}
+
+        {saveError && !loadError && (
           <button
             type="button"
             onClick={() => retrySave()}
@@ -57,7 +77,7 @@ export const Header = () => {
             title="Clique para tentar salvar novamente no banco de dados"
           >
             <span>⚠️</span>
-            <span>Tentar Novamente</span>
+            <span>Tentar Salvar</span>
           </button>
         )}
 

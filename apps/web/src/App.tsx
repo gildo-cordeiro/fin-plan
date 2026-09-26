@@ -12,7 +12,7 @@ import { BudgetManagementModal } from './components/modals/BudgetManagementModal
 import { useBudget } from './context/BudgetContext';
 
 export const BudgetAppContent = () => {
-  const { state, isLoading } = useBudget();
+  const { state, isLoading, loadError, refreshFromDb } = useBudget();
 
   const [tab, setTab] = useState<TabId>('mes');
   const [activeMonthId, setActiveMonthId] = useState(state.months[0]?.id || '');
@@ -43,8 +43,31 @@ export const BudgetAppContent = () => {
             <span className="text-xl">⏳</span>
             <div>
               <p className="font-semibold text-xs text-slate-900 dark:text-slate-100">Carregando dados do banco...</p>
-              <p className="text-[11px] text-slate-400">Buscando orçamento no MongoDB Atlas.</p>
+              <p className="text-[11px] text-slate-400">
+                Buscando orçamento no MongoDB Atlas. Se o servidor estiver hibernando (plano gratuito), aguarde alguns instantes enquanto ele inicia.
+              </p>
             </div>
+          </div>
+        )}
+
+        {loadError && (
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <p className="font-semibold text-xs text-rose-900 dark:text-rose-100">Não foi possível carregar os dados do servidor</p>
+                <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+                  O backend demorou a responder (comum no plano gratuito ao iniciar a máquina). <strong>Seus dados no MongoDB estão intactos</strong> e o salvamento automático está desativado para proteger suas informações.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => refreshFromDb()}
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+            >
+              🔄 Reconectar e Carregar
+            </button>
           </div>
         )}
 

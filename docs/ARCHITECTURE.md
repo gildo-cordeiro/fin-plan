@@ -47,10 +47,11 @@ flowchart TD
 ```
 
 ### Ciclo de Vida da Persistência:
-1. **Edição**: Qualquer alteração (valor de receita, despesa, custo pontual, meta ou slider) muta o estado React imutável em memória.
-2. **Cálculo Puro**: O hook `useBudgetCalculations` reexecuta `calculateBudget` gerando `monthlySummaries` e `metrics` instantaneamente.
-3. **Debounce em Nuvem**: A alteração agenda a execução de `budgetApiService.saveBudget` em 500ms. Edições sucessivas durante esse intervalo cancelam o timer anterior (`clearTimeout`), consolidando apenas a versão final em um único `POST /api/v1/budget`.
-4. **Carga Inicial**: Na inicialização, a aplicação carrega diretamente os dados mais recentes do MongoDB Atlas via `GET /api/v1/budget`.
+1. **Carga Inicial e Proteção contra Sobrescrita**: Na inicialização, a aplicação busca os dados mais recentes do MongoDB Atlas via `GET /api/v1/budget`. O salvamento automático permanece **estritamente bloqueado** (`isLoadedRef = false`) até que a resposta do banco seja recebida com sucesso.
+2. **Resiliência a Cold-Start**: Devido à infraestrutura gratuita com hibernação do container, o cliente HTTP utiliza timeout estendido (45s) e retentativas automáticas com backoff para erros transitórios (502/503/504). Caso a conexão falhe, o salvamento automático continua bloqueado e uma mensagem clara é apresentada com opção de reconexão manual, protegendo integralmente os dados pré-existentes no MongoDB contra dados zerados.
+3. **Hidratação Transparente**: Ao receber os dados remotos, o estado React é hidratado sem acionar o timer de salvamento em nuvem.
+4. **Edição**: Apenas alterações reais desencadeadas pelo usuário agendam a execução de `budgetApiService.saveBudget` via debounce de 500ms. Edições sucessivas durante esse intervalo cancelam o timer anterior (`clearTimeout`), consolidando apenas a versão final em um único `POST /api/v1/budget`.
+5. **Cálculo Puro**: O hook `useBudgetCalculations` reexecuta `calculateBudget` gerando `monthlySummaries` e `metrics` instantaneamente (0ms de latência percebida).
 
 ---
 
