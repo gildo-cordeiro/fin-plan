@@ -78,39 +78,61 @@ export const OneTimeCostsSection = () => {
         </button>
       </div>
 
-      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-transparent dark:from-purple-950/30 border border-purple-200/80 dark:border-purple-900/40 space-y-2">
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-500/10 via-indigo-500/5 to-transparent dark:from-purple-950/30 border border-purple-200/80 dark:border-purple-900/40 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
             <span className="text-2xl">📅</span>
             <div>
               <strong className="text-slate-900 dark:text-slate-100 text-sm font-bold block">
-                Quando o evento vai acontecer?
+                Agendamento Global do Evento
               </strong>
               <span className="text-slate-500 dark:text-slate-400">
-                Selecione o mês previsto (ex: <strong>Dezembro</strong>) para debitar estes custos no orçamento daquele mês.
+                Vincule os custos pontuais a um mês específico (ex: <strong>Dezembro</strong>) para debitar no orçamento e refletir nos gráficos.
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={commonMonthId}
               onChange={(e) => handleGlobalMonthChange(e.target.value)}
+              aria-label="Mês previsto para o evento"
               className="text-xs font-bold bg-white dark:bg-slate-800 border-2 border-purple-300 dark:border-purple-700 rounded-xl px-3 py-2 text-purple-900 dark:text-purple-200 outline-none cursor-pointer shadow-xs focus:ring-2 focus:ring-purple-500 transition-all"
             >
-              <option value="">Não agendado (deduzir no saldo final)</option>
+              <option value="">Sem mês fixo (deduzir no saldo final)</option>
               {months.map((m) => (
                 <option key={m.id} value={m.id}>
                   Agendar para {m.name}
                 </option>
               ))}
             </select>
+
+            {commonMonthId && (
+              <button
+                type="button"
+                onClick={() => {
+                  handleGlobalMonthChange(commonMonthId);
+                  showToast(`Mês ${months.find((m) => m.id === commonMonthId)?.name} aplicado a todos os custos!`);
+                }}
+                className="px-2.5 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
+                title="Garante que todos os itens da lista abaixo fiquem agendados para este mês"
+              >
+                Aplicar a todos os itens
+              </button>
+            )}
           </div>
         </div>
 
-        {commonMonthId && (
-          <div className="text-[11px] text-purple-700 dark:text-purple-300 font-medium pl-8">
-            ✓ Todos os custos pontuais estão interligados com <strong>{months.find(m => m.id === commonMonthId)?.name}</strong>. Quando você abrir o orçamento de {months.find(m => m.id === commonMonthId)?.shortName}, eles aparecerão contabilizados lá!
+        {commonMonthId ? (
+          <div className="text-[11px] text-purple-700 dark:text-purple-300 font-medium pl-8 flex items-center gap-1.5">
+            <span>✓</span>
+            <span>
+              Todos os custos pontuais estão interligados com <strong>{months.find(m => m.id === commonMonthId)?.name}</strong>. Eles aparecem debitados na aba do mês correspondente e no gráfico anual!
+            </span>
+          </div>
+        ) : (
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium pl-8">
+            ℹ️ Você também pode definir o mês de pagamento individualmente em cada item da tabela abaixo.
           </div>
         )}
       </div>

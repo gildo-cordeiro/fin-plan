@@ -22,7 +22,7 @@ interface NavMenuProps {
 export const NavMenu = ({ active, onSelect }: NavMenuProps) => (
   <nav
     aria-label="Navegação Principal"
-    className="flex gap-1 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-1 shadow-xs"
+    className="sticky top-2 z-30 flex gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-2xl p-1 shadow-sm transition-all"
   >
     {TABS.map((tab) => {
       const isActive = tab.id === active;

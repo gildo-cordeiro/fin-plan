@@ -4,9 +4,6 @@ import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
-import { CashFlowChart } from '../dashboard/CashFlowChart';
-import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
-import { SimulationPanel } from '../simulation/SimulationPanel';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
 import { BudgetManagementModal } from '../modals/BudgetManagementModal';
 import type { BudgetItem, ExpenseCategoryKey } from '../../types/budget';
@@ -21,8 +18,6 @@ interface MonthBudgetViewProps {
 export const MonthBudgetView = ({
   monthId,
   onNavigateToGoals,
-  onNavigateToHorizon,
-  onNavigateToSimulations,
 }: MonthBudgetViewProps) => {
   const { showToast } = useToast();
   const {
@@ -39,11 +34,6 @@ export const MonthBudgetView = ({
   const [budgetModalCategory, setBudgetModalCategory] = useState<ExpenseCategoryKey | 'renda'>('renda');
   const [isNewTxModalOpen, setIsNewTxModalOpen] = useState(false);
   const [modalDefaultCategory, setModalDefaultCategory] = useState<ExpenseCategoryKey | 'renda'>('fixas');
-
-  const [showInlineLists, setShowInlineLists] = useState(false);
-  const [showCharts, setShowCharts] = useState(false);
-  const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar');
-  const [showSim, setShowSim] = useState(false);
 
   const summary = monthlySummaries.find((s) => s.month.id === monthId);
   const month = state.months.find((m) => m.id === monthId);
@@ -400,218 +390,112 @@ export const MonthBudgetView = ({
         </div>
       </div>
 
-      <div className="pt-1">
-        <button
-          type="button"
-          onClick={() => setShowInlineLists(!showInlineLists)}
-          className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1.5 py-1 font-medium cursor-pointer"
-        >
-          <span>{showInlineLists ? '▲ Ocultar listas detalhadas na página' : '▼ Inspecionar todos os lançamentos nesta página'}</span>
-        </button>
+      <div className="space-y-2.5 pt-1">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Detalhamento de Contas e Lançamentos
+          </span>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+            Clique na categoria para expandir e editar itens
+          </span>
+        </div>
 
-        {showInlineLists && (
-          <div className="space-y-2 pt-2 animate-in fade-in duration-200">
-            <CollapsibleSection
-              title="Rendas & Entradas"
-              icon="💰"
-              total={formatBRL(rawIncome)}
-              totalColorClass="text-emerald-600 dark:text-emerald-400"
-              defaultOpen
-            >
-              {renderItems(state.incomes, 'renda', false)}
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Cartões de Crédito"
-              icon="💳"
-              total={formatBRL(rawCards)}
-              totalColorClass="text-orange-600 dark:text-orange-400"
-              defaultOpen
-            >
-              {renderItems(state.lists.cartoes, 'cartoes', true)}
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Despesas Fixas (Recorrentes)"
-              icon="🏠"
-              total={formatBRL(rawFixed)}
-              totalColorClass="text-blue-600 dark:text-blue-400"
-              defaultOpen
-            >
-              {renderItems(state.lists.fixas, 'fixas', true)}
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title={
-                state.simulation.varsPercent !== 0
-                  ? `Despesas Variáveis (Estimativas) — ${state.simulation.varsPercent > 0 ? '+' : ''}${state.simulation.varsPercent}% simulado`
-                  : 'Despesas Variáveis (Estimativas)'
-              }
-              icon="🛒"
-              total={
-                state.simulation.varsPercent !== 0
-                  ? formatBRL(summary.variable)
-                  : formatBRL(rawVars)
-              }
-              totalColorClass={
-                state.simulation.varsPercent !== 0
-                  ? 'text-amber-600 dark:text-amber-400 font-bold'
-                  : 'text-amber-600 dark:text-amber-400'
-              }
-              defaultOpen
-            >
-              {state.simulation.varsPercent !== 0 && (
-                <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
-                  <span>
-                    ⚡ <strong>Simulação ativa ({state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
-                  </span>
-                </div>
-              )}
-              {renderItems(state.lists.vars, 'vars', true)}
-            </CollapsibleSection>
-          </div>
-        )}
-      </div>
-
-      {oneTime > 0 && (
         <CollapsibleSection
-          title={`Custos Pontuais / Projetos (Neste Mês)`}
-          icon="🚚"
-          total={formatBRL(oneTime)}
-          totalColorClass="text-purple-600 dark:text-purple-400"
-          defaultOpen
+          title="Rendas & Entradas"
+          icon="💰"
+          total={formatBRL(rawIncome)}
+          totalColorClass="text-emerald-600 dark:text-emerald-400"
+          defaultOpen={false}
         >
-          <div className="space-y-2 pt-2">
-            <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
-              <span>
-                ✓ Estes custos foram agendados para cair no orçamento deste mês (<strong>{month.name}</strong>).
-              </span>
-              {onNavigateToGoals && (
-                <button
-                  type="button"
-                  onClick={onNavigateToGoals}
-                  className="font-bold underline hover:opacity-80 shrink-0 ml-2 cursor-pointer"
-                >
-                  Gerenciar na aba Metas →
-                </button>
-              )}
-            </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {monthOneTimeItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
-                  <span className="text-slate-800 dark:text-slate-200 font-medium">
-                    {item.name}
-                  </span>
-                  <strong className="font-mono text-purple-700 dark:text-purple-300">
-                    {formatBRL(item.value || 0)}
-                  </strong>
-                </div>
-              ))}
-            </div>
-          </div>
+          {renderItems(state.incomes, 'renda', false)}
         </CollapsibleSection>
-      )}
 
-      <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {!showCharts ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowCharts(true)}
-              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-            >
-              <span>📈</span>
-              <span>Gráficos Rápidos</span>
-            </button>
-            {onNavigateToHorizon && (
-              <button
-                type="button"
-                onClick={onNavigateToHorizon}
-                title="Abrir Visão Anual Completa & Gráficos"
-                aria-label="Abrir Visão Anual Completa"
-                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all cursor-pointer"
-              >
-                <span>↗ 12 Meses</span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="sm:col-span-2 space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setChartMode('bar')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                    chartMode === 'bar'
-                      ? 'bg-[#0e6b7a] text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Renda × Despesas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChartMode('line')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                    chartMode === 'line'
-                      ? 'bg-[#0e6b7a] text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Evolução do Saldo
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCharts(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                Ocultar ✕
-              </button>
-            </div>
-            {chartMode === 'bar' ? <MonthlyBarChart /> : <CashFlowChart />}
-          </div>
-        )}
+        <CollapsibleSection
+          title="Cartões de Crédito"
+          icon="💳"
+          total={formatBRL(rawCards)}
+          totalColorClass="text-orange-600 dark:text-orange-400"
+          defaultOpen={false}
+        >
+          {renderItems(state.lists.cartoes, 'cartoes', true)}
+        </CollapsibleSection>
 
-        {!showSim ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSim(true)}
-              className="flex-1 py-3 px-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-[#0e6b7a]/50 dark:hover:border-[#4ec2d3]/40 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
-            >
-              <span>🔮</span>
-              <span>Simulador Rápido</span>
-            </button>
-            {onNavigateToSimulations && (
-              <button
-                type="button"
-                onClick={onNavigateToSimulations}
-                title="Abrir Painel Completo de Simulação"
-                aria-label="Abrir Painel Completo de Simulação"
-                className="px-3.5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center shadow-xs transition-all cursor-pointer"
-              >
-                <span>↗ Simulações</span>
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="sm:col-span-2 space-y-2 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Simulador de Cenários
+        <CollapsibleSection
+          title="Despesas Fixas (Recorrentes)"
+          icon="🏠"
+          total={formatBRL(rawFixed)}
+          totalColorClass="text-blue-600 dark:text-blue-400"
+          defaultOpen={false}
+        >
+          {renderItems(state.lists.fixas, 'fixas', true)}
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title={
+            state.simulation.varsPercent !== 0
+              ? `Despesas Variáveis (Estimativas) — ${state.simulation.varsPercent > 0 ? '+' : ''}${state.simulation.varsPercent}% simulado`
+              : 'Despesas Variáveis (Estimativas)'
+          }
+          icon="🛒"
+          total={
+            state.simulation.varsPercent !== 0
+              ? formatBRL(summary.variable)
+              : formatBRL(rawVars)
+          }
+          totalColorClass={
+            state.simulation.varsPercent !== 0
+              ? 'text-amber-600 dark:text-amber-400 font-bold'
+              : 'text-amber-600 dark:text-amber-400'
+          }
+          defaultOpen={false}
+        >
+          {state.simulation.varsPercent !== 0 && (
+            <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
+              <span>
+                ⚡ <strong>Simulação ativa ({state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
               </span>
-              <button
-                type="button"
-                onClick={() => setShowSim(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                Ocultar ✕
-              </button>
             </div>
-            <SimulationPanel />
-          </div>
+          )}
+          {renderItems(state.lists.vars, 'vars', true)}
+        </CollapsibleSection>
+
+        {oneTime > 0 && (
+          <CollapsibleSection
+            title="Custos Pontuais / Projetos (Neste Mês)"
+            icon="🚚"
+            total={formatBRL(oneTime)}
+            totalColorClass="text-purple-600 dark:text-purple-400"
+            defaultOpen={false}
+          >
+            <div className="space-y-2 pt-2">
+              <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
+                <span>
+                  ✓ Estes custos foram agendados para cair no orçamento deste mês (<strong>{month.name}</strong>).
+                </span>
+                {onNavigateToGoals && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToGoals}
+                    className="font-bold underline hover:opacity-80 shrink-0 ml-2 cursor-pointer"
+                  >
+                    Gerenciar na aba Metas →
+                  </button>
+                )}
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {monthOneTimeItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">
+                      {item.name}
+                    </span>
+                    <strong className="font-mono text-purple-700 dark:text-purple-300">
+                      {formatBRL(item.value || 0)}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleSection>
         )}
       </div>
 
