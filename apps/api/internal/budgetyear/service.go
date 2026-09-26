@@ -33,12 +33,10 @@ func DefaultMonthsForYear(year int) []Month {
 	for i := 0; i < 12; i++ {
 		monthPad := fmt.Sprintf("%02d", i+1)
 		months[i] = Month{
-			ID:           fmt.Sprintf("%d-%s", year, monthPad),
-			BudgetYearID: fmt.Sprintf("%d", year),
-			Name:         fmt.Sprintf("%s %d", MonthNames[i], year),
-			ShortName:    fmt.Sprintf("%s/%s", MonthShortNames[i], shortYear),
-			Year:         year,
-			MonthIndex:   i,
+			ID:         fmt.Sprintf("%d-%s", year, monthPad),
+			Name:       fmt.Sprintf("%s %d", MonthNames[i], year),
+			ShortName:  fmt.Sprintf("%s/%s", MonthShortNames[i], shortYear),
+			MonthIndex: i,
 		}
 	}
 	return months
@@ -68,20 +66,13 @@ func (s *Service) CreateYear(ctx context.Context, input *CreateBudgetYearInput) 
 		ID:         yearID,
 		Year:       input.Year,
 		Simulation: simulation,
+		Months:     DefaultMonthsForYear(input.Year),
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
 
 	if err := s.repo.CreateYear(ctx, bYear); err != nil {
 		return nil, err
-	}
-
-	// Seed 12 default months if none exist
-	existingMonths, err := s.repo.ListMonthsByYear(ctx, input.Year)
-	if err == nil && len(existingMonths) == 0 {
-		for _, m := range DefaultMonthsForYear(input.Year) {
-			_ = s.repo.CreateMonth(ctx, &m)
-		}
 	}
 
 	return bYear, nil
@@ -157,15 +148,13 @@ func (s *Service) AddMonth(ctx context.Context, year int, input *CreateMonthInpu
 	}
 
 	m := &Month{
-		ID:           monthID,
-		BudgetYearID: fmt.Sprintf("%d", year),
-		Name:         name,
-		ShortName:    shortName,
-		Year:         year,
-		MonthIndex:   monthIndex,
+		ID:         monthID,
+		Name:       name,
+		ShortName:  shortName,
+		MonthIndex: monthIndex,
 	}
 
-	if err := s.repo.CreateMonth(ctx, m); err != nil {
+	if err := s.repo.AddMonthToYear(ctx, year, m); err != nil {
 		return nil, err
 	}
 
@@ -187,10 +176,9 @@ func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewMode
 		if err != nil {
 			return nil, err
 		}
-		months := DefaultMonthsForYear(year)
 		return &YearViewModel{
 			Year:         *createdYear,
-			Months:       months,
+			Months:       createdYear.Months,
 			Items:        []budgetitem.BudgetItem{},
 			OneTimeCosts: []onetimecost.OneTimeCost{},
 			Goals:        []goal.Goal{},

@@ -42,6 +42,7 @@ export interface BudgetYear {
   id: string;
   year: number;
   simulation: SimulationSettings;
+  months?: MonthItem[];
   createdAt?: string;
   updatedAt?: string;
 }

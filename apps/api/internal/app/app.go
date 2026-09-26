@@ -169,17 +169,11 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	idxCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Index: months.budgetYearId
-	_, err := db.Collection(budgetyear.CollectionMonths).Indexes().CreateOne(idxCtx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "budgetYearId", Value: 1}},
-		Options: options.Index().SetName("idx_months_budgetYearId"),
-	})
-	if err != nil {
-		return err
-	}
+	// Dropar collection legada 'months' se existir (meses agora vivem embutidos em budget_years)
+	_ = db.Collection("months").Drop(idxCtx)
 
 	// Index: budget_years.year (unique)
-	_, err = db.Collection(budgetyear.CollectionBudgetYears).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+	_, err := db.Collection(budgetyear.CollectionBudgetYears).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "year", Value: 1}},
 		Options: options.Index().SetUnique(true).SetName("idx_budget_years_year_unique"),
 	})

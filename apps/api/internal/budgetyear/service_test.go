@@ -2,19 +2,16 @@ package budgetyear
 
 import (
 	"context"
-	"fmt"
 	"testing"
 )
 
 type mockRepo struct {
-	years  map[int]*BudgetYear
-	months map[string]*Month
+	years map[int]*BudgetYear
 }
 
 func newMockRepo() *mockRepo {
 	return &mockRepo{
-		years:  make(map[int]*BudgetYear),
-		months: make(map[string]*Month),
+		years: make(map[int]*BudgetYear),
 	}
 }
 
@@ -49,20 +46,19 @@ func (m *mockRepo) UpdateSimulation(ctx context.Context, year int, input *Update
 	return y, nil
 }
 
-func (m *mockRepo) CreateMonth(ctx context.Context, month *Month) error {
-	m.months[month.ID] = month
-	return nil
-}
-
-func (m *mockRepo) ListMonthsByYear(ctx context.Context, year int) ([]Month, error) {
-	yearID := fmt.Sprintf("%d", year)
-	var res []Month
-	for _, mo := range m.months {
-		if mo.BudgetYearID == yearID {
-			res = append(res, *mo)
+func (m *mockRepo) AddMonthToYear(ctx context.Context, year int, month *Month) error {
+	y := m.years[year]
+	if y == nil {
+		return ErrYearNotFound
+	}
+	for i, existing := range y.Months {
+		if existing.ID == month.ID {
+			y.Months[i] = *month
+			return nil
 		}
 	}
-	return res, nil
+	y.Months = append(y.Months, *month)
+	return nil
 }
 
 func (m *mockRepo) GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error) {
@@ -70,10 +66,9 @@ func (m *mockRepo) GetYearViewModel(ctx context.Context, year int) (*YearViewMod
 	if y == nil {
 		return nil, nil
 	}
-	months, _ := m.ListMonthsByYear(ctx, year)
 	return &YearViewModel{
 		Year:   *y,
-		Months: months,
+		Months: y.Months,
 	}, nil
 }
 
@@ -97,10 +92,12 @@ func TestBudgetYearService(t *testing.T) {
 		t.Errorf("esperava ano 2026, veio %d", y.Year)
 	}
 
-	// 12 meses devem ter sido populados no mock
-	months, _ := repo.ListMonthsByYear(ctx, 2026)
-	if len(months) != 12 {
-		t.Errorf("esperava 12 meses, vieram %d", len(months))
+	// 12 meses devem ter sido embutidos no ano
+	if len(y.Months) != 12 {
+		t.Errorf("esperava 12 meses embutidos, vieram %d", len(y.Months))
+	}
+	if y.Months[0].ID != "2026-01" {
+		t.Errorf("esperava primeiro mês 2026-01, veio %s", y.Months[0].ID)
 	}
 
 	// Atualizar simulação do ano
@@ -112,12 +109,38 @@ func TestBudgetYearService(t *testing.T) {
 		t.Errorf("falha ao atualizar simulação: %v", err)
 	}
 
+	// Adicionar um mês extra ao ano
+	newMonth, err := svc.AddMonth(ctx, 2026, &CreateMonthInput{
+		ID:         "2026-13",
+		Name:       "Décimo Terceiro 2026",
+		ShortName:  "13º/26",
+		MonthIndex: 12,
+	})
+	if err != nil {
+		t.Fatalf("falha ao adicionar mês: %v", err)
+	}
+	if newMonth.ID != "2026-13" {
+		t.Errorf("esperava ID 2026-13, veio %s", newMonth.ID)
+	}
+
 	// Buscar YearViewModel
 	vm, err := svc.GetYearViewModel(ctx, 2026)
 	if err != nil || vm == nil {
 		t.Fatalf("falha ao buscar view model: %v", err)
 	}
-	if len(vm.Months) != 12 {
-		t.Errorf("esperava 12 meses na view model, vieram %d", len(vm.Months))
+	if len(vm.Months) != 13 {
+		t.Errorf("esperava 13 meses na view model após adicionar mês, vieram %d", len(vm.Months))
+	}
+
+	// Testar validação de ano inválido
+	_, err = svc.CreateYear(ctx, &CreateBudgetYearInput{Year: 1800})
+	if err != ErrInvalidYear {
+		t.Errorf("esperava ErrInvalidYear, veio %v", err)
+	}
+
+	// Testar adicionar mês a ano inexistente
+	_, err = svc.AddMonth(ctx, 2099, &CreateMonthInput{Name: "Jan 2099"})
+	if err != ErrYearNotFound {
+		t.Errorf("esperava ErrYearNotFound, veio %v", err)
 	}
 }

@@ -2,7 +2,6 @@ package budgetyear
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budgetitem"
@@ -16,7 +15,6 @@ import (
 
 const (
 	CollectionBudgetYears = "budget_years"
-	CollectionMonths      = "months"
 )
 
 type Repository interface {
@@ -24,18 +22,16 @@ type Repository interface {
 	GetYearByYear(ctx context.Context, year int) (*BudgetYear, error)
 	ListYears(ctx context.Context) ([]BudgetYear, error)
 	UpdateSimulation(ctx context.Context, year int, input *UpdateSimulationInput) (*BudgetYear, error)
-	CreateMonth(ctx context.Context, m *Month) error
-	ListMonthsByYear(ctx context.Context, year int) ([]Month, error)
+	AddMonthToYear(ctx context.Context, year int, m *Month) error
 	GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error)
 }
 
 type MongoRepository struct {
-	db              *mongo.Database
-	yearsColl       *mongo.Collection
-	monthsColl      *mongo.Collection
-	itemsColl       *mongo.Collection
-	costsColl       *mongo.Collection
-	goalsColl       *mongo.Collection
+	db        *mongo.Database
+	yearsColl *mongo.Collection
+	itemsColl *mongo.Collection
+	costsColl *mongo.Collection
+	goalsColl *mongo.Collection
 }
 
 var _ Repository = (*MongoRepository)(nil)
@@ -43,23 +39,21 @@ var _ Repository = (*MongoRepository)(nil)
 func NewMongoRepository(client *mongo.Client, dbName string) *MongoRepository {
 	db := client.Database(dbName)
 	return &MongoRepository{
-		db:         db,
-		yearsColl:  db.Collection(CollectionBudgetYears),
-		monthsColl: db.Collection(CollectionMonths),
-		itemsColl:  db.Collection(budgetitem.CollectionName),
-		costsColl:  db.Collection(onetimecost.CollectionName),
-		goalsColl:  db.Collection(goal.CollectionName),
+		db:        db,
+		yearsColl: db.Collection(CollectionBudgetYears),
+		itemsColl: db.Collection(budgetitem.CollectionName),
+		costsColl: db.Collection(onetimecost.CollectionName),
+		goalsColl: db.Collection(goal.CollectionName),
 	}
 }
 
 func NewRepository(db *mongo.Database) *MongoRepository {
 	return &MongoRepository{
-		db:         db,
-		yearsColl:  db.Collection(CollectionBudgetYears),
-		monthsColl: db.Collection(CollectionMonths),
-		itemsColl:  db.Collection(budgetitem.CollectionName),
-		costsColl:  db.Collection(onetimecost.CollectionName),
-		goalsColl:  db.Collection(goal.CollectionName),
+		db:        db,
+		yearsColl: db.Collection(CollectionBudgetYears),
+		itemsColl: db.Collection(budgetitem.CollectionName),
+		costsColl: db.Collection(onetimecost.CollectionName),
+		goalsColl: db.Collection(goal.CollectionName),
 	}
 }
 
@@ -72,6 +66,9 @@ func (r *MongoRepository) CreateYear(ctx context.Context, y *BudgetYear) error {
 		y.CreatedAt = now
 	}
 	y.UpdatedAt = now
+	if y.Months == nil {
+		y.Months = []Month{}
+	}
 
 	opts := options.Update().SetUpsert(true)
 	_, err := r.yearsColl.UpdateOne(ctx, bson.M{"_id": y.ID}, bson.M{"$set": y}, opts)
@@ -152,35 +149,42 @@ func (r *MongoRepository) UpdateSimulation(ctx context.Context, year int, input 
 	return &updated, nil
 }
 
-func (r *MongoRepository) CreateMonth(ctx context.Context, m *Month) error {
+func (r *MongoRepository) AddMonthToYear(ctx context.Context, year int, m *Month) error {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
-	opts := options.Update().SetUpsert(true)
-	_, err := r.monthsColl.UpdateOne(ctx, bson.M{"_id": m.ID}, bson.M{"$set": m}, opts)
-	return err
-}
-
-func (r *MongoRepository) ListMonthsByYear(ctx context.Context, year int) ([]Month, error) {
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
-
-	yearID := fmt.Sprintf("%d", year)
-	opts := options.Find().SetSort(bson.D{{Key: "monthIndex", Value: 1}})
-	cursor, err := r.monthsColl.Find(ctx, bson.M{"budgetYearId": yearID}, opts)
+	// Atualização posicional caso o mês já exista no array
+	filter := bson.M{
+		"year":      year,
+		"months.id": m.ID,
+	}
+	res, err := r.yearsColl.UpdateOne(ctx, filter, bson.M{
+		"$set": bson.M{
+			"months.$":  m,
+			"updatedAt": time.Now().UTC(),
+		},
+	})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer cursor.Close(ctx)
+	if res.MatchedCount > 0 {
+		return nil
+	}
 
-	var months []Month
-	if err := cursor.All(ctx, &months); err != nil {
-		return nil, err
+	// Adiciona no array caso não exista
+	pushFilter := bson.M{"year": year}
+	pushUpdate := bson.M{
+		"$push": bson.M{"months": m},
+		"$set":  bson.M{"updatedAt": time.Now().UTC()},
 	}
-	if months == nil {
-		months = []Month{}
+	res, err = r.yearsColl.UpdateOne(ctx, pushFilter, pushUpdate)
+	if err != nil {
+		return err
 	}
-	return months, nil
+	if res.MatchedCount == 0 {
+		return ErrYearNotFound
+	}
+	return nil
 }
 
 func (r *MongoRepository) GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error) {
@@ -195,9 +199,9 @@ func (r *MongoRepository) GetYearViewModel(ctx context.Context, year int) (*Year
 		return nil, nil
 	}
 
-	months, err := r.ListMonthsByYear(ctx, year)
-	if err != nil {
-		return nil, err
+	months := budgetYear.Months
+	if months == nil {
+		months = []Month{}
 	}
 
 	// Buscar todos os itens de orçamento

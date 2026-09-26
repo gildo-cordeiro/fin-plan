@@ -138,7 +138,6 @@ O modelo de dados é centralizado em `apps/web/src/types/budget.ts` e espelhado 
 
 ```mermaid
 erDiagram
-    BUDGET_YEAR ||--|{ MONTH_ITEM : "possui 12 meses (budgetYearId)"
     BUDGET_YEAR ||--|| SIMULATION_SETTINGS : "configurações do ano"
     BUDGET_ITEM {
         string id PK "UUIDv4"
@@ -151,23 +150,16 @@ erDiagram
         int dueDate "Dia de vencimento opcional"
     }
     BUDGET_YEAR {
-        string id PK "UUIDv4"
+        string id PK "Ano como chave natural (ex: '2026')"
         int year "Ano fiscal (ex: 2026, único)"
         json simulationSettings "SimulationSettings do ano"
-    }
-    MONTH_ITEM {
-        string id PK "ex: 2026-10"
-        string budgetYearId FK "Referência para BUDGET_YEAR"
-        string name "Outubro 2026"
-        string shortName "Out/26"
-        int year "2026"
-        int monthIndex "9"
+        json months "Array de meses embutidos [id, name, shortName, monthIndex]"
     }
     ONE_TIME_COST {
         string id PK "UUIDv4"
         string name "Nome do custo"
         number value "Valor base"
-        string targetMonthId FK "FK opcional para MONTH_ITEM"
+        string targetMonthId "Identificador do mês alvo (ex: '2026-10')"
         boolean off "Desativado no cálculo"
     }
     SIMULATION_SETTINGS {
@@ -190,7 +182,6 @@ erDiagram
         number amount "Valor aportado"
         string note "Observação opcional"
     }
-    ONE_TIME_COST }o--|| MONTH_ITEM : "desembolso em (targetMonthId)"
 ```
 
 ---
@@ -206,7 +197,7 @@ O FinPlan foi projetado primordialmente para uso pessoal single-tenant. O fluxo 
 2. **CORS Restrito**:
    - O middleware de CORS em `apps/api/internal/middleware/cors.go` define cabeçalhos de controle de acesso (`Access-Control-Allow-Origin: *`, métodos `GET,OPTIONS,POST,PATCH,DELETE`).
 3. **Escrita Atômica e Single-Tenant**:
-   - O sistema persiste dados em coleções dedicadas (`budget_years`, `months`, `budget_items`, `one_time_costs`, `goals`). As operações de escrita ocorrem de forma atômica por recurso (`/api/v1/budget-items/{id}`, `/api/v1/goals/{id}/contributions`, etc.), prevenindo sobreposições destrutivas. Não há multi-tenancy ou controle de usuários (todos os registros pertencem ao proprietário da instância).
+   - O sistema persiste dados em coleções dedicadas (`budget_years`, `budget_items`, `one_time_costs`, `goals`). Os meses vivem embutidos como array dentro de `budget_years` para garantir escrita atômica dos 12 meses do ano e evitar coleções/índices desnecessários. As operações de escrita ocorrem de forma atômica por recurso (`/api/v1/budget-items/{id}`, `/api/v1/goals/{id}/contributions`, etc.), prevenindo sobreposições destrutivas. Não há multi-tenancy ou controle de usuários (todos os registros pertencem ao proprietário da instância).
 
 ---
 

@@ -150,7 +150,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setState((prev) => ({
           ...prev,
           currentYear: yearVm.year.year,
-          months: yearVm.months || [],
+          months: (yearVm.months || yearVm.year.months || []).map((m) => ({
+            ...m,
+            year: m.year ?? yearVm.year.year,
+          })),
           simulation: yearVm.year.simulation,
           ...derived,
           oneTimeCosts: yearVm.oneTimeCosts || [],
@@ -217,7 +220,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setState((prev) => ({
           ...prev,
           currentYear: yearVm.year.year,
-          months: yearVm.months || [],
+          months: (yearVm.months || yearVm.year.months || []).map((m) => ({
+            ...m,
+            year: m.year ?? yearVm.year.year,
+          })),
           simulation: yearVm.year.simulation,
           ...derived,
           oneTimeCosts: yearVm.oneTimeCosts || [],
@@ -265,7 +271,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           setState((prev) => ({
             ...prev,
             currentYear: yearVm.year.year,
-            months: yearVm.months || [],
+            months: (yearVm.months || yearVm.year.months || []).map((m) => ({
+              ...m,
+              year: m.year ?? yearVm.year.year,
+            })),
             simulation: yearVm.year.simulation,
             ...derived,
             oneTimeCosts: yearVm.oneTimeCosts || [],

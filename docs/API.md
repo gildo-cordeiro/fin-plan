@@ -33,10 +33,12 @@ Health check para orquestradores (Docker, Kubernetes, Cloud Run).
 
 ---
 
-### 2. Anos Orçamentários (`budget_years`) & Meses (`months`)
+### 2. Anos Orçamentários (`budget_years`)
+
+Os meses fiscais (`months`) vivem embutidos como array dentro do próprio documento do ano (`budget_years`). Não há coleção separada nem campos redundantes como `year` ou `budgetYearId` nos meses embutidos.
 
 #### `GET /api/v1/budget-years`
-Retorna todos os anos orçamentários cadastrados no sistema.
+Retorna todos os anos orçamentários cadastrados no sistema, incluindo seus meses embutidos.
 - **Resposta**: `200 OK`
   ```json
   [
@@ -50,6 +52,14 @@ Retorna todos os anos orçamentários cadastrados no sistema.
         "initialBalance": 10000,
         "emergencyReserve": 5000
       },
+      "months": [
+        {
+          "id": "2026-01",
+          "name": "Janeiro 2026",
+          "shortName": "Jan/26",
+          "monthIndex": 0
+        }
+      ],
       "createdAt": "2026-09-26T12:00:00Z",
       "updatedAt": "2026-09-26T12:00:00Z"
     }
@@ -64,15 +74,14 @@ Retorna a **visão anual agregada** pronta para renderizar o frontend em 1 únic
     "year": {
       "id": "2026",
       "year": 2026,
-      "simulation": { ... }
+      "simulation": { ... },
+      "months": [ ... ]
     },
     "months": [
       {
         "id": "2026-10",
-        "budgetYearId": "2026",
         "name": "Outubro 2026",
         "shortName": "Out/26",
-        "year": 2026,
         "monthIndex": 9
       }
     ],
@@ -90,7 +99,7 @@ Retorna a **visão anual agregada** pronta para renderizar o frontend em 1 únic
   ```
 
 #### `POST /api/v1/budget-years`
-Cria um novo ano fiscal. Automaticamente inicializa os 12 meses correspondentes.
+Cria um novo ano fiscal em uma única operação atômica de escrita, já inicializando os 12 meses correspondentes embutidos no documento.
 - **Payload**:
   ```json
   {
@@ -113,7 +122,25 @@ Atualiza atomicamente as premissas de simulação daquele ano orçamentário.
   ```
 
 #### `POST /api/v1/budget-years/{year}/months`
-Adiciona um mês personalizado ao ano fiscal.
+Adiciona ou atualiza um mês no array `months` do documento do ano orçamentário (utiliza `$push` / filtro posicional no MongoDB).
+- **Payload**:
+  ```json
+  {
+    "id": "2026-13",
+    "name": "13º Salário 2026",
+    "shortName": "13º/26",
+    "monthIndex": 12
+  }
+  ```
+- **Resposta**: `201 Created`
+  ```json
+  {
+    "id": "2026-13",
+    "name": "13º Salário 2026",
+    "shortName": "13º/26",
+    "monthIndex": 12
+  }
+  ```
 
 ---
 

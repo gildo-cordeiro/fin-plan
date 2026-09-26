@@ -144,6 +144,10 @@ func (h *Handler) AddMonth(w http.ResponseWriter, r *http.Request) {
 			httputil.WriteError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if errors.Is(err, ErrYearNotFound) {
+			httputil.WriteError(w, http.StatusNotFound, "Ano orçamentário não encontrado.")
+			return
+		}
 		httputil.WriteError(w, http.StatusInternalServerError, "Erro ao adicionar mês.")
 		return
 	}

@@ -20,17 +20,16 @@ type BudgetYear struct {
 	ID         string             `json:"id" bson:"_id"`
 	Year       int                `json:"year" bson:"year"`
 	Simulation SimulationSettings `json:"simulation" bson:"simulation"`
+	Months     []Month            `json:"months" bson:"months"`
 	CreatedAt  time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedAt  time.Time          `json:"updatedAt" bson:"updatedAt"`
 }
 
 type Month struct {
-	ID           string `json:"id" bson:"_id"`
-	BudgetYearID string `json:"budgetYearId" bson:"budgetYearId"`
-	Name         string `json:"name" bson:"name"`
-	ShortName    string `json:"shortName" bson:"shortName"`
-	Year         int    `json:"year" bson:"year"`
-	MonthIndex   int    `json:"monthIndex" bson:"monthIndex"`
+	ID         string `json:"id" bson:"id"`
+	Name       string `json:"name" bson:"name"`
+	ShortName  string `json:"shortName" bson:"shortName"`
+	MonthIndex int    `json:"monthIndex" bson:"monthIndex"`
 }
 
 type YearViewModel struct {
