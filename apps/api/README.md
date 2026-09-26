@@ -157,7 +157,7 @@ curl -X POST http://localhost:8080/api/v1/budget-items \
 
 ### ✅ Implementado (v2 — Domínio Normalizado & Escrita Atômica)
 
-- [x] **Domínio Otimizado**: coleções `budget_years`, `budget_items`, `one_time_costs`, `goals`. Os meses (`months`) vivem embutidos em `budget_years` para inicialização atômica em 1 única operação de escrita
+- [x] **Domínio Otimizado**: coleções `budgets`, `items`, `costs`, `goals`. Os meses (`months`) vivem embutidos em `budgets` para inicialização atômica em 1 única operação de escrita
 - [x] **Auto-indexing Inicial**: verificação e criação de índices únicos e de chave estrangeira na inicialização do servidor, descartando coleções legadas
 - [x] **Agregação Anual**: `GET /api/v1/budget-years/{year}` com join server-side em Go gerando `YearViewModel`
 - [x] **CRUD Atômico**: endpoints REST com UUIDv4 para itens, custos pontuais e metas

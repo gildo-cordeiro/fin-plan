@@ -169,31 +169,34 @@ func ensureIndexes(ctx context.Context, db *mongo.Database) error {
 	idxCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Dropar collection legada 'months' se existir (meses agora vivem embutidos em budget_years)
+	// Limpeza de collections legadas (ambiente sem dados de produção a preservar)
 	_ = db.Collection("months").Drop(idxCtx)
+	_ = db.Collection("budget_years").Drop(idxCtx)
+	_ = db.Collection("budget_items").Drop(idxCtx)
+	_ = db.Collection("one_time_costs").Drop(idxCtx)
 
-	// Index: budget_years.year (unique)
-	_, err := db.Collection(budgetyear.CollectionBudgetYears).Indexes().CreateOne(idxCtx, mongo.IndexModel{
+	// Index: budgets.year (unique)
+	_, err := db.Collection(budgetyear.CollectionBudgets).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "year", Value: 1}},
-		Options: options.Index().SetUnique(true).SetName("idx_budget_years_year_unique"),
+		Options: options.Index().SetUnique(true).SetName("idx_budgets_year_unique"),
 	})
 	if err != nil {
 		return err
 	}
 
-	// Index: one_time_costs.targetMonthId
+	// Index: costs.targetMonthId
 	_, err = db.Collection(onetimecost.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "targetMonthId", Value: 1}},
-		Options: options.Index().SetName("idx_onetimecosts_targetMonthId"),
+		Options: options.Index().SetName("idx_costs_targetMonthId"),
 	})
 	if err != nil {
 		return err
 	}
 
-	// Index: budget_items.type
+	// Index: items.type
 	_, err = db.Collection(budgetitem.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "type", Value: 1}},
-		Options: options.Index().SetName("idx_budgetitems_type"),
+		Options: options.Index().SetName("idx_items_type"),
 	})
 	return err
 }

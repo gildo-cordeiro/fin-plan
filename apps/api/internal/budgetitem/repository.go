@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const CollectionName = "budget_items"
+const CollectionName = "items"
 
 type Repository interface {
 	Create(ctx context.Context, item *BudgetItem) error

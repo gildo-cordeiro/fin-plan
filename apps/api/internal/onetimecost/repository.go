@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const CollectionName = "one_time_costs"
+const CollectionName = "costs"
 
 type Repository interface {
 	Create(ctx context.Context, item *OneTimeCost) error

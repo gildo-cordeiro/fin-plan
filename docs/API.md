@@ -33,9 +33,9 @@ Health check para orquestradores (Docker, Kubernetes, Cloud Run).
 
 ---
 
-### 2. Anos Orçamentários (`budget_years`)
+### 2. Anos Orçamentários (Coleção MongoDB: `budgets`)
 
-Os meses fiscais (`months`) vivem embutidos como array dentro do próprio documento do ano (`budget_years`). Não há coleção separada nem campos redundantes como `year` ou `budgetYearId` nos meses embutidos.
+Os meses fiscais (`months`) vivem embutidos como array dentro do próprio documento do ano (`budgets`). Não há coleção separada nem campos redundantes como `year` ou `budgetYearId` nos meses embutidos.
 
 #### `GET /api/v1/budget-years`
 Retorna todos os anos orçamentários cadastrados no sistema, incluindo seus meses embutidos.
@@ -144,7 +144,7 @@ Adiciona ou atualiza um mês no array `months` do documento do ano orçamentári
 
 ---
 
-### 3. Itens de Orçamento (`budget_items`)
+### 3. Itens de Orçamento (Coleção MongoDB: `items`)
 
 Substitui as listas fixas monolíticas. O campo `type` define se o item é `renda`, `cartao`, `fixa` ou `var`. Um item pode conter valores trans-anuais mapeados por `monthId`.
 
@@ -187,7 +187,7 @@ Exclui atomicamente o item.
 
 ---
 
-### 4. Custos Pontuais (`one_time_costs`)
+### 4. Custos Pontuais (Coleção MongoDB: `costs`)
 
 #### `POST /api/v1/one-time-costs`
 Cria um custo pontual.
@@ -208,7 +208,7 @@ Exclui atomicamente o custo pontual.
 
 ---
 
-### 5. Metas Financeiras (`goals`) & Aportes
+### 5. Metas Financeiras (Coleção MongoDB: `goals`) & Aportes
 
 #### `POST /api/v1/goals`
 Cria uma nova meta financeira.

@@ -37,7 +37,7 @@ flowchart TD
     end
 
     subgraph CloudDatabase["Persistência em Nuvem (Coleções Normalizadas)"]
-        MongoDriver -->|8. Escrita Atômica por Entidade| AtlasDB[("MongoDB Atlas: budget_years, months, budget_items, one_time_costs, goals")]
+        MongoDriver -->|8. Escrita Atômica por Entidade| AtlasDB[("MongoDB Atlas: budgets, items, costs, goals")]
     end
 
     %% Fluxo de Inicialização
@@ -69,7 +69,7 @@ flowchart TD
   - **Multi-Client Ready**: Prepara a arquitetura para atender tanto a aplicação Web SPA quanto o futuro aplicativo mobile Android sem acoplamento à infraestrutura Vercel.
 
 ### 3.3. Domínio Normalizado por Entidade & Agregação por Ano (`BudgetYear`) com Edição Atômica
-- **Decisão**: O domínio foi reestruturado de um documento único para entidades normalizadas em coleções dedicadas (`budget_years`, `months`, `budget_items`, `one_time_costs`, `goals`), com agregação por ano fiscal (`GET /api/v1/budget-years/{year}`) e escrita atômica por item (`PATCH /api/v1/budget-items/{id}`).
+- **Decisão**: O domínio foi reestruturado de um documento único para entidades normalizadas em coleções dedicadas (`budgets`, `items`, `costs`, `goals`), com agregação por ano fiscal (`GET /api/v1/budget-years/{year}`) e escrita atômica por item (`PATCH /api/v1/budget-items/{id}`).
 - **Por quê**:
   - **Edição Atômica**: Alterar o valor de uma despesa num único mês não exige reescrever o orçamento inteiro, reduzindo tráfego e latência.
   - **Resolução de Concorrência**: O problema de last-write-wins deixa de afetar todo o orçamento e limita-se ao item específico alterado.
@@ -197,7 +197,7 @@ O FinPlan foi projetado primordialmente para uso pessoal single-tenant. O fluxo 
 2. **CORS Restrito**:
    - O middleware de CORS em `apps/api/internal/middleware/cors.go` define cabeçalhos de controle de acesso (`Access-Control-Allow-Origin: *`, métodos `GET,OPTIONS,POST,PATCH,DELETE`).
 3. **Escrita Atômica e Single-Tenant**:
-   - O sistema persiste dados em coleções dedicadas (`budget_years`, `budget_items`, `one_time_costs`, `goals`). Os meses vivem embutidos como array dentro de `budget_years` para garantir escrita atômica dos 12 meses do ano e evitar coleções/índices desnecessários. As operações de escrita ocorrem de forma atômica por recurso (`/api/v1/budget-items/{id}`, `/api/v1/goals/{id}/contributions`, etc.), prevenindo sobreposições destrutivas. Não há multi-tenancy ou controle de usuários (todos os registros pertencem ao proprietário da instância).
+   - O sistema persiste dados em coleções dedicadas (`budgets`, `items`, `costs`, `goals`). Os meses vivem embutidos como array dentro de `budgets` para garantir escrita atômica dos 12 meses do ano e evitar coleções/índices desnecessários. As operações de escrita ocorrem de forma atômica por recurso (`/api/v1/budget-items/{id}`, `/api/v1/goals/{id}/contributions`, etc.), prevenindo sobreposições destrutivas. Não há multi-tenancy ou controle de usuários (todos os registros pertencem ao proprietário da instância).
 
 ---
 

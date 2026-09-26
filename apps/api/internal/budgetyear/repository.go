@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	CollectionBudgetYears = "budget_years"
+	CollectionBudgets     = "budgets"
+	CollectionBudgetYears = CollectionBudgets
 )
 
 type Repository interface {
@@ -40,7 +41,7 @@ func NewMongoRepository(client *mongo.Client, dbName string) *MongoRepository {
 	db := client.Database(dbName)
 	return &MongoRepository{
 		db:        db,
-		yearsColl: db.Collection(CollectionBudgetYears),
+		yearsColl: db.Collection(CollectionBudgets),
 		itemsColl: db.Collection(budgetitem.CollectionName),
 		costsColl: db.Collection(onetimecost.CollectionName),
 		goalsColl: db.Collection(goal.CollectionName),
@@ -50,7 +51,7 @@ func NewMongoRepository(client *mongo.Client, dbName string) *MongoRepository {
 func NewRepository(db *mongo.Database) *MongoRepository {
 	return &MongoRepository{
 		db:        db,
-		yearsColl: db.Collection(CollectionBudgetYears),
+		yearsColl: db.Collection(CollectionBudgets),
 		itemsColl: db.Collection(budgetitem.CollectionName),
 		costsColl: db.Collection(onetimecost.CollectionName),
 		goalsColl: db.Collection(goal.CollectionName),
