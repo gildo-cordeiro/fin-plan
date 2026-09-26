@@ -54,11 +54,20 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-api-key, Authorization'
   );
 
   if (req.method === 'OPTIONS') {
     return reply(res, 200);
+  }
+
+  const expectedApiKey = process.env.API_SECRET_KEY;
+  if (expectedApiKey) {
+    const rawAuth = req.headers?.['x-api-key'] || req.headers?.authorization;
+    const clientApiKey = typeof rawAuth === 'string' ? rawAuth.replace(/^Bearer\s+/i, '') : '';
+    if (!clientApiKey || clientApiKey !== expectedApiKey) {
+      return reply(res, 401, { error: 'Acesso não autorizado. Chave de API ausente ou inválida.' });
+    }
   }
 
   const mongoUri = process.env.MONGODB_URI;
