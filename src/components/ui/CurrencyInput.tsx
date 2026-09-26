@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
+import { formatDecimalBR, parseDecimalBR } from '../../utils/formatters';
 
 interface CurrencyInputProps {
   value: number;
@@ -16,14 +17,14 @@ export const CurrencyInput = ({
   value,
   onChange,
   className = '',
-  placeholder = '0',
+  placeholder = '0,00',
   disabled = false,
   prefix,
   ariaLabel,
   debounceMs = 350,
   onKeyDown,
 }: CurrencyInputProps) => {
-  const [localStr, setLocalStr] = useState<string>(() => (value ? value.toString() : ''));
+  const [localStr, setLocalStr] = useState<string>(() => (value ? formatDecimalBR(value) : ''));
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -32,8 +33,8 @@ export const CurrencyInput = ({
   useEffect(() => {
     if (prevValueRef.current !== value) {
       prevValueRef.current = value;
-      if (!isFocused || value === 0) {
-        setLocalStr(value === 0 ? '' : value.toString());
+      if (!isFocused) {
+        setLocalStr(value === 0 ? '' : formatDecimalBR(value));
       }
     }
   }, [value, isFocused]);
@@ -47,9 +48,7 @@ export const CurrencyInput = ({
   }, []);
 
   const commitValue = (rawString: string) => {
-    const normalized = rawString.replace(',', '.');
-    const num = parseFloat(normalized);
-    const cleanNum = isNaN(num) ? 0 : num;
+    const cleanNum = parseDecimalBR(rawString);
     prevValueRef.current = cleanNum;
     onChange(cleanNum);
     return cleanNum;
@@ -79,7 +78,7 @@ export const CurrencyInput = ({
       clearTimeout(debounceTimerRef.current);
     }
     const cleanNum = commitValue(localStr);
-    setLocalStr(cleanNum === 0 ? '' : cleanNum.toString());
+    setLocalStr(cleanNum === 0 ? '' : formatDecimalBR(cleanNum));
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

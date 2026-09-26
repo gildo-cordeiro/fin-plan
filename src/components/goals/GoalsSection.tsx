@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
 import { useToast } from '../../context/ToastContext';
+import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
@@ -205,17 +206,16 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
             </span>
             <div className="flex items-center justify-end font-mono font-bold text-slate-800 dark:text-slate-200 text-sm">
               {editingTarget ? (
-                <input
-                  autoFocus
-                  type="number"
-                  value={goal.targetAmount || ''}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    updateGoal(goal.id, { targetAmount: isNaN(v) ? 0 : v });
-                  }}
-                  onBlur={() => setEditingTarget(false)}
-                  className="w-24 text-right bg-white dark:bg-slate-900 border border-teal-500 rounded px-1 text-xs outline-none"
-                />
+                <div className="w-28 inline-block">
+                  <CurrencyInput
+                    value={goal.targetAmount || 0}
+                    onChange={(v) => updateGoal(goal.id, { targetAmount: v })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setEditingTarget(false);
+                    }}
+                    placeholder="0,00"
+                  />
+                </div>
               ) : (
                 <button
                   type="button"
@@ -232,7 +232,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
         </div>
 
         <div className="space-y-1">
-          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 isDone
@@ -243,9 +243,11 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
                   ? 'bg-[#0e6b7a]'
                   : progressPct >= 30
                   ? 'bg-amber-400'
-                  : 'bg-rose-400'
+                  : progressPct > 0
+                  ? 'bg-rose-400'
+                  : 'bg-slate-300 dark:bg-slate-600'
               }`}
-              style={{ width: `${progressPct}%` }}
+              style={{ width: progressPct > 0 ? `${progressPct}%` : '4px' }}
             />
           </div>
 

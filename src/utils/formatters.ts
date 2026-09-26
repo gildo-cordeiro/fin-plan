@@ -29,6 +29,49 @@ export function formatBRL(value: number, includeSign = false): string {
   return absFormatted;
 }
 
+/**
+ * Formata um número no formato decimal pt-BR (ex: 1234.5 -> "1.234,50").
+ * Se allowEmpty for true e o valor for 0, retorna string vazia para exibir placeholder.
+ */
+export function formatDecimalBR(value: number, allowEmpty = true): string {
+  if (isNaN(value) || (allowEmpty && value === 0)) return '';
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Converte entrada do usuário (aceitando "1.234,56", "1234,56", "1234.56", "1,234.56") em number.
+ */
+export function parseDecimalBR(raw: string): number {
+  if (!raw) return 0;
+  const trimmed = raw.trim();
+  if (!trimmed) return 0;
+
+  const hasComma = trimmed.includes(',');
+  const hasDot = trimmed.includes('.');
+
+  let clean = trimmed;
+  if (hasComma && hasDot) {
+    if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
+      // Padrão pt-BR: "1.234,56" -> remove ponto e substitui vírgula por ponto
+      clean = clean.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Padrão en-US: "1,234.56" -> remove vírgula
+      clean = clean.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    // "1234,56" -> "1234.56"
+    clean = clean.replace(',', '.');
+  }
+
+  // Remove caracteres espúrios exceto dígitos, ponto e menos
+  clean = clean.replace(/[^\d.-]/g, '');
+  const parsed = parseFloat(clean);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export function formatCompactBRL(value: number): string {
   if (isNaN(value)) value = 0;
   const isNegative = value < 0;

@@ -20,10 +20,10 @@ export const MonthHorizonBar = () => {
   const [customCount, setCustomCount] = useState<number>(state.months.length);
 
   const presets = [
-    { label: '3 Meses', count: 3 },
-    { label: '6 Meses', count: 6 },
-    { label: '12 Meses (1 ano)', count: 12 },
-    { label: '24 Meses (2 anos)', count: 24 },
+    { label: '3M', count: 3, fullLabel: '3 Meses' },
+    { label: '6M', count: 6, fullLabel: '6 Meses' },
+    { label: '12M', count: 12, fullLabel: '12 Meses (1 ano)' },
+    { label: '24M', count: 24, fullLabel: '24 Meses (2 anos)' },
   ];
 
   const handleApplyCustom = (e: FormEvent) => {
@@ -44,60 +44,68 @@ export const MonthHorizonBar = () => {
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-slate-400 text-[11px] mr-1 hidden sm:inline">Duração:</span>
-        {presets.map((p) => {
-          const isActive = state.months.length === p.count;
-          return (
-            <button
-              key={p.count}
-              type="button"
-              onClick={() => setHorizonCount(p.count)}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                isActive
-                  ? 'bg-[#0e6b7a] text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              {p.label}
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80">
+          {presets.map((p) => {
+            const isActive = state.months.length === p.count;
+            return (
+              <button
+                key={p.count}
+                type="button"
+                onClick={() => setHorizonCount(p.count)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#0e6b7a] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title={p.fullLabel}
+                aria-label={`Visualizar horizonte de ${p.fullLabel}`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
 
-        <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-        <button
-          type="button"
-          onClick={addNextMonth}
-          className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium text-xs"
-          title="Adicionar próximo mês mantendo os valores repetidos"
-        >
-          + Mês
-        </button>
-
-        {state.months.length > 2 && (
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => removeMonth(lastMonth.id)}
-            className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium text-xs"
-            title="Remover último mês"
+            onClick={addNextMonth}
+            className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+            title="Adicionar próximo mês mantendo os valores repetidos"
+            aria-label="Adicionar próximo mês ao horizonte"
           >
-            - Mês
+            + Mês
           </button>
-        )}
 
-        <button
-          type="button"
-          onClick={() => {
-            setCustomStartYear(firstMonth.year);
-            setCustomStartMonth(firstMonth.monthIndex);
-            setCustomCount(state.months.length);
-            setIsCustomOpen(true);
-          }}
-          className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs"
-        >
-          Personalizar...
-        </button>
+          {state.months.length > 2 && (
+            <button
+              type="button"
+              onClick={() => removeMonth(lastMonth.id)}
+              className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+              title="Remover último mês do horizonte"
+              aria-label="Remover último mês do horizonte"
+            >
+              - Mês
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setCustomStartYear(firstMonth.year);
+              setCustomStartMonth(firstMonth.monthIndex);
+              setCustomCount(state.months.length);
+              setIsCustomOpen(true);
+            }}
+            className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+            title="Definir mês inicial e quantidade personalizada"
+            aria-label="Personalizar período de meses"
+          >
+            <span>⚙️</span>
+            <span>Personalizar</span>
+          </button>
+        </div>
       </div>
 
       {isCustomOpen && (
