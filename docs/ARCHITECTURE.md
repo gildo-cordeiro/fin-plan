@@ -110,9 +110,10 @@ fin-plan/
 │   │
 │   └── api/                     # 📦 API REST Go
 │       ├── Dockerfile           # Imagem Distroless estática
-│       ├── cmd/api/main.go      # Inicialização, router nativo, graceful shutdown
+│       ├── cmd/api/main.go      # Entrypoint enxuto (signal.NotifyContext + app.Run)
 │       └── internal/
-│           ├── budget/          # Handler HTTP, Models Go e Repository MongoDB
+│           ├── app/             # Application lifecycle, composição e shutdown gracioso
+│           ├── budget/          # Handler HTTP, Service (business rules), Repository e Models Go
 │           ├── config/          # Carregamento de variáveis de ambiente
 │           └── middleware/      # Middlewares de Auth e CORS
 │

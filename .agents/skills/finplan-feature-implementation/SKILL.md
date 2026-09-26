@@ -103,6 +103,17 @@ fin-plan/
 
 ## Restrições (não fazer)
 
+- Não inclua comentários no código gerado a menos que sejam estritamente
+  necessários para explicar decisões não-óbvias (workarounds, regras de
+  negócio contraintuitivas ou referências a limitações externas). Comentários
+  que apenas descrevem o que o código já deixa claro por si só (nomes de
+  função, tipos, fluxo óbvio) são proibidos.
+  - Proibido: `// incrementa o contador` acima de `count++`.
+  - Aceitável: `// Mongo trunca timestamps em ms; ver docs/API.md` acima de uma conversão de data específica.
+- Não viole as boas práticas idiomáticas da linguagem/stack utilizada (Go no
+  backend, React/TypeScript no frontend) — mantenha nomes descritivos, funções
+  pequenas e coesas, tratamento de erro explícito, sem duplicação desnecessária
+  e sem código morto.
 - Não introduza chamadas de rede síncronas/bloqueantes na UI — toda escrita
   remota passa pelo debounce de 500ms existente em `BudgetContext`.
 - Não crie uma nova coleção MongoDB para a feature sem antes confirmar

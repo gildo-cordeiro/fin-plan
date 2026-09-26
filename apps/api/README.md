@@ -8,11 +8,17 @@ Backend API em Go para o FinPlan, substituindo a função serverless Vercel (`ap
 api/
 ├── cmd/
 │   └── api/
-│       └── main.go              # Bootstrap: config, MongoDB, router, graceful shutdown
+│       └── main.go              # Entrypoint enxuto (signal.NotifyContext + app.Run)
 ├── internal/
+│   ├── app/
+│   │   ├── app.go               # Application bootstrap (centraliza banco, DI, rotas, shutdown)
+│   │   └── app_test.go          # Testes unitários do ciclo de vida da aplicação
 │   ├── budget/
-│   │   ├── handler.go           # GET/POST /api/v1/budget
-│   │   ├── repository.go        # Camada de acesso ao MongoDB (isolada)
+│   │   ├── handler.go           # HTTP handler (parse de request, status codes, headers)
+│   │   ├── handler_test.go      # Testes unitários do Handler
+│   │   ├── service.go           # Regra de negócio pura (sem I/O direto)
+│   │   ├── service_test.go      # Testes unitários do Service
+│   │   ├── repository.go        # BudgetRepository interface + MongoRepository (única com mongo-driver)
 │   │   └── model.go             # Structs Go ≡ BudgetState do TypeScript
 │   ├── middleware/
 │   │   ├── auth.go              # API key (x-api-key / Authorization: Bearer)

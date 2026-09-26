@@ -1,4 +1,3 @@
-// Package middleware provides reusable HTTP middleware for the FinPlan backend.
 package middleware
 
 import (
@@ -8,20 +7,14 @@ import (
 	"strings"
 )
 
-// Auth returns a middleware that validates the API key from either the
-// x-api-key header or the Authorization: Bearer header.
-//
-// If apiSecretKey is empty, authentication is disabled (open mode for local dev).
 func Auth(apiSecretKey string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth if no key is configured (open mode).
 			if apiSecretKey == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Skip auth for OPTIONS (preflight).
 			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
@@ -31,7 +24,6 @@ func Auth(apiSecretKey string) func(http.Handler) http.Handler {
 			if clientKey == "" {
 				auth := r.Header.Get("Authorization")
 				clientKey = strings.TrimPrefix(auth, "Bearer ")
-				// Handle case-insensitive "bearer " prefix
 				if clientKey == auth {
 					clientKey = strings.TrimPrefix(auth, "bearer ")
 				}

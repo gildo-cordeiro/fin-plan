@@ -1,41 +1,27 @@
 package budget
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
-// Handler groups the HTTP handlers for the budget resource.
 type Handler struct {
-	repo *Repository
+	service *Service
 }
 
-// NewHandler creates a Handler backed by the given Repository.
-func NewHandler(repo *Repository) *Handler {
-	return &Handler{repo: repo}
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
-// ServeHTTP dispatches to the correct handler method based on the HTTP method.
-// It also handles OPTIONS (preflight) and unsupported methods.
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.handleGet(w, r)
-	case http.MethodPost:
-		h.handlePost(w, r)
-	case http.MethodOptions:
-		w.WriteHeader(http.StatusOK)
-	default:
-		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{
-			Error: fmt.Sprintf("Método %s não suportado.", r.Method),
-		})
-	}
-}
+func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	defer cancel()
 
-func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
-	doc, err := h.repo.FindDefault(r.Context())
+	state, err := h.service.Get(ctx)
 	if err != nil {
 		log.Printf("[GET /api/v1/budget] Erro ao buscar documento: %v", err)
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{
@@ -44,7 +30,7 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if doc == nil || doc.Data == nil {
+	if state == nil {
 		writeJSON(w, http.StatusOK, GetBudgetResponse{
 			Exists: false,
 			Data:   nil,
@@ -53,13 +39,12 @@ func (h *Handler) handleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, GetBudgetResponse{
-		Exists:    true,
-		Data:      doc.Data,
-		UpdatedAt: doc.UpdatedAt,
+		Exists: true,
+		Data:   state,
 	})
 }
 
-func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
 	var body BudgetState
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeJSON(w, http.StatusBadRequest, ErrorResponse{
@@ -68,8 +53,10 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedAt, err := h.repo.UpsertDefault(r.Context(), &body)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	defer cancel()
+
+	if err := h.service.Save(ctx, &body); err != nil {
 		log.Printf("[POST /api/v1/budget] Erro ao persistir: %v", err)
 		writeJSON(w, http.StatusInternalServerError, ErrorResponse{
 			Error: "Erro interno do servidor",
@@ -80,11 +67,35 @@ func (h *Handler) handlePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, PostBudgetResponse{
 		Success:   true,
 		Message:   "Orçamento persistido no MongoDB Atlas com sucesso.",
-		UpdatedAt: updatedAt,
+		UpdatedAt: time.Now().UTC(),
 	})
 }
 
-// writeJSON serialises v as JSON and writes it with the given HTTP status code.
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/budget", h.Get)
+	mux.HandleFunc("POST /api/v1/budget", h.Save)
+	mux.HandleFunc("/api/v1/budget", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{
+			Error: fmt.Sprintf("Método %s não suportado.", r.Method),
+		})
+	})
+}
+
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.Get(w, r)
+	case http.MethodPost:
+		h.Save(w, r)
+	case http.MethodOptions:
+		w.WriteHeader(http.StatusOK)
+	default:
+		writeJSON(w, http.StatusMethodNotAllowed, ErrorResponse{
+			Error: fmt.Sprintf("Método %s não suportado.", r.Method),
+		})
+	}
+}
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

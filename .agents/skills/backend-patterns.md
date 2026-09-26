@@ -43,31 +43,47 @@ if err := mongoClient.Ping(ctx, nil); err != nil {
 
 ---
 
-## 3. Padrão de Handlers e Pipeline de Middlewares
+## 3. Padrão de Camadas da Feature (`internal/budget/`)
 
-As requisições passam pela cadeia explícita de middlewares:
-```
-Request -> CORS -> Auth -> ServeMux -> Handler
+O backend adota organização interna por **feature**, dividida em 3 camadas finas:
+1. **Handler** (`handler.go`): Trata exclusivamente HTTP (parse de request, status codes, headers). Não importa pacotes de banco de dados e invoca apenas o `*Service`.
+2. **Service** (`service.go`): Contém a regra de negócio pura sem I/O direto. Consome a interface `BudgetRepository`.
+3. **Repository** (`repository.go`): Única camada que importa `go.mongodb.org/mongo-driver`. Define a interface `BudgetRepository` e a implementação `MongoRepository`.
+
+### Injeção de Dependências Manual:
+```go
+repo := budget.NewMongoRepository(mongoClient, cfg.MongoDBName)
+svc := budget.NewService(repo)
+h := budget.NewHandler(svc)
+
+mux.HandleFunc("GET /api/v1/budget", h.Get)
+mux.HandleFunc("POST /api/v1/budget", h.Save)
 ```
 
 ### Regras de Handlers:
-- Handlers utilizam timeouts contextuais explícitos (8s para consultas de banco de dados):
+- Handlers utilizam timeouts contextuais explícitos (8s para consultas):
   ```go
   ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
   defer cancel()
   ```
-- Use a função utilitária `reply(w, status, data)` para padronizar respostas JSON e status HTTP.
-- Requisições `OPTIONS` são respondidas imediatamente com `200 OK` pelo middleware de CORS.
-- Métodos não suportados devem responder com status `405 Method Not Allowed`.
+- Requisições `OPTIONS` são respondidas com `200 OK` pelo middleware CORS.
+- Métodos não suportados respondem com status `405 Method Not Allowed`.
 
 ---
 
 ## 4. Camada de Repositório (`internal/budget/repository.go`)
 
 - Toda persistência no MongoDB reside no repositório dedicado.
+- Define a interface `BudgetRepository`:
+  ```go
+  type BudgetRepository interface {
+      Get(ctx context.Context) (*BudgetState, error)
+      Save(ctx context.Context, state *BudgetState) error
+  }
+  ```
 - O padrão de documento único atômico (`_id: "default_budget"`) é mantido:
-  - `FindDefault(ctx)` recupera o orçamento.
-  - `UpsertDefault(ctx, data)` grava atomicamente o estado completo com timestamp UTC em `updatedAt`.
+  - `Get(ctx)` recupera o orçamento.
+  - `Save(ctx, state)` grava atomicamente o estado completo com timestamp UTC em `updatedAt`.
 - Se o documento não existir, o repositório retorna `nil, nil`, e o handler responde com `{ "exists": false, "data": null }`.
 
 ---

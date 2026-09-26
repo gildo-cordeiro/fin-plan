@@ -14,23 +14,30 @@ const (
 	budgetDocumentID = "default_budget"
 )
 
-// Repository encapsulates MongoDB access for budget documents.
-// The interface is designed so that adding userId-based queries (multi-tenant)
-// in the future only requires changing the filter — handlers stay the same.
-type Repository struct {
+type BudgetRepository interface {
+	Get(ctx context.Context) (*BudgetState, error)
+	Save(ctx context.Context, state *BudgetState) error
+}
+
+type MongoRepository struct {
 	collection *mongo.Collection
 }
 
-// NewRepository creates a Repository bound to the "budgets" collection.
-func NewRepository(db *mongo.Database) *Repository {
-	return &Repository{
+var _ BudgetRepository = (*MongoRepository)(nil)
+
+func NewMongoRepository(client *mongo.Client, dbName string) *MongoRepository {
+	return &MongoRepository{
+		collection: client.Database(dbName).Collection(collectionName),
+	}
+}
+
+func NewRepository(db *mongo.Database) *MongoRepository {
+	return &MongoRepository{
 		collection: db.Collection(collectionName),
 	}
 }
 
-// FindDefault retrieves the single default_budget document.
-// Returns (nil, nil) if the document doesn't exist yet.
-func (r *Repository) FindDefault(ctx context.Context) (*BudgetDocument, error) {
+func (r *MongoRepository) Get(ctx context.Context) (*BudgetState, error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
@@ -44,12 +51,10 @@ func (r *Repository) FindDefault(ctx context.Context) (*BudgetDocument, error) {
 		}
 		return nil, err
 	}
-	return &doc, nil
+	return doc.Data, nil
 }
 
-// UpsertDefault atomically replaces the data and updatedAt fields of the
-// default_budget document, creating it if it doesn't exist.
-func (r *Repository) UpsertDefault(ctx context.Context, data *BudgetState) (time.Time, error) {
+func (r *MongoRepository) Save(ctx context.Context, state *BudgetState) error {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
@@ -58,15 +63,12 @@ func (r *Repository) UpsertDefault(ctx context.Context, data *BudgetState) (time
 	filter := bson.M{"_id": budgetDocumentID}
 	update := bson.M{
 		"$set": bson.M{
-			"data":      data,
+			"data":      state,
 			"updatedAt": now,
 		},
 	}
 	opts := options.Update().SetUpsert(true)
 
 	_, err := r.collection.UpdateOne(ctx, filter, update, opts)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return now, nil
+	return err
 }
