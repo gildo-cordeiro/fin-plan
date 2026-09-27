@@ -10,17 +10,20 @@ import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
 import { SimulationPanel } from './components/simulation/SimulationPanel';
 import { BudgetManagementModal } from './components/modals/BudgetManagementModal';
 import { useBudget } from './context/BudgetContext';
+import { getDefaultActiveMonthId } from './utils/formatters';
 
 export const BudgetAppContent = () => {
   const { state, isLoading, loadError, refreshFromDb } = useBudget();
 
   const [tab, setTab] = useState<TabId>('mes');
-  const [activeMonthId, setActiveMonthId] = useState(state.months[0]?.id || '');
+  const [activeMonthId, setActiveMonthId] = useState<string>(() =>
+    getDefaultActiveMonthId(state.months)
+  );
   const [isInitialSetupOpen, setIsInitialSetupOpen] = useState(false);
 
   useEffect(() => {
     if (state.months.length > 0 && !state.months.some((m) => m.id === activeMonthId)) {
-      setActiveMonthId(state.months[0].id);
+      setActiveMonthId(getDefaultActiveMonthId(state.months));
     }
   }, [state.months, activeMonthId]);
 

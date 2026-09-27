@@ -48,7 +48,7 @@ export const NewTransactionModal = ({
   const [name, setName] = useState('');
   const [value, setValue] = useState(0);
   const [monthId, setMonthId] = useState(defaultMonthId);
-  const [repeatForward, setRepeatForward] = useState(true);
+  const [repeatForward, setRepeatForward] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,7 +57,7 @@ export const NewTransactionModal = ({
       setName('');
       setValue(0);
       const catConfig = TRANSACTION_CATEGORIES.find((c) => c.key === defaultCategory);
-      setRepeatForward(catConfig ? catConfig.defaultRepeat : true);
+      setRepeatForward(catConfig ? catConfig.defaultRepeat : false);
     }
   }, [isOpen, defaultCategory, defaultMonthId]);
 
@@ -192,7 +192,9 @@ export const NewTransactionModal = ({
               <strong>Repetir automaticamente</strong> para os meses seguintes a partir de{' '}
               {currentMonth?.shortName}.
               <span className="block text-[10px] text-slate-400 mt-0.5">
-                Ideal para contas fixas ou estimativas que se mantêm todo mês.
+                {repeatForward
+                  ? 'O valor será replicado para todos os meses seguintes deste ano.'
+                  : `Lançamento pontual: será registrado exclusivamente em ${currentMonth?.name}.`}
               </span>
             </span>
           </label>

@@ -642,10 +642,15 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const targetMonthNum = parseInt(monthId.split('-')[1], 10) || 1;
     const entries = created.entries || createDefaultEntries(created.id);
 
+    const updatePromises: Promise<unknown>[] = [];
     for (const entry of entries) {
       if (repeatForward ? entry.month >= targetMonthNum : entry.month === targetMonthNum) {
         entry.plannedAmount = numVal;
-        budgetApiService.updateEntry(entry.id, { plannedAmount: numVal }).catch(() => {});
+        updatePromises.push(
+          budgetApiService.updateEntry(entry.id, { plannedAmount: numVal }).catch((err) => {
+            console.warn(`[BudgetContext] Falha ao atualizar entry ${entry.id}:`, err);
+          })
+        );
       }
     }
 
@@ -655,6 +660,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       ...syncDerivedLists([...prev.items, enriched]),
     }));
 
+    await Promise.all(updatePromises);
     await reloadSummary(state.currentYear);
   };
 

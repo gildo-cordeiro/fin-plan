@@ -52,6 +52,8 @@ export const BudgetManagementModal = ({
   const [selectedMonthId, setSelectedMonthId] = useState(monthId);
   const [newItemName, setNewItemName] = useState('');
   const [newItemValue, setNewItemValue] = useState(0);
+  const [repeatForward, setRepeatForward] = useState(false);
+  const [sessionItemIds, setSessionItemIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (isOpen) {
@@ -59,17 +61,36 @@ export const BudgetManagementModal = ({
       setSelectedMonthId(monthId);
       setNewItemName('');
       setNewItemValue(0);
+      setRepeatForward(false);
+      setSessionItemIds(new Set());
     }
   }, [isOpen, defaultCategory, monthId]);
+
+  useEffect(() => {
+    setSessionItemIds(new Set());
+  }, [selectedMonthId]);
 
   const currentMonth = state.months.find((m) => m.id === selectedMonthId) || state.months[0];
   const summary = monthlySummaries.find((s) => s.month.id === selectedMonthId);
 
   if (!currentMonth) return null;
 
-  const currentItems: BudgetItem[] = state.items.filter(
-    (i) => i.type === normalizeBudgetItemType(activeTab)
-  );
+  const selectedMonthNum = parseInt(selectedMonthId.split('-')[1], 10) || 1;
+
+  const isItemActiveInMonth = (item: BudgetItem): boolean => {
+    const val = item.values?.[selectedMonthId] ?? 0;
+    const entry = item.entries?.find((e) => e.month === selectedMonthNum);
+    const isConfirmed = Boolean(entry?.paidDate);
+    const hasActual =
+      entry?.actualAmount !== null &&
+      entry?.actualAmount !== undefined &&
+      entry?.actualAmount > 0;
+    return val > 0 || isConfirmed || hasActual || sessionItemIds.has(item.id);
+  };
+
+  const currentItems: BudgetItem[] = state.items
+    .filter((i) => i.type === normalizeBudgetItemType(activeTab))
+    .filter(isItemActiveInMonth);
 
   const categoryTotal = currentItems
     .filter((i) => !i.off)
@@ -79,22 +100,26 @@ export const BudgetManagementModal = ({
     const finalName = (nameToAdd || newItemName).trim();
     if (!finalName) return;
 
-    const shouldRepeat = activeTab === 'fixas' || activeTab === 'renda';
-
     addTransaction({
       category: activeTab,
       name: finalName,
       value: newItemValue,
       monthId: selectedMonthId,
-      repeatForward: shouldRepeat,
+      repeatForward: repeatForward,
     });
 
     setNewItemName('');
     setNewItemValue(0);
+    setRepeatForward(false);
     showToast(`"${finalName}" adicionado em ${CATEGORY_DEFINITIONS[activeTab].label}`);
   };
 
   const handleRemove = (item: BudgetItem) => {
+    setSessionItemIds((prev) => {
+      const next = new Set(prev);
+      next.delete(item.id);
+      return next;
+    });
     const removed = removeItem(activeTab, item.id);
     if (removed) {
       showToast(`"${removed.name}" removido`, {
@@ -113,8 +138,12 @@ export const BudgetManagementModal = ({
 
   const activeDef = CATEGORY_DEFINITIONS[activeTab];
   const suggestions = SUGGESTIONS[activeTab] || [];
+  const allCategoryNames = state.items
+    .filter((i) => i.type === normalizeBudgetItemType(activeTab))
+    .map((i) => i.name);
+  const combinedSuggestions = Array.from(new Set([...allCategoryNames, ...suggestions]));
   const existingNames = new Set(currentItems.map((i) => i.name.toLowerCase()));
-  const filteredSuggestions = suggestions.filter((s) => !existingNames.has(s.toLowerCase()));
+  const filteredSuggestions = combinedSuggestions.filter((s) => !existingNames.has(s.toLowerCase()));
 
   const monthBalance = summary?.monthBalance ?? 0;
   const isBlue = monthBalance >= 0;
@@ -286,6 +315,20 @@ export const BudgetManagementModal = ({
             >
               Adicionar
             </button>
+          </div>
+
+          <div className="flex items-center gap-2 pt-0.5 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={repeatForward}
+                onChange={(e) => setRepeatForward(e.target.checked)}
+                className="w-3.5 h-3.5 rounded accent-[#0e6b7a] cursor-pointer"
+              />
+              <span className="text-[11px]">
+                Repetir automaticamente para os meses seguintes a partir de {currentMonth.shortName}
+              </span>
+            </label>
           </div>
 
           {filteredSuggestions.length > 0 && (

@@ -30,7 +30,7 @@ export const OneTimeCostsSection = () => {
   const [newItemNames, setNewItemNames] = useState<Record<string, string>>({});
 
   // Estado para formulário de movimentação de reserva
-  const [reserveMonth, setReserveMonth] = useState(1);
+  const [reserveMonth, setReserveMonth] = useState(() => new Date().getMonth() + 1);
   const [reserveAmount, setReserveAmount] = useState(0);
   const [reserveType, setReserveType] = useState<'aporte' | 'retirada'>('aporte');
   const [reserveReason, setReserveReason] = useState('');

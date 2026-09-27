@@ -5,6 +5,10 @@ import {
   formatPercent,
   formatDecimalBR,
   parseDecimalBR,
+  createMonthItem,
+  generateMonthSequence,
+  getCurrentMonthId,
+  getDefaultActiveMonthId,
 } from '../utils/formatters';
 
 describe('formatters', () => {
@@ -77,4 +81,37 @@ describe('formatters', () => {
       expect(formatPercent(-5)).toBe('-5,0%');
     });
   });
+
+  describe('getCurrentMonthId and getDefaultActiveMonthId', () => {
+    it('retorna o ID do mês no formato YYYY-MM para uma data de referência', () => {
+      const fixedDate = new Date(2026, 8, 27); // Setembro = 8 (0-based)
+      expect(getCurrentMonthId(fixedDate)).toBe('2026-09');
+    });
+
+    it('encontra o mês atual exato quando presente na lista', () => {
+      const fixedDate = new Date(2026, 8, 27);
+      const months = generateMonthSequence(2026, 0, 12);
+      expect(getDefaultActiveMonthId(months, fixedDate)).toBe('2026-09');
+    });
+
+    it('faz fallback para o mesmo mês do ano caso o ano seja diferente mas o índice exista', () => {
+      const fixedDate = new Date(2026, 8, 27); // Setembro (índice 8)
+      const months = generateMonthSequence(2027, 0, 12);
+      expect(getDefaultActiveMonthId(months, fixedDate)).toBe('2027-09');
+    });
+
+    it('retorna o primeiro mês caso o mês de referência não possa ser casado', () => {
+      const fixedDate = new Date(2026, 8, 27);
+      const months = [
+        createMonthItem(2028, 0), // Janeiro 2028
+        createMonthItem(2028, 1), // Fevereiro 2028
+      ];
+      expect(getDefaultActiveMonthId(months, fixedDate)).toBe('2028-01');
+    });
+
+    it('retorna string vazia se a lista de meses estiver vazia', () => {
+      expect(getDefaultActiveMonthId([])).toBe('');
+    });
+  });
 });
+

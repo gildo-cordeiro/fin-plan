@@ -22,7 +22,7 @@ const rendaMeta: CategoryMeta = {
   textColor: 'text-emerald-700 dark:text-emerald-400',
   borderColor: 'border-emerald-300 dark:border-emerald-700',
   bgLight: 'bg-emerald-50 dark:bg-emerald-950/40',
-  defaultRepeat: true,
+  defaultRepeat: false,
   hint: 'Salários, benefícios, freelances e outras receitas.',
 };
 
@@ -48,7 +48,7 @@ const fixaMeta: CategoryMeta = {
   textColor: 'text-blue-700 dark:text-blue-400',
   borderColor: 'border-blue-300 dark:border-blue-700',
   bgLight: 'bg-blue-50 dark:bg-blue-950/40',
-  defaultRepeat: true,
+  defaultRepeat: false,
   hint: 'Aluguel, condomínio, internet, água e energia.',
 };
 

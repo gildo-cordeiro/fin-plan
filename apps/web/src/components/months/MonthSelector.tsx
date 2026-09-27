@@ -35,7 +35,9 @@ export const MonthSelector = ({
   const handleYearChange = async (y: number) => {
     if (y === currentYear) return;
     await selectYear(y);
-    onMonthChange(`${y}-01`);
+    const targetMonthIndex = currentIdx >= 0 ? months[currentIdx].monthIndex : new Date().getMonth();
+    const targetMonthPad = String(targetMonthIndex + 1).padStart(2, '0');
+    onMonthChange(`${y}-${targetMonthPad}`);
   };
 
   const handleCreateYear = async (e: React.FormEvent) => {
@@ -43,7 +45,9 @@ export const MonthSelector = ({
     if (newYearInput < 2000 || newYearInput > 2100) return;
     await createYear(newYearInput);
     setIsCreatingYear(false);
-    onMonthChange(`${newYearInput}-01`);
+    const targetMonthIndex = currentIdx >= 0 ? months[currentIdx].monthIndex : new Date().getMonth();
+    const targetMonthPad = String(targetMonthIndex + 1).padStart(2, '0');
+    onMonthChange(`${newYearInput}-${targetMonthPad}`);
   };
 
   return (

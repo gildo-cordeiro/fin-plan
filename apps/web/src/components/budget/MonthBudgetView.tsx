@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBudget } from '../../context/BudgetContext';
 import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
@@ -28,6 +28,7 @@ export const MonthBudgetView = ({
     updateItemName,
     toggleItemActive,
     updateItemValue,
+    repeatValueForward,
     confirmEntry,
     unconfirmEntry,
   } = useBudget();
@@ -37,16 +38,43 @@ export const MonthBudgetView = ({
   const [isNewTxModalOpen, setIsNewTxModalOpen] = useState(false);
   const [modalDefaultCategory, setModalDefaultCategory] = useState<ExpenseCategoryKey | 'renda'>('fixas');
 
+  const [sessionActiveItemIds, setSessionActiveItemIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setSessionActiveItemIds(new Set());
+  }, [monthId]);
+
   const summary = monthlySummaries.find((s) => s.month.id === monthId);
   const month = state.months.find((m) => m.id === monthId);
   if (!summary || !month) return null;
 
   const monthNum = parseInt(monthId.split('-')[1], 10) || (month.monthIndex + 1);
 
+  const isItemActiveInMonth = (item: Item): boolean => {
+    const entry = item.entries?.find((e) => e.month === monthNum);
+    const plannedVal = entry ? entry.plannedAmount : (item.values?.[monthId] ?? 0);
+    const isConfirmed = Boolean(entry?.paidDate);
+    const hasActual =
+      entry?.actualAmount !== null &&
+      entry?.actualAmount !== undefined &&
+      entry?.actualAmount > 0;
+    return (
+      plannedVal > 0 ||
+      isConfirmed ||
+      hasActual ||
+      sessionActiveItemIds.has(item.id)
+    );
+  };
+
   const incomeItems = state.items.filter((i) => i.type === 'renda');
   const cardItems = state.items.filter((i) => i.type === 'cartao');
   const fixedItems = state.items.filter((i) => i.type === 'fixa');
   const varItems = state.items.filter((i) => i.type === 'variavel' || (i.type as string) === 'var');
+
+  const activeIncomeItems = incomeItems.filter(isItemActiveInMonth);
+  const activeCardItems = cardItems.filter(isItemActiveInMonth);
+  const activeFixedItems = fixedItems.filter(isItemActiveInMonth);
+  const activeVarItems = varItems.filter(isItemActiveInMonth);
 
   const rawIncome = incomeItems
     .filter((i) => !i.off)
@@ -97,7 +125,26 @@ export const MonthBudgetView = ({
     category: ExpenseCategoryKey | 'renda',
     showCheckbox: boolean
   ) => {
-    const canDeleteEach = category !== 'renda' || items.length > 1;
+    const canDeleteEach = category !== 'renda' || incomeItems.length > 1;
+
+    if (items.length === 0) {
+      return (
+        <div className="space-y-1 pt-2">
+          <p className="text-xs text-slate-400 dark:text-slate-500 py-3 text-center">
+            Nenhum lançamento nesta categoria para {month.shortName}.
+          </p>
+          <div className="pt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={() => handleOpenAddModal(category)}
+              className="text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:underline px-2 py-1 rounded-lg hover:bg-[#0e6b7a]/5 transition-colors cursor-pointer"
+            >
+              + Adicionar em {category === 'renda' ? 'Rendas' : category === 'cartoes' ? 'Cartões' : category === 'fixas' ? 'Fixas' : 'Variáveis'}
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-1 pt-2">
@@ -140,17 +187,35 @@ export const MonthBudgetView = ({
               <div className="w-28 sm:w-32 shrink-0">
                 <CurrencyInput
                   value={plannedVal}
-                  onChange={(v) => updateItemValue(category, item.id, monthId, v)}
+                  onChange={(v) => {
+                    setSessionActiveItemIds((prev) => new Set(prev).add(item.id));
+                    updateItemValue(category, item.id, monthId, v);
+                  }}
                   disabled={item.off}
                   ariaLabel={`${item.name} em ${month.shortName}`}
                 />
               </div>
+
+              {/* Botão de repetir valor para os meses seguintes */}
+              <button
+                type="button"
+                onClick={() => {
+                  repeatValueForward(category, item.id, monthId);
+                  showToast(`Valor de "${item.name}" repetido para os meses seguintes.`);
+                }}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-[#0e6b7a] dark:text-slate-600 dark:hover:text-[#4ec2d3] hover:bg-[#0e6b7a]/10 text-xs shrink-0 transition-colors cursor-pointer"
+                title="Repetir este valor para os meses seguintes"
+                aria-label={`Repetir ${item.name} para a frente`}
+              >
+                ⇥
+              </button>
 
               {/* Botão de confirmação de pagamento/recebimento */}
               {entry && (
                 <button
                   type="button"
                   onClick={() => {
+                    setSessionActiveItemIds((prev) => new Set(prev).add(item.id));
                     if (isConfirmed) {
                       unconfirmEntry(entry.id);
                     } else {
@@ -179,6 +244,11 @@ export const MonthBudgetView = ({
                   onClick={() => {
                     const removed = removeItem(category, item.id);
                     if (removed) {
+                      setSessionActiveItemIds((prev) => {
+                        const next = new Set(prev);
+                        next.delete(item.id);
+                        return next;
+                      });
                       showToast(`Item "${removed.name}" removido`, {
                         action: {
                           label: 'Desfazer',
@@ -371,7 +441,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawIncome)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {incomeItems.filter((i) => !i.off).length} fontes ativas
+                {activeIncomeItems.filter((i) => !i.off).length} fontes ativas neste mês
               </span>
             </div>
           </div>
@@ -394,7 +464,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawCards)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {cardItems.filter((i) => !i.off).length} faturas ativas
+                {activeCardItems.filter((i) => !i.off).length} faturas ativas neste mês
               </span>
             </div>
           </div>
@@ -417,7 +487,7 @@ export const MonthBudgetView = ({
                 {formatBRL(rawFixed)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {fixedItems.filter((i) => !i.off).length} contas recorrentes
+                {activeFixedItems.filter((i) => !i.off).length} contas ativas neste mês
               </span>
             </div>
           </div>
@@ -440,7 +510,7 @@ export const MonthBudgetView = ({
                 {state.simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {varItems.filter((i) => !i.off).length} estimativas de consumo
+                {activeVarItems.filter((i) => !i.off).length} estimativas ativas neste mês
               </span>
             </div>
           </div>
@@ -464,7 +534,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-emerald-600 dark:text-emerald-400"
           defaultOpen={false}
         >
-          {renderItems(incomeItems, 'renda', false)}
+          {renderItems(activeIncomeItems, 'renda', false)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -474,7 +544,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-orange-600 dark:text-orange-400"
           defaultOpen={false}
         >
-          {renderItems(cardItems, 'cartoes', true)}
+          {renderItems(activeCardItems, 'cartoes', true)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -484,7 +554,7 @@ export const MonthBudgetView = ({
           totalColorClass="text-blue-600 dark:text-blue-400"
           defaultOpen={false}
         >
-          {renderItems(fixedItems, 'fixas', true)}
+          {renderItems(activeFixedItems, 'fixas', true)}
         </CollapsibleSection>
 
         <CollapsibleSection
@@ -513,7 +583,7 @@ export const MonthBudgetView = ({
               </span>
             </div>
           )}
-          {renderItems(varItems, 'vars', true)}
+          {renderItems(activeVarItems, 'vars', true)}
         </CollapsibleSection>
 
         {oneTime > 0 && (

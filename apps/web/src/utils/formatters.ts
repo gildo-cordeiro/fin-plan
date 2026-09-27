@@ -123,3 +123,32 @@ export function getNextMonth(currentLast: MonthItem): MonthItem {
 export function getPrevMonth(currentFirst: MonthItem): MonthItem {
   return createMonthItem(currentFirst.year, currentFirst.monthIndex - 1);
 }
+
+/**
+ * Retorna o identificador do mês corrente no formato "YYYY-MM" (ex: "2026-09").
+ */
+export function getCurrentMonthId(referenceDate = new Date()): string {
+  const y = referenceDate.getFullYear();
+  const m = (referenceDate.getMonth() + 1).toString().padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+/**
+ * Retorna o ID do mês padrão a ser ativado:
+ * 1. O mês atual no formato "YYYY-MM", caso exista na lista de meses;
+ * 2. Caso a lista seja de outro ano, o mês de mesmo índice daquele ano;
+ * 3. Se nenhum coincidir, o primeiro mês da lista.
+ */
+export function getDefaultActiveMonthId(months: MonthItem[], referenceDate = new Date()): string {
+  if (!months || months.length === 0) return '';
+  const currentId = getCurrentMonthId(referenceDate);
+  const exactMatch = months.find((m) => m.id === currentId);
+  if (exactMatch) return exactMatch.id;
+
+  const currentMonthIndex = referenceDate.getMonth();
+  const sameIndexMatch = months.find((m) => m.monthIndex === currentMonthIndex);
+  if (sameIndexMatch) return sameIndexMatch.id;
+
+  return months[0].id;
+}
+
