@@ -36,6 +36,7 @@ Cada documento segue a estrutura:
 | [**ADR-0007**](0007-calculos-agregados-e-saldo-acumulado-server-side.md) | Consolidação Contábil Server-Side com Window Functions SQL (`/summary`) | `Aceito` | 2026-09-25 | Apuração de totais mensais e saldo acumulado com precisão decimal no PostgreSQL via window functions. |
 | [**ADR-0008**](0008-semantica-de-patch-parcial-estrita.md) | Semântica de Atualização Parcial Estrita (PATCH Dinâmico com Ponteiros em Go) | `Aceito` | 2026-09-26 | Implementação de endpoints `PATCH` com campos ponteiro e geração seletiva de SQL para evitar sobrescrita de dados. |
 | [**ADR-0009**](0009-estrategia-de-identificadores-uuidv4-e-chaves-naturais.md) | Estratégia de Identificadores: UUIDv4 vs Chave Natural | `Aceito` | 2026-09-26 | Utilização de chave natural para orçamentos anuais (`id = '2026'`) e UUIDv4 nativo para todas as entidades granulares. |
+| [**ADR-0010**](0010-gerenciamento-e-versionamento-de-migracoes-com-goose.md) | Gerenciamento e Versionamento de Migrações de Banco de Dados com Goose | `Aceito` | 2026-09-27 | Adoção do Goose (`pressly/goose/v3`) com migrações SQL embutidas via `embed.FS`, imutabilidade de scripts e versionamento incremental. |
 
 ---
 
