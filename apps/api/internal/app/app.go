@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budget"
@@ -36,11 +37,20 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 		poolCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
-		pool, err := pgxpool.New(poolCtx, cfg.DatabaseURL)
+		poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 		if err != nil {
-			log.Printf("[WARN] Falha ao configurar pool PostgreSQL: %v", err)
+			log.Printf("[WARN] Falha ao analisar configuração de conexão PostgreSQL: %v", err)
 		} else {
-			if err := pool.Ping(poolCtx); err != nil {
+			// Por padrão, ativa QueryExecModeExec para compatibilidade com PgBouncer
+			// (ex: Supabase em transaction pooling na porta 6543, Neon, etc.), evitando colisões de prepared statements
+			if poolConfig.ConnConfig.DefaultQueryExecMode == 0 || poolConfig.ConnConfig.DefaultQueryExecMode == pgx.QueryExecModeCacheStatement {
+				poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
+			}
+
+			pool, err := pgxpool.NewWithConfig(poolCtx, poolConfig)
+			if err != nil {
+				log.Printf("[WARN] Falha ao inicializar pool PostgreSQL: %v", err)
+			} else if err := pool.Ping(poolCtx); err != nil {
 				log.Printf("[WARN] Falha ao conectar ao PostgreSQL (%s): %v. O servidor iniciará em modo degradado.", cfg.DatabaseURL, err)
 			} else {
 				a.pool = pool

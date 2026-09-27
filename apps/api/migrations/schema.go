@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -14,8 +15,19 @@ import (
 var EmbedMigrations embed.FS
 
 // RunMigrations executa todas as migrations pendentes no banco usando Goose.
+// Configura explicitamente o PostgreSQL Simple Protocol para garantir compatibilidade
+// total com connection poolers (ex: PgBouncer do Supabase/Neon em transaction mode)
+// e evitar colisões de prepared statements (SQLSTATE 08P01 / 42P05).
 func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
-	db := stdlib.OpenDBFromPool(pool)
+	if pool == nil {
+		return fmt.Errorf("pool de conexões PostgreSQL não inicializado")
+	}
+
+	connConfig := pool.Config().ConnConfig.Copy()
+	connConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	db := stdlib.OpenDB(*connConfig)
+	db.SetMaxOpenConns(1)
 	defer db.Close()
 
 	goose.SetBaseFS(EmbedMigrations)

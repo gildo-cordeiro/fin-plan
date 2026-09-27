@@ -40,12 +40,15 @@ Decidiu-se adotar formalmente a biblioteca **Goose** (`github.com/pressly/goose/
   ```
 - Nomenclatura dos arquivos: `{versao_5_digitos}_{nome_descritivo}.sql`.
 
-### 2.3. Execução Embutida no Binário Go (`embed.FS` + `pgx/stdlib`)
+### 2.3. Execução Embutida no Binário Go (`embed.FS` + `pgx/stdlib`) e Compatibilidade com PgBouncer
 - Todas as migrações SQL residem em `apps/api/migrations` e são compiladas diretamente no binário Go utilizando `//go:embed *.sql`.
 - Durante a inicialização da API Go (`apps/api/internal/app/app.go`), a função `migrations.RunMigrations(ctx, pool)`:
-  1. Cria um adaptador `*sql.DB` compatível através de `github.com/jackc/pgx/v5/stdlib`.
-  2. Define o sistema de arquivos virtual via `goose.SetBaseFS(EmbedMigrations)`.
-  3. Configura o dialeto `postgres` e executa `goose.UpContext(ctx, db, ".")`.
+  1. Clona a configuração de conexão do pool (`pool.Config().ConnConfig.Copy()`).
+  2. Define explicitamente `DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol`. Esta configuração é **mandatória** para compatibilidade com connection poolers em transaction mode (ex: PgBouncer do Supabase na porta 6543, Neon, etc.), evitando colisões de prepared statements (`FATAL: prepared statement name is already in use (SQLSTATE 08P01)`).
+  3. Cria um `*sql.DB` dedicado com `stdlib.OpenDB(*connConfig)` e restringe a concorrência a 1 conexão (`db.SetMaxOpenConns(1)`).
+  4. Define o sistema de arquivos virtual via `goose.SetBaseFS(EmbedMigrations)`.
+  5. Configura o dialeto `postgres` e executa `goose.UpContext(ctx, db, ".")`.
+- No pool principal da aplicação (`pgxpool`), configura-se `QueryExecModeExec` por padrão se não sobrescrito pelo cliente, preservando eficiência e evitando retenção de prepared statements no PgBouncer.
 - O Goose cria e mantém automaticamente a tabela de controle `goose_db_version` no banco, garantindo aplicação idempotente e ordenada das migrações pendentes antes que o servidor HTTP comece a receber tráfego.
 
 ### 2.4. Validação Automatizada em Testes Unitários
