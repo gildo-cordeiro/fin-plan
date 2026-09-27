@@ -14,6 +14,8 @@ type Budget struct {
 	Year                   int       `json:"year"`
 	InitialBalance         float64   `json:"initialBalance"`
 	EmergencyReserveTarget float64   `json:"emergencyReserveTarget"`
+	ReconciledMonth        *int      `json:"reconciledMonth,omitempty"`
+	ReconciledBalance      *float64  `json:"reconciledBalance,omitempty"`
 	CreatedAt              time.Time `json:"createdAt"`
 	UpdatedAt              time.Time `json:"updatedAt"`
 }
@@ -22,11 +24,15 @@ type CreateBudgetRequest struct {
 	Year                   int      `json:"year"`
 	InitialBalance         *float64 `json:"initialBalance,omitempty"`
 	EmergencyReserveTarget *float64 `json:"emergencyReserveTarget,omitempty"`
+	ReconciledMonth        *int     `json:"reconciledMonth,omitempty"`
+	ReconciledBalance      *float64 `json:"reconciledBalance,omitempty"`
 }
 
 type PatchBudgetRequest struct {
 	InitialBalance         *float64 `json:"initialBalance,omitempty"`
 	EmergencyReserveTarget *float64 `json:"emergencyReserveTarget,omitempty"`
+	ReconciledMonth        *int     `json:"reconciledMonth,omitempty"`
+	ReconciledBalance      *float64 `json:"reconciledBalance,omitempty"`
 }
 
 type BudgetSummaryMonth struct {
@@ -56,6 +62,8 @@ type BudgetSummary struct {
 	Year                   int                  `json:"year"`
 	InitialBalance         float64              `json:"initialBalance"`
 	EmergencyReserveTarget float64              `json:"emergencyReserveTarget"`
+	ReconciledMonth        *int                 `json:"reconciledMonth,omitempty"`
+	ReconciledBalance      *float64             `json:"reconciledBalance,omitempty"`
 	Months                 []BudgetSummaryMonth `json:"months"`
 	Totals                 BudgetSummaryTotals  `json:"totals"`
 }

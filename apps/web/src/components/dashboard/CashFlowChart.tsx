@@ -6,10 +6,14 @@ export const CashFlowChart = () => {
   const { monthlySummaries, state } = useBudget();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
+  const hasReconciliation =
+    state.budget?.reconciledMonth !== undefined &&
+    state.budget?.reconciledMonth !== null;
+
   const dataPoints = [
     {
-      label: 'Hoje',
-      sublabel: 'Saldo Inicial em Caixa',
+      label: 'Abertura',
+      sublabel: 'Saldo Inicial do Ano (Jan)',
       value: state.budget?.initialBalance ?? 0,
       income: 0,
       expenses: 0,
@@ -17,10 +21,12 @@ export const CashFlowChart = () => {
       oneTime: 0,
       needsReserveWithdrawal: false,
       withdrawalAmount: 0,
+      isReconciled: false,
     },
     ...monthlySummaries.map((m) => {
       const needsReserveWithdrawal = m.accumulatedBalance < 0;
       const withdrawalAmount = needsReserveWithdrawal ? Math.abs(m.accumulatedBalance) : 0;
+      const isReconciled = state.budget?.reconciledMonth === (m.month.monthIndex + 1);
       return {
         label: m.month.shortName,
         sublabel: m.month.name,
@@ -31,6 +37,7 @@ export const CashFlowChart = () => {
         oneTime: m.oneTime || 0,
         needsReserveWithdrawal,
         withdrawalAmount,
+        isReconciled,
       };
     }),
   ];
@@ -76,6 +83,12 @@ export const CashFlowChart = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-[#0e6b7a] inline-block"></span>
             Saldo acumulado
           </span>
+          {hasReconciliation && (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 ring-2 ring-cyan-300 dark:ring-cyan-900 inline-block"></span>
+              Âncora real
+            </span>
+          )}
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-900 inline-block"></span>
             Retirada da reserva (déficit)
@@ -176,6 +189,18 @@ export const CashFlowChart = () => {
                     />
                   )}
 
+                  {pt.isReconciled && (
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isHovered ? 11 : 8}
+                      fill="none"
+                      stroke="#06b6d4"
+                      strokeWidth={2}
+                      className="transition-all duration-200 ease-out"
+                    />
+                  )}
+
                   {hasDeficit && (
                     <circle
                       cx={cx}
@@ -193,7 +218,7 @@ export const CashFlowChart = () => {
                     cx={cx}
                     cy={cy}
                     r={isHovered ? 6.5 : 4}
-                    fill={dotColor}
+                    fill={pt.isReconciled ? '#0891b2' : dotColor}
                     stroke="#ffffff"
                     strokeWidth={1.5}
                     className="transition-all duration-200 ease-out"
@@ -204,8 +229,8 @@ export const CashFlowChart = () => {
                     y={H - 8}
                     textAnchor="middle"
                     fontSize="10"
-                    fill={isHovered ? '#0e6b7a' : '#627282'}
-                    fontWeight={isHovered ? '700' : '500'}
+                    fill={isHovered ? '#0e6b7a' : pt.isReconciled ? '#0891b2' : '#627282'}
+                    fontWeight={isHovered || pt.isReconciled ? '700' : '500'}
                     className="transition-colors duration-150 select-none"
                   >
                     {pt.label}
@@ -233,6 +258,11 @@ export const CashFlowChart = () => {
               >
                 Saldo acumulado: {formatBRL(currentHover.value)}
               </span>
+              {currentHover.isReconciled && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-800">
+                  ⚓ Âncora Real
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -241,7 +271,7 @@ export const CashFlowChart = () => {
                   🚚 Custos pontuais: <strong className="font-mono">{formatBRL(currentHover.oneTime)}</strong>
                 </span>
               )}
-              {currentHover.label !== 'Hoje' && (
+              {currentHover.label !== 'Abertura' && (
                 currentHover.needsReserveWithdrawal ? (
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 transition-all duration-200">
                     ⚠️ Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para não negativar (déficit do mês: {formatBRL(Math.abs(currentHover.monthBalance))}, amortizado pelo saldo em conta)

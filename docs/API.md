@@ -30,6 +30,8 @@ CREATE TABLE budget (
   year                      INT NOT NULL UNIQUE,
   initial_balance           NUMERIC(12,2) NOT NULL DEFAULT 0,
   emergency_reserve_target  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  reconciled_month          INT CHECK (reconciled_month BETWEEN 1 AND 12),
+  reconciled_balance        NUMERIC(12,2),
   created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -204,22 +206,26 @@ Retorna a **visão anual completa** do ano: budget, itens com suas 12 entries, c
 ```
 
 #### `PATCH /api/v1/budgets/{year}`
-Atualiza initialBalance ou emergencyReserveTarget. Suporta atualização parcial.
+Atualiza initialBalance, emergencyReserveTarget, reconciledMonth ou reconciledBalance. Suporta atualização parcial estrita.
 - Body:
 ```json
 {
-  "initialBalance": 15000.00
+  "initialBalance": 15000.00,
+  "reconciledMonth": 9,
+  "reconciledBalance": 18500.00
 }
 ```
 
 #### `GET /api/v1/budgets/{year}/summary`
-Retorna o resumo consolidado mensal com cálculo acumulado server-side e window functions.
+Retorna o resumo consolidado mensal com cálculo acumulado server-side e window functions (respeitando a âncora de conciliação caso definida).
 - Resposta: `200 OK`
 ```json
 {
   "year": 2026,
   "initialBalance": 10000.00,
   "emergencyReserveTarget": 5000.00,
+  "reconciledMonth": 9,
+  "reconciledBalance": 18500.00,
   "months": [
     {
       "month": 1,

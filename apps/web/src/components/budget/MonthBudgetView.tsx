@@ -401,7 +401,14 @@ export const MonthBudgetView = ({
         )}
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>Saldo acumulado em conta até {month.shortName}:</span>
+          <div className="flex items-center gap-1.5">
+            <span>Saldo acumulado em conta até {month.shortName}:</span>
+            {state.budget?.reconciledMonth === monthNum && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-800">
+                ⚓ Âncora Real
+              </span>
+            )}
+          </div>
           <strong className="font-mono text-sm text-slate-800 dark:text-slate-200 tabular-nums">
             {formatBRL(accumulatedBalance)}
           </strong>

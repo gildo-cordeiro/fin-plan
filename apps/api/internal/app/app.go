@@ -166,8 +166,8 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func ensureSchema(ctx context.Context, pool *pgxpool.Pool) error {
-	if _, err := pool.Exec(ctx, migrations.InitialSchemaSQL); err != nil {
-		return fmt.Errorf("falha ao executar migrations: %w", err)
+	if err := migrations.RunMigrations(ctx, pool); err != nil {
+		return fmt.Errorf("falha ao executar migrations via goose: %w", err)
 	}
 
 	// Garante que o orçamento do ano corrente (2026) exista como baseline se o banco for novo

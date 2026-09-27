@@ -89,10 +89,15 @@ export const budgetApiService = {
     });
   },
 
-  /** Atualiza initialBalance e/ou emergencyReserveTarget do budget. */
+  /** Atualiza initialBalance, emergencyReserveTarget, reconciledMonth e/ou reconciledBalance do budget. */
   async updateBudget(
     year: number,
-    patch: { initialBalance?: number; emergencyReserveTarget?: number }
+    patch: {
+      initialBalance?: number;
+      emergencyReserveTarget?: number;
+      reconciledMonth?: number | null;
+      reconciledBalance?: number | null;
+    }
   ): Promise<Budget> {
     return request<Budget>(`/api/v1/budgets/${year}`, {
       method: 'PATCH',

@@ -1,6 +1,4 @@
--- 000001_initial_schema.up.sql
--- FinPlan PostgreSQL Schema
-
+-- +goose Up
 -- Habilitar extensão para geração de UUID
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -92,3 +90,13 @@ CREATE INDEX IF NOT EXISTS idx_cost_budget_id ON cost(budget_id);
 CREATE INDEX IF NOT EXISTS idx_cost_item_cost_id ON cost_item(cost_id);
 CREATE INDEX IF NOT EXISTS idx_goal_contrib_goal_id ON goal_contribution(goal_id);
 CREATE INDEX IF NOT EXISTS idx_reserve_budget_id ON reserve_movement(budget_id);
+
+-- +goose Down
+DROP TABLE IF EXISTS reserve_movement CASCADE;
+DROP TABLE IF EXISTS goal_contribution CASCADE;
+DROP TABLE IF EXISTS goal CASCADE;
+DROP TABLE IF EXISTS cost_item CASCADE;
+DROP TABLE IF EXISTS cost CASCADE;
+DROP TABLE IF EXISTS entry CASCADE;
+DROP TABLE IF EXISTS item CASCADE;
+DROP TABLE IF EXISTS budget CASCADE;

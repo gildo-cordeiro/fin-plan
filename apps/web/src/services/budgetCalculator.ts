@@ -28,6 +28,19 @@ export function buildMonthlySummaries(
   const varsFactor = 1 + varsPercent / 100;
   const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
 
+  const recMonth = simulation.reconciledMonth ?? summary.reconciledMonth;
+  const recBalance = simulation.reconciledBalance ?? summary.reconciledBalance;
+  const hasAnchor =
+    recMonth !== null &&
+    recMonth !== undefined &&
+    recBalance !== null &&
+    recBalance !== undefined &&
+    recMonth >= 1 &&
+    recMonth <= 12;
+
+  const anchorMonth = hasAnchor ? recMonth! : 0;
+  const anchorBal = hasAnchor ? recBalance! : 0;
+
   let runningAccumulated = summary.initialBalance;
 
   return summary.months.map((m) => {
@@ -42,7 +55,18 @@ export function buildMonthlySummaries(
     const totalExpenses = cards + fixed + variable + oneTime;
     const monthBalance = income - totalExpenses;
 
-    runningAccumulated += monthBalance;
+    if (hasAnchor) {
+      if (m.month < anchorMonth) {
+        runningAccumulated += monthBalance;
+      } else if (m.month === anchorMonth) {
+        runningAccumulated = anchorBal;
+      } else {
+        runningAccumulated += monthBalance;
+      }
+    } else {
+      runningAccumulated += monthBalance;
+    }
+
     const availableAfterReserve = runningAccumulated - summary.emergencyReserveTarget;
 
     return {
