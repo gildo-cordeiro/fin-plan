@@ -3,17 +3,8 @@ package goal
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
-	"time"
-
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/httputil"
-)
-
-var (
-	ErrGoalNotFound         = errors.New("meta financeira não encontrada")
-	ErrNameRequired         = errors.New("o nome da meta é obrigatório")
-	ErrInvalidAmount        = errors.New("o valor da contribuição deve ser maior que zero")
-	ErrInvalidStatus        = errors.New("status inválido. Esperado: ativa, concluida ou pausada")
 )
 
 var validStatuses = map[string]bool{
@@ -30,88 +21,50 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, g *Goal) (*Goal, error) {
-	if g == nil {
-		return nil, errors.New("dados da meta não informados")
+func (s *Service) Create(ctx context.Context, req CreateGoalRequest) (*Goal, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("nome da meta é obrigatório")
+	}
+	if req.TargetAmount <= 0 {
+		return nil, errors.New("targetAmount deve ser maior que zero")
+	}
+	if req.Status != nil && *req.Status != "" {
+		st := strings.TrimSpace(strings.ToLower(*req.Status))
+		if !validStatuses[st] {
+			return nil, fmt.Errorf("status '%s' inválido; deve ser ativa, concluida ou pausada", st)
+		}
+		req.Status = &st
 	}
 
-	g.Name = strings.TrimSpace(g.Name)
-	if g.Name == "" {
-		return nil, ErrNameRequired
-	}
-
-	g.Status = strings.TrimSpace(g.Status)
-	if g.Status == "" {
-		g.Status = "ativa"
-	} else if !validStatuses[g.Status] {
-		return nil, ErrInvalidStatus
-	}
-
-	if g.ID == "" {
-		g.ID = httputil.GenerateUUID()
-	}
-
-	if g.Contributions == nil {
-		g.Contributions = []GoalContribution{}
-	}
-
-	if err := s.repo.Create(ctx, g); err != nil {
-		return nil, err
-	}
-
-	return g, nil
+	return s.repo.Create(ctx, req)
 }
 
 func (s *Service) GetByID(ctx context.Context, id string) (*Goal, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, errors.New("id é obrigatório")
 	}
-	g, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if g == nil {
-		return nil, ErrGoalNotFound
-	}
-	return g, nil
+	return s.repo.GetByID(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context, status string) ([]Goal, error) {
-	return s.repo.List(ctx, status)
+func (s *Service) GetAll(ctx context.Context) ([]Goal, error) {
+	return s.repo.GetAll(ctx)
 }
 
-func (s *Service) Update(ctx context.Context, id string, input *UpdateGoalInput) (*Goal, error) {
+func (s *Service) Patch(ctx context.Context, id string, req PatchGoalRequest) (*Goal, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, errors.New("id é obrigatório")
 	}
-	if input == nil {
-		return nil, errors.New("dados para atualização não informados")
+	if req.TargetAmount != nil && *req.TargetAmount <= 0 {
+		return nil, errors.New("targetAmount deve ser maior que zero")
 	}
-
-	if input.Name != nil {
-		trimmedName := strings.TrimSpace(*input.Name)
-		if trimmedName == "" {
-			return nil, ErrNameRequired
+	if req.Status != nil && *req.Status != "" {
+		st := strings.TrimSpace(strings.ToLower(*req.Status))
+		if !validStatuses[st] {
+			return nil, fmt.Errorf("status '%s' inválido; deve ser ativa, concluida ou pausada", st)
 		}
-		input.Name = &trimmedName
+		req.Status = &st
 	}
-
-	if input.Status != nil {
-		trimmedStatus := strings.TrimSpace(*input.Status)
-		if !validStatuses[trimmedStatus] {
-			return nil, ErrInvalidStatus
-		}
-		input.Status = &trimmedStatus
-	}
-
-	updated, err := s.repo.Update(ctx, id, input)
-	if err != nil {
-		return nil, err
-	}
-	if updated == nil {
-		return nil, ErrGoalNotFound
-	}
-	return updated, nil
+	return s.repo.Patch(ctx, id, req)
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {
@@ -121,53 +74,23 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) AddContribution(ctx context.Context, goalID string, input *AddContributionInput) (*Goal, error) {
+func (s *Service) AddContribution(ctx context.Context, goalID string, req CreateContributionRequest) (*Goal, error) {
 	if strings.TrimSpace(goalID) == "" {
 		return nil, errors.New("goalId é obrigatório")
 	}
-	if input == nil {
-		return nil, errors.New("dados da contribuição não informados")
+	if strings.TrimSpace(req.Date) == "" {
+		return nil, errors.New("data da contribuição é obrigatória")
 	}
-	if input.Amount <= 0 {
-		return nil, ErrInvalidAmount
-	}
-
-	date := strings.TrimSpace(input.Date)
-	if date == "" {
-		date = time.Now().UTC().Format("2006-01-02")
+	if req.Amount <= 0 {
+		return nil, errors.New("valor da contribuição deve ser maior que zero")
 	}
 
-	contrib := &GoalContribution{
-		ID:     httputil.GenerateUUID(),
-		Date:   date,
-		Amount: input.Amount,
-		Note:   input.Note,
-	}
-
-	updated, err := s.repo.AddContribution(ctx, goalID, contrib)
-	if err != nil {
-		return nil, err
-	}
-	if updated == nil {
-		return nil, ErrGoalNotFound
-	}
-	return updated, nil
+	return s.repo.AddContribution(ctx, goalID, req)
 }
 
 func (s *Service) DeleteContribution(ctx context.Context, goalID string, contributionID string) (*Goal, error) {
-	if strings.TrimSpace(goalID) == "" {
-		return nil, errors.New("goalId é obrigatório")
+	if strings.TrimSpace(goalID) == "" || strings.TrimSpace(contributionID) == "" {
+		return nil, errors.New("goalId e contributionId são obrigatórios")
 	}
-	if strings.TrimSpace(contributionID) == "" {
-		return nil, errors.New("contributionId é obrigatório")
-	}
-
-	updated, err := s.repo.DeleteContribution(ctx, goalID, contributionID)
-	if err != nil {
-		return nil, err
-	}
-	if updated == nil {
-		return nil, ErrGoalNotFound
-	}
-	return updated, nil
+	return s.repo.DeleteContribution(ctx, goalID, contributionID)
 }

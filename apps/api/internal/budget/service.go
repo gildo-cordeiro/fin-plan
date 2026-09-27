@@ -4,185 +4,127 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
+	"strconv"
 
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
 )
-
-var (
-	ErrYearNotFound = errors.New("ano orçamentário não encontrado")
-	ErrInvalidYear  = errors.New("o ano informado é inválido")
-)
-
-var MonthNames = []string{
-	"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-	"Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-}
-
-var MonthShortNames = []string{
-	"Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-	"Jul", "Ago", "Set", "Out", "Nov", "Dez",
-}
-
-func DefaultMonthsForYear(year int) []Month {
-	months := make([]Month, 12)
-	shortYear := fmt.Sprintf("%02d", year%100)
-	for i := 0; i < 12; i++ {
-		monthPad := fmt.Sprintf("%02d", i+1)
-		months[i] = Month{
-			ID:         fmt.Sprintf("%d-%s", year, monthPad),
-			Name:       fmt.Sprintf("%s %d", MonthNames[i], year),
-			ShortName:  fmt.Sprintf("%s/%s", MonthShortNames[i], shortYear),
-			MonthIndex: i,
-		}
-	}
-	return months
-}
 
 type Service struct {
-	repo Repository
+	repo        Repository
+	itemRepo    item.Repository
+	costRepo    cost.Repository
+	goalRepo    goal.Repository
+	reserveRepo reserve.Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(
+	repo Repository,
+	itemRepo item.Repository,
+	costRepo cost.Repository,
+	goalRepo goal.Repository,
+	reserveRepo reserve.Repository,
+) *Service {
+	return &Service{
+		repo:        repo,
+		itemRepo:    itemRepo,
+		costRepo:    costRepo,
+		goalRepo:    goalRepo,
+		reserveRepo: reserveRepo,
+	}
 }
 
-func (s *Service) CreateYear(ctx context.Context, input *CreateBudgetYearInput) (*BudgetYear, error) {
-	if input == nil || input.Year < 1900 || input.Year > 2200 {
-		return nil, ErrInvalidYear
-	}
-
-	yearID := fmt.Sprintf("%d", input.Year)
-	simulation := SimulationSettings{}
-	if input.Simulation != nil {
-		simulation = *input.Simulation
-	}
-
-	now := time.Now().UTC()
-	bYear := &BudgetYear{
-		ID:         yearID,
-		Year:       input.Year,
-		Simulation: simulation,
-		Months:     DefaultMonthsForYear(input.Year),
-		CreatedAt:  now,
-		UpdatedAt:  now,
-	}
-
-	if err := s.repo.CreateYear(ctx, bYear); err != nil {
-		return nil, err
-	}
-
-	return bYear, nil
+func (s *Service) GetAll(ctx context.Context) ([]Budget, error) {
+	return s.repo.GetAll(ctx)
 }
 
-func (s *Service) GetYear(ctx context.Context, year int) (*BudgetYear, error) {
-	if year < 1900 || year > 2200 {
-		return nil, ErrInvalidYear
+func (s *Service) GetByYear(ctx context.Context, year int) (*Budget, error) {
+	if year < 2000 || year > 2100 {
+		return nil, errors.New("ano do orçamento inválido")
 	}
-
-	y, err := s.repo.GetYearByYear(ctx, year)
-	if err != nil {
-		return nil, err
-	}
-	if y == nil {
-		return nil, ErrYearNotFound
-	}
-	return y, nil
+	return s.repo.GetByYear(ctx, year)
 }
 
-func (s *Service) ListYears(ctx context.Context) ([]BudgetYear, error) {
-	return s.repo.ListYears(ctx)
+func (s *Service) Create(ctx context.Context, req CreateBudgetRequest) (*Budget, error) {
+	if req.Year < 2000 || req.Year > 2100 {
+		return nil, errors.New("ano deve ser entre 2000 e 2100")
+	}
+	return s.repo.Create(ctx, req)
 }
 
-func (s *Service) UpdateSimulation(ctx context.Context, year int, input *UpdateSimulationInput) (*BudgetYear, error) {
-	if year < 1900 || year > 2200 {
-		return nil, ErrInvalidYear
+func (s *Service) Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error) {
+	if year < 2000 || year > 2100 {
+		return nil, errors.New("ano do orçamento inválido")
 	}
-	if input == nil {
-		return nil, errors.New("dados de simulação não informados")
-	}
-
-	updated, err := s.repo.UpdateSimulation(ctx, year, input)
-	if err != nil {
-		return nil, err
-	}
-	if updated == nil {
-		return nil, ErrYearNotFound
-	}
-	return updated, nil
+	return s.repo.Patch(ctx, year, req)
 }
 
-func (s *Service) AddMonth(ctx context.Context, year int, input *CreateMonthInput) (*Month, error) {
-	if year < 1900 || year > 2200 {
-		return nil, ErrInvalidYear
+func (s *Service) GetSummary(ctx context.Context, year int) (*BudgetSummary, error) {
+	if year < 2000 || year > 2100 {
+		return nil, errors.New("ano do orçamento inválido")
 	}
-	if input == nil {
-		return nil, errors.New("dados do mês não informados")
-	}
-
-	monthID := strings.TrimSpace(input.ID)
-	monthIndex := input.MonthIndex
-	if monthIndex < 0 {
-		monthIndex = 0
-	} else if monthIndex > 11 {
-		monthIndex = 11
-	}
-
-	if monthID == "" {
-		monthPad := fmt.Sprintf("%02d", monthIndex+1)
-		monthID = fmt.Sprintf("%d-%s", year, monthPad)
-	}
-
-	name := strings.TrimSpace(input.Name)
-	if name == "" {
-		name = fmt.Sprintf("%s %d", MonthNames[monthIndex], year)
-	}
-
-	shortName := strings.TrimSpace(input.ShortName)
-	if shortName == "" {
-		shortYear := fmt.Sprintf("%02d", year%100)
-		shortName = fmt.Sprintf("%s/%s", MonthShortNames[monthIndex], shortYear)
-	}
-
-	m := &Month{
-		ID:         monthID,
-		Name:       name,
-		ShortName:  shortName,
-		MonthIndex: monthIndex,
-	}
-
-	if err := s.repo.AddMonthToYear(ctx, year, m); err != nil {
-		return nil, err
-	}
-
-	return m, nil
+	return s.repo.GetSummary(ctx, year)
 }
 
 func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error) {
-	if year < 1900 || year > 2200 {
-		return nil, ErrInvalidYear
+	if year < 2000 || year > 2100 {
+		return nil, errors.New("ano do orçamento inválido")
 	}
 
-	vm, err := s.repo.GetYearViewModel(ctx, year)
+	b, err := s.repo.GetByYear(ctx, year)
 	if err != nil {
 		return nil, err
 	}
-	if vm == nil {
-		// Se o ano ainda não existe, cria-o automaticamente com os 12 meses
-		createdYear, err := s.CreateYear(ctx, &CreateBudgetYearInput{Year: year})
+
+	budgetID := strconv.Itoa(year)
+
+	var items []item.Item
+	if s.itemRepo != nil {
+		items, err = s.itemRepo.GetByBudgetID(ctx, budgetID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("erro ao carregar itens: %w", err)
 		}
-		return &YearViewModel{
-			Year:         *createdYear,
-			Months:       createdYear.Months,
-			Items:        []item.BudgetItem{},
-			OneTimeCosts: []cost.OneTimeCost{},
-			Goals:        []goal.Goal{},
-		}, nil
+	} else {
+		items = make([]item.Item, 0)
 	}
-	return vm, nil
+
+	var costs []cost.Cost
+	if s.costRepo != nil {
+		costs, err = s.costRepo.GetByBudgetID(ctx, budgetID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar custos: %w", err)
+		}
+	} else {
+		costs = make([]cost.Cost, 0)
+	}
+
+	var goals []goal.Goal
+	if s.goalRepo != nil {
+		goals, err = s.goalRepo.GetAll(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar metas: %w", err)
+		}
+	} else {
+		goals = make([]goal.Goal, 0)
+	}
+
+	var movements []reserve.ReserveMovement
+	if s.reserveRepo != nil {
+		movements, err = s.reserveRepo.GetByBudgetID(ctx, budgetID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar movimentos de reserva: %w", err)
+		}
+	} else {
+		movements = make([]reserve.ReserveMovement, 0)
+	}
+
+	return &YearViewModel{
+		Budget:           *b,
+		Items:            items,
+		Costs:            costs,
+		Goals:            goals,
+		ReserveMovements: movements,
+	}, nil
 }

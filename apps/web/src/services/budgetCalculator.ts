@@ -1,86 +1,75 @@
-import type { BudgetState, MonthSummary, OverallMetrics } from '../types/budget';
+import type {
+  BudgetSummary,
+  MonthSummary,
+  OverallMetrics,
+  SimulationSettings,
+  Item,
+  Cost,
+} from '../types/budget';
+import { createMonthItem } from '../utils/formatters';
 
-export function calculateMonthlySummaries(state: BudgetState): MonthSummary[] {
-  const { months, simulation, incomes, lists, oneTimeCosts } = state;
-  const {
-    varsPercent,
-    rendaPercent,
-    oneTimeMarginPercent,
-    initialBalance,
-    emergencyReserve,
-  } = simulation;
+// ---------------------------------------------------------------------------
+// Conversão: BudgetSummary (backend) → MonthSummary[] + OverallMetrics
+// Os componentes de UI usam MonthSummary (com MonthItem derivado); o backend
+// retorna BudgetSummaryMonth (com month: INT 1–12). Esta camada faz a ponte.
+// ---------------------------------------------------------------------------
 
+/**
+ * Converte o BudgetSummary vindo do backend em MonthSummary[] usáveis
+ * pelos componentes de UI, aplicando os modificadores de simulação
+ * client-side (varsPercent, rendaPercent, oneTimeMarginPercent).
+ */
+export function buildMonthlySummaries(
+  summary: BudgetSummary,
+  simulation: SimulationSettings,
+): MonthSummary[] {
+  const { varsPercent, rendaPercent, oneTimeMarginPercent } = simulation;
   const incomeFactor = 1 + rendaPercent / 100;
   const varsFactor = 1 + varsPercent / 100;
   const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
 
-  const hasItems = Array.isArray(state.items) && state.items.length > 0;
-  const rawIncomes = hasItems ? state.items.filter((i) => i.type === 'renda') : (incomes || []);
-  const rawCards = hasItems ? state.items.filter((i) => i.type === 'cartao') : (lists?.cartoes || []);
-  const rawFixed = hasItems ? state.items.filter((i) => i.type === 'fixa') : (lists?.fixas || []);
-  const rawVars = hasItems ? state.items.filter((i) => i.type === 'var') : (lists?.vars || []);
+  let runningAccumulated = summary.initialBalance;
 
-  const activeIncomes = rawIncomes.filter((i) => !i.off);
-  const activeCards = rawCards.filter((i) => !i.off);
-  const activeFixed = rawFixed.filter((i) => !i.off);
-  const activeVars = rawVars.filter((i) => !i.off);
-  const activeOneTime = (oneTimeCosts || []).filter((i) => !i.off);
+  return summary.months.map((m) => {
+    const month = createMonthItem(summary.year, m.month - 1); // month INT 1-based → monthIndex 0-based
 
-  let runningAccumulated = initialBalance;
-  const summaries: MonthSummary[] = [];
+    const income = m.income * incomeFactor;
+    const cards = m.cards;
+    const fixed = m.fixed;
+    const variable = m.variable * varsFactor;
+    const oneTime = m.oneTimeCosts * oneTimeFactor;
 
-  months.forEach((m) => {
-    const mIncome = activeIncomes.reduce(
-      (acc, item) => acc + (item.values[m.id] ?? 0) * incomeFactor,
-      0
-    );
+    const totalExpenses = cards + fixed + variable + oneTime;
+    const monthBalance = income - totalExpenses;
 
-    const mCards = activeCards.reduce((acc, item) => acc + (item.values[m.id] ?? 0), 0);
-    const mFixed = activeFixed.reduce((acc, item) => acc + (item.values[m.id] ?? 0), 0);
-    const mVars = activeVars.reduce(
-      (acc, item) => acc + (item.values[m.id] ?? 0) * varsFactor,
-      0
-    );
+    runningAccumulated += monthBalance;
+    const availableAfterReserve = runningAccumulated - summary.emergencyReserveTarget;
 
-    const mOneTime = activeOneTime
-      .filter((item) => item.targetMonthId === m.id)
-      .reduce((acc, item) => acc + (item.value || 0) * oneTimeFactor, 0);
-
-    const mRegularExpenses = mCards + mFixed + mVars;
-    const mTotalExpenses = mRegularExpenses + mOneTime;
-    const mBalance = mIncome - mTotalExpenses;
-
-    runningAccumulated += mBalance;
-    const mAvailAfterReserve = runningAccumulated - emergencyReserve;
-
-    summaries.push({
-      month: m,
-      income: mIncome,
-      cards: mCards,
-      fixed: mFixed,
-      variable: mVars,
-      oneTime: mOneTime,
-      totalExpenses: mTotalExpenses,
-      monthBalance: mBalance,
+    return {
+      month,
+      income,
+      cards,
+      fixed,
+      variable,
+      oneTime,
+      totalExpenses,
+      monthBalance,
       accumulatedBalance: runningAccumulated,
-      availableAfterReserve: mAvailAfterReserve,
-    });
+      availableAfterReserve,
+    };
   });
-
-  return summaries;
 }
 
-export function calculateOverallMetrics(
-  state: BudgetState,
-  monthlySummaries: MonthSummary[]
+/**
+ * Calcula métricas consolidadas a partir dos MonthSummary já ajustados
+ * pela simulação.
+ */
+export function buildOverallMetrics(
+  monthlySummaries: MonthSummary[],
+  summary: BudgetSummary,
+  simulation: SimulationSettings,
 ): OverallMetrics {
-  const { simulation, oneTimeCosts, months } = state;
-  const { oneTimeMarginPercent, initialBalance, emergencyReserve } = simulation;
-  const oneTimeFactor = 1 + oneTimeMarginPercent / 100;
-
-  const activeOneTime = (oneTimeCosts || []).filter((i) => !i.off);
-  const rawOneTimeTotal = activeOneTime.reduce((acc, item) => acc + (item.value || 0), 0);
-  const totalOneTimeCosts = rawOneTimeTotal * oneTimeFactor;
+  const oneTimeFactor = 1 + simulation.oneTimeMarginPercent / 100;
 
   let minBalance = Number.POSITIVE_INFINITY;
   let minMonth = '';
@@ -98,22 +87,22 @@ export function calculateOverallMetrics(
   });
 
   if (minBalance === Number.POSITIVE_INFINITY) {
-    minBalance = initialBalance;
-    minMonth = months[0]?.shortName || '-';
+    minBalance = summary.initialBalance;
+    minMonth = '-';
   }
 
   const finalAccumulated =
     monthlySummaries.length > 0
       ? monthlySummaries[monthlySummaries.length - 1].accumulatedBalance
-      : initialBalance;
+      : summary.initialBalance;
 
-  const totalAvailableAfterReserve = Math.max(0, finalAccumulated - emergencyReserve);
+  const totalAvailableAfterReserve = Math.max(
+    0,
+    finalAccumulated - summary.emergencyReserveTarget,
+  );
 
-  const unassignedOneTimeCosts = activeOneTime
-    .filter((item) => !item.targetMonthId)
-    .reduce((acc, item) => acc + (item.value || 0) * oneTimeFactor, 0);
-
-  const netFinalAfterOneTime = finalAccumulated - unassignedOneTimeCosts;
+  const totalOneTimeCosts = summary.totals.oneTimeCosts * oneTimeFactor;
+  const netFinalAfterOneTime = finalAccumulated; // one-time costs já estão nos meses ou no total
 
   const averageSavingsRate =
     sumTotalIncome > 0
@@ -133,11 +122,85 @@ export function calculateOverallMetrics(
   };
 }
 
-export function calculateBudget(state: BudgetState): {
+/**
+ * Ponto de entrada: recebe BudgetSummary do backend + SimulationSettings
+ * do localStorage e retorna os dados prontos para UI.
+ */
+export function calculateBudget(
+  summary: BudgetSummary | null,
+  simulation: SimulationSettings,
+): {
   monthlySummaries: MonthSummary[];
   metrics: OverallMetrics;
 } {
-  const monthlySummaries = calculateMonthlySummaries(state);
-  const metrics = calculateOverallMetrics(state, monthlySummaries);
+  if (!summary) {
+    return {
+      monthlySummaries: [],
+      metrics: {
+        finalAccumulated: 0,
+        totalAvailableAfterReserve: 0,
+        totalOneTimeCosts: 0,
+        netFinalAfterOneTime: 0,
+        minAccumulatedBalance: 0,
+        minAccumulatedMonth: '-',
+        averageSavingsRate: 0,
+        totalIncome: 0,
+        totalRegularExpenses: 0,
+      },
+    };
+  }
+
+  const monthlySummaries = buildMonthlySummaries(summary, simulation);
+  const metrics = buildOverallMetrics(monthlySummaries, summary, simulation);
   return { monthlySummaries, metrics };
+}
+
+// ---------------------------------------------------------------------------
+// Funções utilitárias para extrair valores base dos dados carregados
+// (usadas pelo SimulationPanel para mostrar "Despesas Variáveis (Média/mês)")
+// ---------------------------------------------------------------------------
+
+/**
+ * Calcula a média mensal de despesas variáveis a partir das entries
+ * de items do tipo 'variavel'.
+ */
+export function getAverageMonthlyVars(items: Item[]): number {
+  const varItems = items.filter((i) => i.type === 'variavel');
+  let totalPlanned = 0;
+  let entryCount = 0;
+
+  varItems.forEach((item) => {
+    (item.entries || []).forEach((entry) => {
+      totalPlanned += entry.plannedAmount;
+      entryCount++;
+    });
+  });
+
+  return entryCount > 0 ? totalPlanned / Math.max(1, varItems.length > 0 ? 12 : 1) : 0;
+}
+
+/**
+ * Calcula o total de custos pontuais a partir dos cost_items.
+ */
+export function getTotalOneTimeCosts(costs: Cost[]): number {
+  return costs.reduce((acc, cost) => {
+    const itemsTotal = (cost.items || []).reduce(
+      (sum, ci) => sum + ci.plannedAmount,
+      0,
+    );
+    return acc + itemsTotal;
+  }, 0);
+}
+
+/**
+ * Calcula o total de custos pontuais com margem a partir dos costs.
+ */
+export function getTotalOneTimeCostsWithMargin(costs: Cost[]): number {
+  return costs.reduce((acc, cost) => {
+    const itemsTotal = (cost.items || []).reduce(
+      (sum, ci) => sum + ci.plannedAmount,
+      0,
+    );
+    return acc + itemsTotal * (1 + cost.marginPercent / 100);
+  }, 0);
 }

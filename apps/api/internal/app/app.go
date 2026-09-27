@@ -9,40 +9,45 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budget"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/config"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/costitem"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/entry"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/middleware"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
 )
 
 type App struct {
-	cfg         *config.Config
-	mongoClient *mongo.Client
-	server      *http.Server
+	cfg    *config.Config
+	pool   *pgxpool.Pool
+	server *http.Server
 }
 
 func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	a := &App{cfg: cfg}
 
-	if cfg.MongoDBURI != "" {
-		client, err := connectMongo(ctx, cfg.MongoDBURI)
-		if err != nil {
-			return nil, fmt.Errorf("falha ao conectar ao MongoDB: %w", err)
-		}
-		a.mongoClient = client
-		log.Println("[INFO] Conectado ao MongoDB Atlas com sucesso.")
+	if cfg.DatabaseURL != "" {
+		poolCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 
-		if err := ensureIndexes(ctx, client.Database(cfg.MongoDBName)); err != nil {
-			log.Printf("[WARN] Falha ao verificar/criar índices do MongoDB: %v", err)
+		pool, err := pgxpool.New(poolCtx, cfg.DatabaseURL)
+		if err != nil {
+			log.Printf("[WARN] Falha ao configurar pool PostgreSQL: %v", err)
+		} else {
+			if err := pool.Ping(poolCtx); err != nil {
+				log.Printf("[WARN] Falha ao conectar ao PostgreSQL (%s): %v. O servidor iniciará em modo degradado.", cfg.DatabaseURL, err)
+			} else {
+				a.pool = pool
+				log.Println("[INFO] Conectado ao PostgreSQL com sucesso.")
+			}
 		}
 	} else {
-		log.Println("[WARN] MONGODB_URI não configurada. O servidor vai iniciar, mas retornará 503 nas rotas que exigem banco de dados.")
+		log.Println("[WARN] DATABASE_URL não configurada. O servidor vai iniciar, mas retornará 503 nas rotas que exigem banco de dados.")
 	}
 
 	router := a.routes()
@@ -64,46 +69,57 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 func (a *App) routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	if a.mongoClient != nil {
-		// Atomic budget-items
-		itemRepo := item.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+	if a.pool != nil {
+		// Repositories
+		budgetRepo := budget.NewPostgresRepository(a.pool)
+		itemRepo := item.NewPostgresRepository(a.pool)
+		entryRepo := entry.NewPostgresRepository(a.pool)
+		costRepo := cost.NewPostgresRepository(a.pool)
+		costItemRepo := costitem.NewPostgresRepository(a.pool)
+		goalRepo := goal.NewPostgresRepository(a.pool)
+		reserveRepo := reserve.NewPostgresRepository(a.pool)
+
+		// Services
+		budgetSvc := budget.NewService(budgetRepo, itemRepo, costRepo, goalRepo, reserveRepo)
 		itemSvc := item.NewService(itemRepo)
-		itemH := item.NewHandler(itemSvc)
-		itemH.RegisterRoutes(mux)
-
-		// Atomic one-time-costs
-		costRepo := cost.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		entrySvc := entry.NewService(entryRepo)
 		costSvc := cost.NewService(costRepo)
-		costH := cost.NewHandler(costSvc)
-		costH.RegisterRoutes(mux)
-
-		// Atomic goals & contributions
-		goalRepo := goal.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
+		costItemSvc := costitem.NewService(costItemRepo)
 		goalSvc := goal.NewService(goalRepo)
-		goalH := goal.NewHandler(goalSvc)
-		goalH.RegisterRoutes(mux)
+		reserveSvc := reserve.NewService(reserveRepo)
 
-		// Budget years, months and aggregated view model
-		yearRepo := budget.NewMongoRepository(a.mongoClient, a.cfg.MongoDBName)
-		yearSvc := budget.NewService(yearRepo)
-		yearH := budget.NewHandler(yearSvc)
-		yearH.RegisterRoutes(mux)
+		// Handlers
+		budgetH := budget.NewHandler(budgetSvc)
+		itemH := item.NewHandler(itemSvc)
+		entryH := entry.NewHandler(entrySvc)
+		costH := cost.NewHandler(costSvc)
+		costItemH := costitem.NewHandler(costItemSvc)
+		goalH := goal.NewHandler(goalSvc)
+		reserveH := reserve.NewHandler(reserveSvc)
+
+		budgetH.RegisterRoutes(mux)
+		itemH.RegisterRoutes(mux)
+		entryH.RegisterRoutes(mux)
+		costH.RegisterRoutes(mux)
+		costItemH.RegisterRoutes(mux)
+		goalH.RegisterRoutes(mux)
+		reserveH.RegisterRoutes(mux)
 	} else {
 		unavailableHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			json.NewEncoder(w).Encode(map[string]string{
-				"error": "MONGODB_URI não configurada nas variáveis de ambiente. O servidor está ativo mas sem conexão com o banco de dados.",
+				"error": "DATABASE_URL não configurada ou banco indisponível. O servidor está ativo mas sem conexão com o banco de dados.",
 			})
 		}
-		mux.HandleFunc("GET /api/v1/budget-years", unavailableHandler)
-		mux.HandleFunc("GET /api/v1/budget-items", unavailableHandler)
+		mux.HandleFunc("/api/v1/budgets", unavailableHandler)
+		mux.HandleFunc("/api/v1/items", unavailableHandler)
 	}
 
 	return mux
@@ -133,64 +149,11 @@ func (a *App) Run(ctx context.Context) error {
 		log.Printf("[ERROR] Erro no shutdown do servidor HTTP: %v", err)
 	}
 
-	if a.mongoClient != nil {
-		if err := a.mongoClient.Disconnect(shutdownCtx); err != nil {
-			log.Printf("[ERROR] Erro ao desconectar do MongoDB: %v", err)
-		} else {
-			log.Println("[INFO] Conexão MongoDB encerrada.")
-		}
+	if a.pool != nil {
+		a.pool.Close()
+		log.Println("[INFO] Conexão PostgreSQL encerrada.")
 	}
 
 	log.Println("[INFO] Servidor encerrado com sucesso.")
 	return nil
-}
-
-func connectMongo(ctx context.Context, uri string) (*mongo.Client, error) {
-	connCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	clientOpts := options.Client().
-		ApplyURI(uri).
-		SetServerSelectionTimeout(8 * time.Second)
-
-	client, err := mongo.Connect(connCtx, clientOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := client.Ping(connCtx, nil); err != nil {
-		return nil, err
-	}
-
-	return client, nil
-}
-
-func ensureIndexes(ctx context.Context, db *mongo.Database) error {
-	idxCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// Index: budgets.year (unique)
-	_, err := db.Collection(budget.CollectionBudgets).Indexes().CreateOne(idxCtx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "year", Value: 1}},
-		Options: options.Index().SetUnique(true).SetName("idx_budgets_year_unique"),
-	})
-	if err != nil {
-		return err
-	}
-
-	// Index: costs.targetMonthId
-	_, err = db.Collection(cost.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "targetMonthId", Value: 1}},
-		Options: options.Index().SetName("idx_costs_targetMonthId"),
-	})
-	if err != nil {
-		return err
-	}
-
-	// Index: items.type
-	_, err = db.Collection(item.CollectionName).Indexes().CreateOne(idxCtx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "type", Value: 1}},
-		Options: options.Index().SetName("idx_items_type"),
-	})
-	return err
 }

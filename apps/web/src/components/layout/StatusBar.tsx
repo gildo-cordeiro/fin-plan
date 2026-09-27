@@ -36,7 +36,7 @@ export const StatusBar = () => {
           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
           <span>Saldo em conta hoje:</span>
           <strong className="font-mono text-slate-800 dark:text-slate-200 group-hover:underline">
-            {formatBRL(state.simulation.initialBalance)}
+            {formatBRL(state.budget?.initialBalance ?? 0)}
           </strong>
           <span className="text-[11px] opacity-60 group-hover:opacity-100 transition-opacity ml-0.5">
             ✏️

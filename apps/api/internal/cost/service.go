@@ -4,13 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/httputil"
-)
-
-var (
-	ErrCostNotFound = errors.New("custo pontual não encontrado")
-	ErrNameRequired = errors.New("o nome do custo pontual é obrigatório")
 )
 
 type Service struct {
@@ -21,69 +14,41 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, item *OneTimeCost) (*OneTimeCost, error) {
-	if item == nil {
-		return nil, errors.New("dados do custo pontual não informados")
-	}
-
-	item.Name = strings.TrimSpace(item.Name)
-	if item.Name == "" {
-		return nil, ErrNameRequired
-	}
-
-	if item.ID == "" {
-		item.ID = httputil.GenerateUUID()
-	}
-
-	if err := s.repo.Create(ctx, item); err != nil {
-		return nil, err
-	}
-
-	return item, nil
-}
-
-func (s *Service) GetByID(ctx context.Context, id string) (*OneTimeCost, error) {
+func (s *Service) GetByID(ctx context.Context, id string) (*Cost, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, errors.New("id é obrigatório")
 	}
-	item, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if item == nil {
-		return nil, ErrCostNotFound
-	}
-	return item, nil
+	return s.repo.GetByID(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context, targetMonthId string) ([]OneTimeCost, error) {
-	return s.repo.List(ctx, targetMonthId)
+func (s *Service) GetByBudgetID(ctx context.Context, budgetID string) ([]Cost, error) {
+	if strings.TrimSpace(budgetID) == "" {
+		return nil, errors.New("budgetId é obrigatório")
+	}
+	return s.repo.GetByBudgetID(ctx, budgetID)
 }
 
-func (s *Service) Update(ctx context.Context, id string, input *UpdateOneTimeCostInput) (*OneTimeCost, error) {
+func (s *Service) Create(ctx context.Context, req CreateCostRequest) (*Cost, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("nome do custo é obrigatório")
+	}
+	if strings.TrimSpace(req.BudgetID) == "" {
+		return nil, errors.New("budgetId é obrigatório")
+	}
+	if req.DefaultMonth != nil && (*req.DefaultMonth < 1 || *req.DefaultMonth > 12) {
+		return nil, errors.New("defaultMonth deve estar entre 1 e 12")
+	}
+	return s.repo.Create(ctx, req)
+}
+
+func (s *Service) Patch(ctx context.Context, id string, req PatchCostRequest) (*Cost, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, errors.New("id é obrigatório")
 	}
-	if input == nil {
-		return nil, errors.New("dados para atualização não informados")
+	if req.DefaultMonth != nil && (*req.DefaultMonth < 1 || *req.DefaultMonth > 12) {
+		return nil, errors.New("defaultMonth deve estar entre 1 e 12")
 	}
-
-	if input.Name != nil {
-		trimmedName := strings.TrimSpace(*input.Name)
-		if trimmedName == "" {
-			return nil, ErrNameRequired
-		}
-		input.Name = &trimmedName
-	}
-
-	updated, err := s.repo.Update(ctx, id, input)
-	if err != nil {
-		return nil, err
-	}
-	if updated == nil {
-		return nil, ErrCostNotFound
-	}
-	return updated, nil
+	return s.repo.Patch(ctx, id, req)
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {

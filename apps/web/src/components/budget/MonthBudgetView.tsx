@@ -6,7 +6,7 @@ import { formatBRL } from '../../utils/formatters';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
 import { BudgetManagementModal } from '../modals/BudgetManagementModal';
-import type { BudgetItem, ExpenseCategoryKey } from '../../types/budget';
+import type { Item, ExpenseCategoryKey } from '../../types/budget';
 
 interface MonthBudgetViewProps {
   monthId: string;
@@ -28,6 +28,8 @@ export const MonthBudgetView = ({
     updateItemName,
     toggleItemActive,
     updateItemValue,
+    confirmEntry,
+    unconfirmEntry,
   } = useBudget();
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -39,31 +41,46 @@ export const MonthBudgetView = ({
   const month = state.months.find((m) => m.id === monthId);
   if (!summary || !month) return null;
 
+  const monthNum = parseInt(monthId.split('-')[1], 10) || (month.monthIndex + 1);
+
   const incomeItems = state.items.filter((i) => i.type === 'renda');
   const cardItems = state.items.filter((i) => i.type === 'cartao');
   const fixedItems = state.items.filter((i) => i.type === 'fixa');
-  const varItems = state.items.filter((i) => i.type === 'var');
+  const varItems = state.items.filter((i) => i.type === 'variavel' || (i.type as string) === 'var');
 
   const rawIncome = incomeItems
     .filter((i) => !i.off)
-    .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
+    .reduce((acc, i) => acc + (i.values?.[monthId] ?? 0), 0);
   const rawCards = cardItems
     .filter((i) => !i.off)
-    .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
+    .reduce((acc, i) => acc + (i.values?.[monthId] ?? 0), 0);
   const rawFixed = fixedItems
     .filter((i) => !i.off)
-    .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
+    .reduce((acc, i) => acc + (i.values?.[monthId] ?? 0), 0);
   const rawVars = varItems
     .filter((i) => !i.off)
-    .reduce((acc, i) => acc + (i.values[monthId] ?? 0), 0);
+    .reduce((acc, i) => acc + (i.values?.[monthId] ?? 0), 0);
 
   const { income, oneTime, totalExpenses, monthBalance, accumulatedBalance } = summary;
   const savingsRate = income > 0 ? (monthBalance / income) * 100 : 0;
   const isPositive = monthBalance >= 0;
 
-  const monthOneTimeItems = (state.oneTimeCosts || []).filter(
-    (item) => !item.off && item.targetMonthId === monthId
+  // Itens de custos pontuais associados a este mês
+  const projectCostItems = state.costs.flatMap((c) =>
+    (c.items || [])
+      .filter((ci) => (ci.month !== null && ci.month !== undefined ? ci.month === monthNum : c.defaultMonth === monthNum))
+      .map((ci) => ({
+        id: ci.id,
+        name: c.name ? `${c.name} — ${ci.name}` : ci.name,
+        value: ci.plannedAmount,
+      }))
   );
+
+  const legacyCostItems = (state.oneTimeCosts || [])
+    .filter((item) => !item.off && item.targetMonthId === monthId)
+    .map((i) => ({ id: i.id, name: i.name, value: i.value }));
+
+  const monthOneTimeItems = projectCostItems.length > 0 ? projectCostItems : legacyCostItems;
 
   const handleOpenAddModal = (cat: ExpenseCategoryKey | 'renda' = 'fixas') => {
     setModalDefaultCategory(cat);
@@ -76,7 +93,7 @@ export const MonthBudgetView = ({
   };
 
   const renderItems = (
-    items: BudgetItem[],
+    items: Item[],
     category: ExpenseCategoryKey | 'renda',
     showCheckbox: boolean
   ) => {
@@ -84,67 +101,102 @@ export const MonthBudgetView = ({
 
     return (
       <div className="space-y-1 pt-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center gap-2 py-1.5 px-2 rounded-xl transition-all ${
-              item.off
-                ? 'opacity-40 bg-slate-50/40 dark:bg-slate-800/20'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-            }`}
-          >
-            {showCheckbox ? (
+        {items.map((item) => {
+          const entry = item.entries?.find((e) => e.month === monthNum);
+          const plannedVal = entry ? entry.plannedAmount : (item.values?.[monthId] ?? 0);
+          const isConfirmed = Boolean(entry?.paidDate);
+
+          return (
+            <div
+              key={item.id}
+              className={`flex items-center gap-2 py-1.5 px-2 rounded-xl transition-all ${
+                item.off
+                  ? 'opacity-40 bg-slate-50/40 dark:bg-slate-800/20'
+                  : isConfirmed
+                  ? 'bg-emerald-50/30 dark:bg-emerald-950/10 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+              }`}
+            >
+              {showCheckbox ? (
+                <input
+                  type="checkbox"
+                  checked={!item.off}
+                  onChange={() => toggleItemActive(category, item.id)}
+                  className="w-4 h-4 rounded accent-[#0e6b7a] cursor-pointer shrink-0"
+                  title={item.off ? 'Ativar no orçamento' : 'Desativar temporariamente'}
+                />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              )}
+
               <input
-                type="checkbox"
-                checked={!item.off}
-                onChange={() => toggleItemActive(category, item.id)}
-                className="w-4 h-4 rounded accent-[#0e6b7a] cursor-pointer shrink-0"
-                title={item.off ? 'Ativar no orçamento' : 'Desativar temporariamente'}
-              />
-            ) : (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            )}
-
-            <input
-              type="text"
-              value={item.name}
-              onChange={(e) => updateItemName(category, item.id, e.target.value)}
-              disabled={item.off}
-              className="flex-1 min-w-0 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-0.5 px-1 truncate"
-            />
-
-            <div className="w-28 sm:w-32 shrink-0">
-              <CurrencyInput
-                value={item.values[monthId] ?? 0}
-                onChange={(v) => updateItemValue(category, item.id, monthId, v)}
+                type="text"
+                value={item.name}
+                onChange={(e) => updateItemName(category, item.id, e.target.value)}
                 disabled={item.off}
-                ariaLabel={`${item.name} em ${month.shortName}`}
+                className="flex-1 min-w-0 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-0.5 px-1 truncate"
               />
-            </div>
 
-            {canDeleteEach && (
-              <button
-                type="button"
-                onClick={() => {
-                  const removed = removeItem(category, item.id);
-                  if (removed) {
-                    showToast(`Item "${removed.name}" removido`, {
-                      action: {
-                        label: 'Desfazer',
-                        onClick: () => restoreItem(category, removed),
-                      },
-                    });
+              <div className="w-28 sm:w-32 shrink-0">
+                <CurrencyInput
+                  value={plannedVal}
+                  onChange={(v) => updateItemValue(category, item.id, monthId, v)}
+                  disabled={item.off}
+                  ariaLabel={`${item.name} em ${month.shortName}`}
+                />
+              </div>
+
+              {/* Botão de confirmação de pagamento/recebimento */}
+              {entry && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isConfirmed) {
+                      unconfirmEntry(entry.id);
+                    } else {
+                      confirmEntry(entry.id, plannedVal);
+                    }
+                  }}
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs shrink-0 transition-all cursor-pointer ${
+                    isConfirmed
+                      ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 shadow-2xs'
+                      : 'text-slate-300 hover:text-emerald-600 dark:text-slate-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                  }`}
+                  title={
+                    isConfirmed
+                      ? `Confirmado em ${entry.paidDate}. Clique para desfazer.`
+                      : 'Confirmar pagamento / recebimento (Realizado)'
                   }
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
-                title="Remover conta"
-                aria-label={`Remover ${item.name}`}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        ))}
+                  aria-label={isConfirmed ? 'Desmarcar pagamento' : 'Confirmar pagamento'}
+                >
+                  ✓
+                </button>
+              )}
+
+              {canDeleteEach && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const removed = removeItem(category, item.id);
+                    if (removed) {
+                      showToast(`Item "${removed.name}" removido`, {
+                        action: {
+                          label: 'Desfazer',
+                          onClick: () => restoreItem(category, removed),
+                        },
+                      });
+                    }
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
+                  title="Remover conta"
+                  aria-label={`Remover ${item.name}`}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          );
+        })}
 
         <div className="pt-1.5 flex justify-end">
           <button
@@ -224,7 +276,7 @@ export const MonthBudgetView = ({
             </span>
             {oneTime > 0 && (
               <span className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold block mt-0.5">
-                📦 Inclui {formatBRL(oneTime)} da mudança
+                📦 Inclui {formatBRL(oneTime)} de custos pontuais
               </span>
             )}
           </div>
@@ -272,7 +324,7 @@ export const MonthBudgetView = ({
                 onClick={onNavigateToGoals}
                 className="font-bold underline hover:opacity-80 shrink-0 cursor-pointer"
               >
-                Destinar para Metas / Mudança →
+                Destinar para Metas / Projetos →
               </button>
             )}
           </div>

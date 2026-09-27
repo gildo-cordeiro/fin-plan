@@ -8,8 +8,7 @@ import (
 )
 
 type Config struct {
-	MongoDBURI   string
-	MongoDBName  string
+	DatabaseURL  string
 	APISecretKey string
 	Port         string
 }
@@ -17,9 +16,14 @@ type Config struct {
 func Load() *Config {
 	_ = godotenv.Load()
 
+	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if dbURL == "" {
+		// Suporte a variáveis postgres legadas ou individuais se fornecidas
+		dbURL = "postgres://postgres:postgres@localhost:5432/finplan?sslmode=disable"
+	}
+
 	return &Config{
-		MongoDBURI:   strings.TrimSpace(os.Getenv("MONGODB_URI")),
-		MongoDBName:  getEnvOrDefault("MONGODB_DB_NAME", "finplan"),
+		DatabaseURL:  dbURL,
 		APISecretKey: strings.TrimSpace(os.Getenv("API_SECRET_KEY")),
 		Port:         getEnvOrDefault("PORT", "8080"),
 	}

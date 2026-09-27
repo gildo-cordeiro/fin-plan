@@ -1,22 +1,19 @@
-# 🔌 FinPlan — Especificação da API REST (v1)
+# 🔌 FinPlan — Especificação da API REST (v1 — PostgreSQL)
 
-Esta documentação descreve todos os endpoints, contratos de requisição/resposta, cabeçalhos e regras de erro da camada de persistência REST do **FinPlan**.
-
-A implementação do backend localiza-se em [`apps/api/`](../apps/api/) e é servida como uma API REST compilada em Go com o driver oficial do MongoDB.
+Esta documentação descreve todos os endpoints, contratos de requisição/resposta, cabeçalhos e regras de negócio da API REST do **FinPlan**, baseada no modelo relacional PostgreSQL.
 
 ---
 
 ## 🔒 Autenticação e Cabeçalhos
 
 ### Autenticação por API Key (Opcional / Configurável)
-Se a variável de ambiente `API_SECRET_KEY` estiver definida no servidor Go, toda requisição às rotas protegidas deve incluir a chave secreta. O backend aceita a credencial em dois formatos:
+Se a variável de ambiente `API_SECRET_KEY` estiver definida no servidor Go, toda requisição às rotas da API deve incluir a chave secreta. O backend aceita a credencial em dois formatos:
 1. Cabeçalho proprietário: `x-api-key: <API_SECRET_KEY>`
 2. Cabeçalho padrão HTTP: `Authorization: Bearer <API_SECRET_KEY>`
 
-Se a chave for omitida ou divergir do valor de `API_SECRET_KEY`, a API responderá com status `401 Unauthorized`. Caso a variável `API_SECRET_KEY` **não** esteja configurada no servidor, a verificação é ignorada (modo desenvolvimento aberto).
+Se omitida ou incorreta, responde com `401 Unauthorized`. Caso `API_SECRET_KEY` não esteja configurada, a verificação é ignorada (modo desenvolvimento aberto).
 
-### Cabeçalhos Padrão de Resposta (CORS)
-Todas as respostas incluem os seguintes cabeçalhos CORS:
+### Cabeçalhos CORS
 - `Access-Control-Allow-Origin: *`
 - `Access-Control-Allow-Credentials: true`
 - `Access-Control-Allow-Methods: GET,OPTIONS,POST,PATCH,DELETE`
@@ -24,221 +21,369 @@ Todas as respostas incluem os seguintes cabeçalhos CORS:
 
 ---
 
-## 📦 Recursos e Endpoints da Nova API (Domínio Normalizado)
+## 📐 Schema Relacional do Banco de Dados (PostgreSQL)
 
-### 1. `GET /api/v1/health`
-Health check para orquestradores (Docker, Kubernetes, Cloud Run).
-- **Método**: `GET`
-- **Resposta**: `200 OK` `{ "status": "ok" }`
+```sql
+-- Ano de orçamento (id = ano, chave natural)
+CREATE TABLE budget (
+  id                        TEXT PRIMARY KEY,        -- ex: '2026'
+  year                      INT NOT NULL UNIQUE,
+  initial_balance           NUMERIC(12,2) NOT NULL DEFAULT 0,
+  emergency_reserve_target  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Item recorrente: "Salário", "Aluguel", "Cartão XP"
+CREATE TABLE item (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  budget_id   TEXT NOT NULL REFERENCES budget(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('renda','fixa','variavel','cartao')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Lançamento mensal do item — gerado automaticamente (12 linhas) na criação do item
+CREATE TABLE entry (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id         UUID NOT NULL REFERENCES item(id) ON DELETE CASCADE,
+  month           INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+  planned_amount  NUMERIC(12,2) NOT NULL DEFAULT 0,
+  actual_amount   NUMERIC(12,2),                     -- null = ainda não confirmado
+  due_date        DATE,
+  paid_date       DATE,                              -- preenchido = "confirmado" (sem coluna de status)
+  UNIQUE (item_id, month)
+);
+
+-- Projeto/evento de custo pontual (ex: "Mudança")
+CREATE TABLE cost (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  budget_id        TEXT NOT NULL REFERENCES budget(id) ON DELETE CASCADE,
+  name             TEXT NOT NULL,
+  default_month    INT CHECK (default_month BETWEEN 1 AND 12),  -- NULL = deduz no saldo final
+  margin_percent   NUMERIC(5,2) NOT NULL DEFAULT 0,              -- Margem de imprevistos (%)
+  notes            TEXT
+);
+
+-- Item individual dentro do projeto de custo pontual
+CREATE TABLE cost_item (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cost_id          UUID NOT NULL REFERENCES cost(id) ON DELETE CASCADE,
+  name             TEXT NOT NULL,
+  planned_amount   NUMERIC(12,2) NOT NULL,
+  actual_amount    NUMERIC(12,2),
+  month            INT CHECK (month BETWEEN 1 AND 12),  -- NULL = herda cost.default_month
+  due_date         DATE,
+  paid_date        DATE
+);
+
+-- Meta financeira
+CREATE TABLE goal (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name           TEXT NOT NULL,
+  description    TEXT,
+  target_amount  NUMERIC(12,2) NOT NULL,
+  icon           TEXT,
+  color          TEXT,
+  status         TEXT NOT NULL DEFAULT 'ativa' CHECK (status IN ('ativa','concluida','pausada'))
+);
+
+CREATE TABLE goal_contribution (
+  id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  goal_id  UUID NOT NULL REFERENCES goal(id) ON DELETE CASCADE,
+  date     DATE NOT NULL,
+  amount   NUMERIC(12,2) NOT NULL,
+  note     TEXT
+);
+
+-- Movimentação da reserva de emergência (Livro-razão imutável)
+CREATE TABLE reserve_movement (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  budget_id  TEXT NOT NULL REFERENCES budget(id) ON DELETE CASCADE,
+  month      INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+  amount     NUMERIC(12,2) NOT NULL,   -- positivo = aporte, negativo = retirada
+  reason     TEXT
+);
+```
 
 ---
 
-### 2. Anos Orçamentários (Coleção MongoDB: `budgets`)
+## 📦 Endpoints da API
 
-Os meses fiscais (`months`) vivem embutidos como array dentro do próprio documento do ano (`budgets`). Não há coleção separada nem campos redundantes como `year` ou `budgetYearId` nos meses embutidos.
+### 1. Sistema
+- `GET /api/v1/health`
+  - Resposta: `200 OK` `{ "status": "ok" }`
 
-#### `GET /api/v1/budget-years`
-Retorna todos os anos orçamentários cadastrados no sistema, incluindo seus meses embutidos.
-- **Resposta**: `200 OK`
-  ```json
-  [
+---
+
+### 2. Orçamento (`budget`)
+
+#### `GET /api/v1/budgets`
+Lista todos os anos orçamentários cadastrados.
+- Resposta: `200 OK`
+```json
+[
+  {
+    "id": "2026",
+    "year": 2026,
+    "initialBalance": 10000.00,
+    "emergencyReserveTarget": 5000.00,
+    "createdAt": "2026-01-01T00:00:00Z",
+    "updatedAt": "2026-01-01T00:00:00Z"
+  }
+]
+```
+
+#### `POST /api/v1/budgets`
+Cria um novo ano orçamentário.
+- Body:
+```json
+{
+  "year": 2027,
+  "initialBalance": 12000.00,
+  "emergencyReserveTarget": 6000.00
+}
+```
+- Resposta: `201 Created` com o objeto `Budget`.
+
+#### `GET /api/v1/budgets/{year}`
+Retorna a **visão anual completa** do ano: budget, itens com suas 12 entries, custos pontuais com cost_items, metas e movimentações de reserva.
+- Resposta: `200 OK`
+```json
+{
+  "budget": {
+    "id": "2026",
+    "year": 2026,
+    "initialBalance": 10000.00,
+    "emergencyReserveTarget": 5000.00
+  },
+  "items": [
     {
-      "id": "2026",
-      "year": 2026,
-      "simulation": {
-        "varsPercent": 0,
-        "rendaPercent": 0,
-        "oneTimeMarginPercent": 0,
-        "initialBalance": 10000,
-        "emergencyReserve": 5000
-      },
-      "months": [
+      "id": "a1b2c3d4-...",
+      "budgetId": "2026",
+      "name": "Salário Líquido",
+      "type": "renda",
+      "entries": [
         {
-          "id": "2026-01",
-          "name": "Janeiro 2026",
-          "shortName": "Jan/26",
-          "monthIndex": 0
+          "id": "e1-...",
+          "itemId": "a1b2c3d4-...",
+          "month": 1,
+          "plannedAmount": 8500.00,
+          "actualAmount": 8500.00,
+          "dueDate": null,
+          "paidDate": "2026-01-05"
         }
-      ],
-      "createdAt": "2026-09-26T12:00:00Z",
-      "updatedAt": "2026-09-26T12:00:00Z"
+      ]
     }
-  ]
-  ```
-
-#### `GET /api/v1/budget-years/{year}`
-Retorna a **visão anual agregada** pronta para renderizar o frontend em 1 única requisição (join server-side em Go).
-- **Resposta**: `200 OK`
-  ```json
-  {
-    "year": {
-      "id": "2026",
-      "year": 2026,
-      "simulation": { ... },
-      "months": [ ... ]
-    },
-    "months": [
-      {
-        "id": "2026-10",
-        "name": "Outubro 2026",
-        "shortName": "Out/26",
-        "monthIndex": 9
-      }
-    ],
-    "items": [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "type": "renda",
-        "name": "Salário Líquido",
-        "values": { "2026-10": 8500 }
-      }
-    ],
-    "oneTimeCosts": [ ... ],
-    "goals": [ ... ]
-  }
-  ```
-
-#### `POST /api/v1/budget-years`
-Cria um novo ano fiscal em uma única operação atômica de escrita, já inicializando os 12 meses correspondentes embutidos no documento.
-- **Payload**:
-  ```json
-  {
-    "year": 2027,
-    "simulation": {
-      "initialBalance": 15000,
-      "emergencyReserve": 10000
+  ],
+  "costs": [
+    {
+      "id": "c1-...",
+      "budgetId": "2026",
+      "name": "Mudança",
+      "defaultMonth": 12,
+      "marginPercent": 10.0,
+      "totalPlanned": 4000.00,
+      "totalWithMargin": 4400.00,
+      "items": [
+        {
+          "id": "ci-1-...",
+          "costId": "c1-...",
+          "name": "Frete e Caminhão",
+          "plannedAmount": 1500.00,
+          "actualAmount": null,
+          "month": null,
+          "paidDate": null
+        }
+      ]
     }
-  }
-  ```
+  ],
+  "goals": [],
+  "reserveMovements": []
+}
+```
 
-#### `PATCH /api/v1/budget-years/{year}`
-Atualiza atomicamente as premissas de simulação daquele ano orçamentário.
-- **Payload**:
-  ```json
-  {
-    "varsPercent": 10,
-    "initialBalance": 12000
-  }
-  ```
+#### `PATCH /api/v1/budgets/{year}`
+Atualiza initialBalance ou emergencyReserveTarget. Suporta atualização parcial.
+- Body:
+```json
+{
+  "initialBalance": 15000.00
+}
+```
 
-#### `POST /api/v1/budget-years/{year}/months`
-Adiciona ou atualiza um mês no array `months` do documento do ano orçamentário (utiliza `$push` / filtro posicional no MongoDB).
-- **Payload**:
-  ```json
-  {
-    "id": "2026-13",
-    "name": "13º Salário 2026",
-    "shortName": "13º/26",
-    "monthIndex": 12
+#### `GET /api/v1/budgets/{year}/summary`
+Retorna o resumo consolidado mensal com cálculo acumulado server-side e window functions.
+- Resposta: `200 OK`
+```json
+{
+  "year": 2026,
+  "initialBalance": 10000.00,
+  "emergencyReserveTarget": 5000.00,
+  "months": [
+    {
+      "month": 1,
+      "income": 8500.00,
+      "cards": 2000.00,
+      "fixed": 2500.00,
+      "variable": 1000.00,
+      "oneTimeCosts": 0.00,
+      "totalExpenses": 5500.00,
+      "monthBalance": 3000.00,
+      "accumulatedBalance": 13000.00
+    }
+  ],
+  "totals": {
+    "income": 102000.00,
+    "cards": 24000.00,
+    "fixed": 30000.00,
+    "variable": 12000.00,
+    "oneTimeCosts": 4400.00,
+    "totalExpenses": 70400.00,
+    "netBalance": 31600.00,
+    "finalAccumulated": 41600.00
   }
+}
+```
+
+---
+
+### 3. Itens e Lançamentos (`item` e `entry`)
+
+#### `POST /api/v1/items`
+Cria um item no orçamento. **O backend gera automaticamente 12 entries** (uma para cada mês, com `planned_amount = 0`).
+- Body:
+```json
+{
+  "budgetId": "2026",
+  "name": "Supermercado",
+  "type": "variavel"
+}
+```
+- Resposta: `201 Created` com o objeto `Item` e o array `entries`.
+
+#### `PATCH /api/v1/items/{id}`
+Atualiza atributos do item (ex: renomear).
+- Body: `{ "name": "Mercado e Feira" }`
+
+#### `DELETE /api/v1/items/{id}`
+Exclui o item e remove suas 12 entries associadas em cascata.
+
+#### `PATCH /api/v1/entries/{id}`
+Atualização parcial de lançamento. Permite editar o valor previsto ou confirmar/desconfirmar o pagamento realizado:
+- Para alterar o planejado:
+  ```json
+  { "plannedAmount": 1200.00 }
   ```
-- **Resposta**: `201 Created`
+- Para confirmar pagamento realizado:
   ```json
-  {
-    "id": "2026-13",
-    "name": "13º Salário 2026",
-    "shortName": "13º/26",
-    "monthIndex": 12
-  }
+  { "actualAmount": 1150.00, "paidDate": "2026-10-05" }
+  ```
+- Para desconfirmar lançamento:
+  ```json
+  { "actualAmount": null, "paidDate": null }
   ```
 
 ---
 
-### 3. Itens de Orçamento (Coleção MongoDB: `items`)
+### 4. Projetos de Custo Pontual (`cost` e `cost_item`)
 
-Substitui as listas fixas monolíticas. O campo `type` define se o item é `renda`, `cartao`, `fixa` ou `var`. Um item pode conter valores trans-anuais mapeados por `monthId`.
+#### `POST /api/v1/costs`
+Cria um projeto de custo pontual.
+- Body:
+```json
+{
+  "budgetId": "2026",
+  "name": "Reforma do Banheiro",
+  "defaultMonth": 11,
+  "marginPercent": 15.0,
+  "notes": "Orçamento estimado com pedreiro e materiais"
+}
+```
 
-#### `POST /api/v1/budget-items`
-Cria um item de orçamento de forma atômica.
-- **Payload**:
-  ```json
-  {
-    "name": "Aluguel",
-    "type": "fixa",
-    "values": {
-      "2026-10": 2500,
-      "2026-11": 2500
-    },
-    "off": false
-  }
-  ```
-- **Resposta**: `201 Created` com o objeto `BudgetItem`.
+#### `GET /api/v1/costs/{id}`
+Retorna o projeto com todos os seus `items` e os totais calculados no backend:
+- `totalPlanned`: `SUM(cost_item.planned_amount)`
+- `totalWithMargin`: `totalPlanned * (1 + margin_percent / 100)`
 
-#### `GET /api/v1/budget-items`
-Lista todos os itens de orçamento. Suporta filtro por query parameter: `?type=renda`.
+#### `PATCH /api/v1/costs/{id}`
+Atualização parcial do projeto (`name`, `defaultMonth`, `marginPercent`, `notes`).
 
-#### `GET /api/v1/budget-items/{id}`
-Recupera um item específico pelo ID.
+#### `DELETE /api/v1/costs/{id}`
+Exclui o projeto e todos os seus itens associados em cascata.
 
-#### `PATCH /api/v1/budget-items/{id}`
-Edição atômica pontual. Altera apenas os campos enviados (e atualiza chaves em `values` sem sobrescrever os outros meses).
-- **Payload**:
-  ```json
-  {
-    "values": {
-      "2026-10": 2700
-    }
-  }
-  ```
+#### `POST /api/v1/costs/{costId}/items`
+Adiciona um item dentro do projeto.
+- Body:
+```json
+{
+  "name": "Piso Porcelanato",
+  "plannedAmount": 1200.00,
+  "month": null
+}
+```
+*(Se `month` for `null`, o item herda o `default_month` do projeto).*
 
-#### `DELETE /api/v1/budget-items/{id}`
-Exclui atomicamente o item.
-- **Resposta**: `200 OK` `{ "success": true, "message": "Item de orçamento excluído com sucesso." }`
+#### `PATCH /api/v1/costs/{costId}/items/{id}`
+Atualização parcial do item de custo (valor, nome, mês ou confirmação de pagamento).
 
----
-
-### 4. Custos Pontuais (Coleção MongoDB: `costs`)
-
-#### `POST /api/v1/one-time-costs`
-Cria um custo pontual.
-- **Payload**:
-  ```json
-  {
-    "name": "Reforma do Quarto",
-    "value": 3500,
-    "targetMonthId": "2026-11"
-  }
-  ```
-
-#### `PATCH /api/v1/one-time-costs/{id}`
-Atualiza campos do custo pontual.
-
-#### `DELETE /api/v1/one-time-costs/{id}`
-Exclui atomicamente o custo pontual.
+#### `DELETE /api/v1/costs/{costId}/items/{id}`
+Remove o item do projeto.
 
 ---
 
-### 5. Metas Financeiras (Coleção MongoDB: `goals`) & Aportes
+### 5. Metas Financeiras (`goal` e `goal_contribution`)
 
 #### `POST /api/v1/goals`
-Cria uma nova meta financeira.
-- **Payload**:
-  ```json
-  {
-    "name": "Viagem de Férias",
-    "targetAmount": 12000,
-    "icon": "✈️",
-    "color": "#0e6b7a",
-    "status": "ativa"
-  }
-  ```
+Cria uma meta financeira.
+- Body:
+```json
+{
+  "name": "Reserva de Emergência 6 Meses",
+  "targetAmount": 30000.00,
+  "icon": "🛡️",
+  "color": "#0e6b7a",
+  "status": "ativa"
+}
+```
 
 #### `PATCH /api/v1/goals/{id}`
-Atualiza metadados ou status da meta (`ativa`, `concluida`, `pausada`).
+Atualiza meta (`name`, `targetAmount`, `status`, etc.).
 
 #### `DELETE /api/v1/goals/{id}`
-Exclui a meta e todos os seus aportes.
+Exclui meta e seus aportes em cascata.
 
 #### `POST /api/v1/goals/{id}/contributions`
-Registra um novo aporte atomicamente utilizando operador `$push` no MongoDB.
-- **Payload**:
-  ```json
-  {
-    "amount": 1000,
-    "note": "Depósito mensal",
-    "date": "2026-10-15"
-  }
-  ```
+Registra um aporte na meta.
+- Body:
+```json
+{
+  "amount": 1000.00,
+  "note": "Aporte mensal via sobra de salário",
+  "date": "2026-10-05"
+}
+```
 
 #### `DELETE /api/v1/goals/{id}/contributions/{contributionId}`
-Remove um aporte atomicamente utilizando operador `$pull` no MongoDB.
+Remove um aporte.
+
+---
+
+### 6. Movimentações da Reserva (`reserve_movement`)
+
+#### `POST /api/v1/reserve-movements`
+Registra uma movimentação na reserva de emergência (aporte positivo ou retirada negativa).
+- Body:
+```json
+{
+  "budgetId": "2026",
+  "month": 10,
+  "amount": 1500.00,
+  "reason": "Depósito de rendimentos extras"
+}
+```
+
+#### `GET /api/v1/budgets/{year}/reserve-movements`
+Retorna o histórico cronológico de movimentações da reserva para o ano.
+
+> ⚠️ **Imutabilidade**: A entidade `reserve_movement` **não** disponibiliza `PATCH` ou `DELETE`. Para retificar um lançamento, registre um novo movimento com o valor oposto.

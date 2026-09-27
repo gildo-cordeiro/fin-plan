@@ -1,40 +1,34 @@
-import { BudgetState, MonthItem } from '../types/budget';
+import type { BudgetState, MonthItem, SimulationSettings } from '../types/budget';
 import { generateMonthSequence } from '../utils/formatters';
 
 const currentYear = new Date().getFullYear();
-export const INITIAL_MONTHS: MonthItem[] = generateMonthSequence(currentYear, 9, 6);
 
+/** 12 meses do ano corrente, derivados localmente. */
+export const INITIAL_MONTHS: MonthItem[] = generateMonthSequence(currentYear, 0, 12);
+
+/** Simulação padrão (percentuais zerados — localStorage only). */
+export const DEFAULT_SIMULATION: SimulationSettings = {
+  varsPercent: 0,
+  rendaPercent: 0,
+  oneTimeMarginPercent: 0,
+};
+
+/** Estado inicial do BudgetContext antes de carregar do backend. */
 export const INITIAL_BUDGET_STATE: BudgetState = {
   version: 5,
   currentYear,
-  years: [
-    {
-      id: String(currentYear),
-      year: currentYear,
-      simulation: {
-        varsPercent: 0,
-        rendaPercent: 0,
-        oneTimeMarginPercent: 0,
-        initialBalance: 0,
-        emergencyReserve: 0,
-      },
-    },
-  ],
-  months: INITIAL_MONTHS,
-  simulation: {
-    varsPercent: 0,
-    rendaPercent: 0,
-    oneTimeMarginPercent: 0,
-    initialBalance: 0,
-    emergencyReserve: 0,
-  },
+
+  // Backend data — null/vazio até o primeiro fetch
+  budget: null,
   items: [],
-  incomes: [],
-  lists: {
-    cartoes: [],
-    fixas: [],
-    vars: [],
-  },
-  oneTimeCosts: [],
+  costs: [],
   goals: [],
+  reserveMovements: [],
+  summary: null,
+
+  // Derivado localmente
+  months: INITIAL_MONTHS,
+
+  // Simulação (localStorage only)
+  simulation: DEFAULT_SIMULATION,
 };

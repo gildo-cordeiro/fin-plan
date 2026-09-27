@@ -10,23 +10,24 @@ interface EditBalanceModalProps {
 
 export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => {
   const { state, updateSimulation } = useBudget();
-  const { simulation } = state;
+  const initialBal = state.budget?.initialBalance ?? 0;
+  const initialRes = state.budget?.emergencyReserveTarget ?? 0;
 
-  const [balance, setBalance] = useState(simulation.initialBalance);
-  const [reserve, setReserve] = useState(simulation.emergencyReserve);
+  const [balance, setBalance] = useState(initialBal);
+  const [reserve, setReserve] = useState(initialRes);
 
   useEffect(() => {
     if (isOpen) {
-      setBalance(simulation.initialBalance);
-      setReserve(simulation.emergencyReserve);
+      setBalance(state.budget?.initialBalance ?? 0);
+      setReserve(state.budget?.emergencyReserveTarget ?? 0);
     }
-  }, [isOpen, simulation.initialBalance, simulation.emergencyReserve]);
+  }, [isOpen, state.budget?.initialBalance, state.budget?.emergencyReserveTarget]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateSimulation({
       initialBalance: balance,
-      emergencyReserve: reserve,
+      emergencyReserveTarget: reserve,
     });
     onClose();
   };

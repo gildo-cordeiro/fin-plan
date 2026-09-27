@@ -1,130 +1,105 @@
 package cost
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/httputil"
 )
 
 type Handler struct {
-	service *Service
+	svc *Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(svc *Service) *Handler {
+	return &Handler{svc: svc}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/one-time-costs", h.Create)
-	mux.HandleFunc("GET /api/v1/one-time-costs", h.List)
-	mux.HandleFunc("GET /api/v1/one-time-costs/{id}", h.GetByID)
-	mux.HandleFunc("PATCH /api/v1/one-time-costs/{id}", h.Update)
-	mux.HandleFunc("DELETE /api/v1/one-time-costs/{id}", h.Delete)
+	mux.HandleFunc("POST /api/v1/costs", h.handleCreate)
+	mux.HandleFunc("GET /api/v1/costs/{id}", h.handleGetByID)
+	mux.HandleFunc("PATCH /api/v1/costs/{id}", h.handlePatch)
+	mux.HandleFunc("DELETE /api/v1/costs/{id}", h.handleDelete)
 }
 
-func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var item OneTimeCost
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "Corpo da requisição inválido ou ausente.")
+func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
+	var req CreateCostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "corpo da requisição inválido")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
-	defer cancel()
-
-	created, err := h.service.Create(ctx, &item)
+	created, err := h.svc.Create(r.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrNameRequired) {
-			httputil.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		httputil.WriteError(w, http.StatusInternalServerError, "Erro interno ao criar custo pontual.")
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusCreated, created)
 }
 
-func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	targetMonthID := r.URL.Query().Get("targetMonthId")
-
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
-	defer cancel()
-
-	items, err := h.service.List(ctx, targetMonthID)
-	if err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, "Erro ao listar custos pontuais.")
+func (h *Handler) handleGetByID(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "id inválido")
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, items)
-}
-
-func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
-	defer cancel()
-
-	item, err := h.service.GetByID(ctx, id)
+	res, err := h.svc.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, ErrCostNotFound) {
-			httputil.WriteError(w, http.StatusNotFound, "Custo pontual não encontrado.")
+			httputil.WriteError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		httputil.WriteError(w, http.StatusInternalServerError, "Erro ao buscar custo pontual.")
+		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, item)
+	httputil.WriteJSON(w, http.StatusOK, res)
 }
 
-func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handlePatch(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	var input UpdateOneTimeCostInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		httputil.WriteError(w, http.StatusBadRequest, "Corpo da requisição inválido ou ausente.")
+	if id == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "id inválido")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
-	defer cancel()
+	var req PatchCostRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "corpo da requisição inválido")
+		return
+	}
 
-	updated, err := h.service.Update(ctx, id, &input)
+	updated, err := h.svc.Patch(r.Context(), id, req)
 	if err != nil {
 		if errors.Is(err, ErrCostNotFound) {
-			httputil.WriteError(w, http.StatusNotFound, "Custo pontual não encontrado.")
+			httputil.WriteError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		if errors.Is(err, ErrNameRequired) {
-			httputil.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		httputil.WriteError(w, http.StatusInternalServerError, "Erro ao atualizar custo pontual.")
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, updated)
 }
 
-func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-
-	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
-	defer cancel()
-
-	if err := h.service.Delete(ctx, id); err != nil {
-		httputil.WriteError(w, http.StatusInternalServerError, "Erro ao excluir custo pontual.")
+	if id == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "id inválido")
 		return
 	}
 
-	httputil.WriteJSON(w, http.StatusOK, httputil.SuccessResponse{
-		Success: true,
-		Message: "Custo pontual excluído com sucesso.",
-	})
+	if err := h.svc.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, ErrCostNotFound) {
+			httputil.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httputil.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httputil.WriteJSON(w, http.StatusOK, httputil.SuccessResponse{Success: true})
 }

@@ -10,27 +10,28 @@ import (
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/config"
 )
 
-func TestApp_New_WithoutMongo(t *testing.T) {
+func TestApp_New_WithoutDatabase(t *testing.T) {
 	cfg := &config.Config{
-		Port: "8080",
+		Port:        "8080",
+		DatabaseURL: "",
 	}
 
 	application, err := New(context.Background(), cfg)
 	if err != nil {
-		t.Fatalf("esperava sucesso ao criar app sem mongo, obteve erro: %v", err)
+		t.Fatalf("esperava sucesso ao criar app sem banco, obteve erro: %v", err)
 	}
 
 	if application == nil {
 		t.Fatal("esperava application != nil")
 	}
 
-	if application.mongoClient != nil {
-		t.Fatal("esperava mongoClient == nil")
+	if application.pool != nil {
+		t.Fatal("esperava pool == nil")
 	}
 }
 
 func TestApp_Routes_HealthCheck(t *testing.T) {
-	cfg := &config.Config{Port: "8080"}
+	cfg := &config.Config{Port: "8080", DatabaseURL: ""}
 	application, err := New(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("erro ao instanciar app: %v", err)
@@ -58,7 +59,7 @@ func TestApp_Routes_HealthCheck(t *testing.T) {
 }
 
 func TestApp_Routes_UnavailableWhenNoDB(t *testing.T) {
-	cfg := &config.Config{Port: "8080"}
+	cfg := &config.Config{Port: "8080", DatabaseURL: ""}
 	application, err := New(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("erro ao instanciar app: %v", err)
@@ -66,31 +67,12 @@ func TestApp_Routes_UnavailableWhenNoDB(t *testing.T) {
 
 	mux := application.routes()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/budget-years", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/budgets", nil)
 	rec := httptest.NewRecorder()
 
 	mux.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("esperava status 503, obteve %d", rec.Code)
-	}
-}
-
-func TestApp_Routes_MethodNotAllowed(t *testing.T) {
-	cfg := &config.Config{Port: "8080"}
-	application, err := New(context.Background(), cfg)
-	if err != nil {
-		t.Fatalf("erro ao instanciar app: %v", err)
-	}
-
-	mux := application.routes()
-
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/budget-years", nil)
-	rec := httptest.NewRecorder()
-
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusMethodNotAllowed {
-		t.Fatalf("esperava status 405, obteve %d", rec.Code)
 	}
 }

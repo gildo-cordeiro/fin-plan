@@ -6,96 +6,112 @@ import (
 )
 
 type mockRepo struct {
-	items map[string]*OneTimeCost
+	costs map[string]*Cost
 }
 
 func newMockRepo() *mockRepo {
-	return &mockRepo{items: make(map[string]*OneTimeCost)}
+	return &mockRepo{costs: make(map[string]*Cost)}
 }
 
-func (m *mockRepo) Create(ctx context.Context, item *OneTimeCost) error {
-	m.items[item.ID] = item
-	return nil
+func (m *mockRepo) Create(ctx context.Context, req CreateCostRequest) (*Cost, error) {
+	c := &Cost{
+		ID:            "cost-1",
+		BudgetID:      req.BudgetID,
+		Name:          req.Name,
+		DefaultMonth:  req.DefaultMonth,
+		MarginPercent: req.MarginPercent,
+		Notes:         req.Notes,
+	}
+	m.costs[c.ID] = c
+	return c, nil
 }
 
-func (m *mockRepo) GetByID(ctx context.Context, id string) (*OneTimeCost, error) {
-	return m.items[id], nil
+func (m *mockRepo) GetByID(ctx context.Context, id string) (*Cost, error) {
+	c, ok := m.costs[id]
+	if !ok {
+		return nil, ErrCostNotFound
+	}
+	return c, nil
 }
 
-func (m *mockRepo) List(ctx context.Context, targetMonthId string) ([]OneTimeCost, error) {
-	var res []OneTimeCost
-	for _, it := range m.items {
-		if targetMonthId == "" || (it.TargetMonthID != nil && *it.TargetMonthID == targetMonthId) {
-			res = append(res, *it)
+func (m *mockRepo) GetByBudgetID(ctx context.Context, budgetID string) ([]Cost, error) {
+	res := make([]Cost, 0)
+	for _, c := range m.costs {
+		if c.BudgetID == budgetID {
+			res = append(res, *c)
 		}
 	}
 	return res, nil
 }
 
-func (m *mockRepo) Update(ctx context.Context, id string, input *UpdateOneTimeCostInput) (*OneTimeCost, error) {
-	it := m.items[id]
-	if it == nil {
-		return nil, nil
+func (m *mockRepo) Patch(ctx context.Context, id string, req PatchCostRequest) (*Cost, error) {
+	c, ok := m.costs[id]
+	if !ok {
+		return nil, ErrCostNotFound
 	}
-	if input.Name != nil {
-		it.Name = *input.Name
+	if req.Name != nil {
+		c.Name = *req.Name
 	}
-	if input.Value != nil {
-		it.Value = *input.Value
+	if req.DefaultMonth != nil {
+		c.DefaultMonth = req.DefaultMonth
 	}
-	if input.ClearTargetMonthID {
-		it.TargetMonthID = nil
-	} else if input.TargetMonthID != nil {
-		it.TargetMonthID = input.TargetMonthID
+	if req.MarginPercent != nil {
+		c.MarginPercent = *req.MarginPercent
 	}
-	if input.Off != nil {
-		it.Off = input.Off
+	if req.Notes != nil {
+		c.Notes = req.Notes
 	}
-	return it, nil
+	return c, nil
 }
 
 func (m *mockRepo) Delete(ctx context.Context, id string) error {
-	delete(m.items, id)
+	if _, ok := m.costs[id]; !ok {
+		return ErrCostNotFound
+	}
+	delete(m.costs, id)
 	return nil
 }
 
-func TestOneTimeCostService(t *testing.T) {
+func TestCostService(t *testing.T) {
 	repo := newMockRepo()
 	svc := NewService(repo)
 	ctx := context.Background()
 
-	targetM := "2026-11"
-	cost, err := svc.Create(ctx, &OneTimeCost{
+	m := 5
+	notes := "Reforma"
+	c, err := svc.Create(ctx, CreateCostRequest{
+		BudgetID:      "2026",
 		Name:          "Reforma Sala",
-		Value:         3500,
-		TargetMonthID: &targetM,
+		DefaultMonth:  &m,
+		MarginPercent: 10,
+		Notes:         &notes,
 	})
 	if err != nil {
 		t.Fatalf("falha ao criar custo: %v", err)
 	}
 
-	if cost.ID == "" {
-		t.Errorf("esperava id gerado")
+	if c.ID != "cost-1" {
+		t.Errorf("esperava id cost-1, obteve %s", c.ID)
 	}
 
-	got, err := svc.GetByID(ctx, cost.ID)
-	if err != nil || got.Value != 3500 {
+	got, err := svc.GetByID(ctx, c.ID)
+	if err != nil || got.Name != "Reforma Sala" {
 		t.Errorf("erro no get: %v", err)
 	}
 
-	newVal := 4000.0
-	updated, err := svc.Update(ctx, cost.ID, &UpdateOneTimeCostInput{
-		Value: &newVal,
+	newName := "Reforma Quarto"
+	updated, err := svc.Patch(ctx, c.ID, PatchCostRequest{
+		Name: &newName,
 	})
-	if err != nil || updated.Value != 4000 {
-		t.Errorf("erro no update: %v", err)
+	if err != nil || updated.Name != "Reforma Quarto" {
+		t.Errorf("erro no patch: %v", err)
 	}
 
-	if err := svc.Delete(ctx, cost.ID); err != nil {
+	if err := svc.Delete(ctx, c.ID); err != nil {
 		t.Fatalf("erro no delete: %v", err)
 	}
 
-	_, err = svc.GetByID(ctx, cost.ID)
+	_, err = svc.GetByID(ctx, c.ID)
 	if err != ErrCostNotFound {
 		t.Errorf("esperava ErrCostNotFound, veio %v", err)
 	}

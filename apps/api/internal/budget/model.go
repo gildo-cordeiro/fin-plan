@@ -6,56 +6,64 @@ import (
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
 )
 
-type SimulationSettings struct {
-	VarsPercent          float64 `json:"varsPercent" bson:"varsPercent"`
-	RendaPercent         float64 `json:"rendaPercent" bson:"rendaPercent"`
-	OneTimeMarginPercent float64 `json:"oneTimeMarginPercent" bson:"oneTimeMarginPercent"`
-	InitialBalance       float64 `json:"initialBalance" bson:"initialBalance"`
-	EmergencyReserve     float64 `json:"emergencyReserve" bson:"emergencyReserve"`
+type Budget struct {
+	ID                     string    `json:"id"`
+	Year                   int       `json:"year"`
+	InitialBalance         float64   `json:"initialBalance"`
+	EmergencyReserveTarget float64   `json:"emergencyReserveTarget"`
+	CreatedAt              time.Time `json:"createdAt"`
+	UpdatedAt              time.Time `json:"updatedAt"`
 }
 
-type BudgetYear struct {
-	ID         string             `json:"id" bson:"_id"`
-	Year       int                `json:"year" bson:"year"`
-	Simulation SimulationSettings `json:"simulation" bson:"simulation"`
-	Months     []Month            `json:"months" bson:"months"`
-	CreatedAt  time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedAt  time.Time          `json:"updatedAt" bson:"updatedAt"`
+type CreateBudgetRequest struct {
+	Year                   int      `json:"year"`
+	InitialBalance         *float64 `json:"initialBalance,omitempty"`
+	EmergencyReserveTarget *float64 `json:"emergencyReserveTarget,omitempty"`
 }
 
-type Month struct {
-	ID         string `json:"id" bson:"id"`
-	Name       string `json:"name" bson:"name"`
-	ShortName  string `json:"shortName" bson:"shortName"`
-	MonthIndex int    `json:"monthIndex" bson:"monthIndex"`
+type PatchBudgetRequest struct {
+	InitialBalance         *float64 `json:"initialBalance,omitempty"`
+	EmergencyReserveTarget *float64 `json:"emergencyReserveTarget,omitempty"`
+}
+
+type BudgetSummaryMonth struct {
+	Month              int     `json:"month"`
+	Income             float64 `json:"income"`
+	Cards              float64 `json:"cards"`
+	Fixed              float64 `json:"fixed"`
+	Variable           float64 `json:"variable"`
+	OneTimeCosts       float64 `json:"oneTimeCosts"`
+	TotalExpenses      float64 `json:"totalExpenses"`
+	MonthBalance       float64 `json:"monthBalance"`
+	AccumulatedBalance float64 `json:"accumulatedBalance"`
+}
+
+type BudgetSummaryTotals struct {
+	Income           float64 `json:"income"`
+	Cards            float64 `json:"cards"`
+	Fixed            float64 `json:"fixed"`
+	Variable         float64 `json:"variable"`
+	OneTimeCosts     float64 `json:"oneTimeCosts"`
+	TotalExpenses    float64 `json:"totalExpenses"`
+	NetBalance       float64 `json:"netBalance"`
+	FinalAccumulated float64 `json:"finalAccumulated"`
+}
+
+type BudgetSummary struct {
+	Year                   int                  `json:"year"`
+	InitialBalance         float64              `json:"initialBalance"`
+	EmergencyReserveTarget float64              `json:"emergencyReserveTarget"`
+	Months                 []BudgetSummaryMonth `json:"months"`
+	Totals                 BudgetSummaryTotals  `json:"totals"`
 }
 
 type YearViewModel struct {
-	Year         BudgetYear         `json:"year"`
-	Months       []Month            `json:"months"`
-	Items        []item.BudgetItem  `json:"items"`
-	OneTimeCosts []cost.OneTimeCost `json:"oneTimeCosts"`
-	Goals        []goal.Goal        `json:"goals"`
-}
-
-type CreateBudgetYearInput struct {
-	Year       int                 `json:"year"`
-	Simulation *SimulationSettings `json:"simulation,omitempty"`
-}
-
-type UpdateSimulationInput struct {
-	VarsPercent          *float64 `json:"varsPercent,omitempty"`
-	RendaPercent         *float64 `json:"rendaPercent,omitempty"`
-	OneTimeMarginPercent *float64 `json:"oneTimeMarginPercent,omitempty"`
-	InitialBalance       *float64 `json:"initialBalance,omitempty"`
-	EmergencyReserve     *float64 `json:"emergencyReserve,omitempty"`
-}
-
-type CreateMonthInput struct {
-	ID         string `json:"id,omitempty"`
-	Name       string `json:"name"`
-	ShortName  string `json:"shortName"`
-	MonthIndex int    `json:"monthIndex"`
+	Budget           Budget                    `json:"budget"`
+	Items            []item.Item               `json:"items"`
+	Costs            []cost.Cost               `json:"costs"`
+	Goals            []goal.Goal               `json:"goals"`
+	ReserveMovements []reserve.ReserveMovement `json:"reserveMovements,omitempty"`
 }

@@ -6,70 +6,107 @@ import (
 )
 
 type mockRepo struct {
-	items map[string]*Goal
+	goals map[string]*Goal
 }
 
 func newMockRepo() *mockRepo {
-	return &mockRepo{items: make(map[string]*Goal)}
+	return &mockRepo{goals: make(map[string]*Goal)}
 }
 
-func (m *mockRepo) Create(ctx context.Context, g *Goal) error {
-	m.items[g.ID] = g
-	return nil
+func (m *mockRepo) Create(ctx context.Context, req CreateGoalRequest) (*Goal, error) {
+	status := "ativa"
+	if req.Status != nil && *req.Status != "" {
+		status = *req.Status
+	}
+	g := &Goal{
+		ID:            "goal-1",
+		Name:          req.Name,
+		Description:   req.Description,
+		TargetAmount:  req.TargetAmount,
+		Icon:          req.Icon,
+		Color:         req.Color,
+		Status:        status,
+		Contributions: make([]GoalContribution, 0),
+	}
+	m.goals[g.ID] = g
+	return g, nil
 }
 
 func (m *mockRepo) GetByID(ctx context.Context, id string) (*Goal, error) {
-	return m.items[id], nil
+	g, ok := m.goals[id]
+	if !ok {
+		return nil, ErrGoalNotFound
+	}
+	return g, nil
 }
 
-func (m *mockRepo) List(ctx context.Context, status string) ([]Goal, error) {
-	var res []Goal
-	for _, it := range m.items {
-		if status == "" || it.Status == status {
-			res = append(res, *it)
-		}
+func (m *mockRepo) GetAll(ctx context.Context) ([]Goal, error) {
+	res := make([]Goal, 0)
+	for _, g := range m.goals {
+		res = append(res, *g)
 	}
 	return res, nil
 }
 
-func (m *mockRepo) Update(ctx context.Context, id string, input *UpdateGoalInput) (*Goal, error) {
-	g := m.items[id]
-	if g == nil {
-		return nil, nil
+func (m *mockRepo) Patch(ctx context.Context, id string, req PatchGoalRequest) (*Goal, error) {
+	g, ok := m.goals[id]
+	if !ok {
+		return nil, ErrGoalNotFound
 	}
-	if input.Name != nil {
-		g.Name = *input.Name
+	if req.Name != nil {
+		g.Name = *req.Name
 	}
-	if input.Status != nil {
-		g.Status = *input.Status
+	if req.Description != nil {
+		g.Description = req.Description
+	}
+	if req.TargetAmount != nil {
+		g.TargetAmount = *req.TargetAmount
+	}
+	if req.Status != nil {
+		g.Status = *req.Status
 	}
 	return g, nil
 }
 
 func (m *mockRepo) Delete(ctx context.Context, id string) error {
-	delete(m.items, id)
+	if _, ok := m.goals[id]; !ok {
+		return ErrGoalNotFound
+	}
+	delete(m.goals, id)
 	return nil
 }
 
-func (m *mockRepo) AddContribution(ctx context.Context, goalID string, contribution *GoalContribution) (*Goal, error) {
-	g := m.items[goalID]
-	if g == nil {
-		return nil, nil
+func (m *mockRepo) AddContribution(ctx context.Context, goalID string, req CreateContributionRequest) (*Goal, error) {
+	g, ok := m.goals[goalID]
+	if !ok {
+		return nil, ErrGoalNotFound
 	}
-	g.Contributions = append(g.Contributions, *contribution)
+	g.Contributions = append(g.Contributions, GoalContribution{
+		ID:     "c-1",
+		GoalID: goalID,
+		Date:   req.Date,
+		Amount: req.Amount,
+		Note:   req.Note,
+	})
 	return g, nil
 }
 
 func (m *mockRepo) DeleteContribution(ctx context.Context, goalID string, contributionID string) (*Goal, error) {
-	g := m.items[goalID]
-	if g == nil {
-		return nil, nil
+	g, ok := m.goals[goalID]
+	if !ok {
+		return nil, ErrGoalNotFound
 	}
-	var filtered []GoalContribution
+	filtered := make([]GoalContribution, 0)
+	found := false
 	for _, c := range g.Contributions {
-		if c.ID != contributionID {
+		if c.ID == contributionID {
+			found = true
+		} else {
 			filtered = append(filtered, c)
 		}
+	}
+	if !found {
+		return nil, ErrContributionNotFound
 	}
 	g.Contributions = filtered
 	return g, nil
@@ -80,7 +117,17 @@ func TestGoalService(t *testing.T) {
 	svc := NewService(repo)
 	ctx := context.Background()
 
-	g, err := svc.Create(ctx, &Goal{
+	// Validação de targetAmount <= 0
+	_, err := svc.Create(ctx, CreateGoalRequest{
+		Name:         "Reserva",
+		TargetAmount: 0,
+	})
+	if err == nil {
+		t.Fatalf("esperava erro para targetAmount 0")
+	}
+
+	// Criar meta válida
+	g, err := svc.Create(ctx, CreateGoalRequest{
 		Name:         "Reserva de Emergência",
 		TargetAmount: 50000,
 	})
@@ -93,7 +140,7 @@ func TestGoalService(t *testing.T) {
 	}
 
 	// Adicionar contribuição
-	updated, err := svc.AddContribution(ctx, g.ID, &AddContributionInput{
+	updated, err := svc.AddContribution(ctx, g.ID, CreateContributionRequest{
 		Amount: 2500,
 		Date:   "2026-10-01",
 	})

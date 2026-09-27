@@ -3,124 +3,118 @@ package budget
 import (
 	"context"
 	"testing"
+	"time"
 )
 
-type mockRepo struct {
-	years map[int]*BudgetYear
+type mockBudgetRepo struct {
+	budgets map[int]*Budget
 }
 
-func newMockRepo() *mockRepo {
-	return &mockRepo{
-		years: make(map[int]*BudgetYear),
+func newMockBudgetRepo() *mockBudgetRepo {
+	return &mockBudgetRepo{
+		budgets: make(map[int]*Budget),
 	}
 }
 
-func (m *mockRepo) CreateYear(ctx context.Context, y *BudgetYear) error {
-	m.years[y.Year] = y
-	return nil
-}
-
-func (m *mockRepo) GetYearByYear(ctx context.Context, year int) (*BudgetYear, error) {
-	return m.years[year], nil
-}
-
-func (m *mockRepo) ListYears(ctx context.Context) ([]BudgetYear, error) {
-	var res []BudgetYear
-	for _, y := range m.years {
-		res = append(res, *y)
+func (m *mockBudgetRepo) GetAll(ctx context.Context) ([]Budget, error) {
+	res := make([]Budget, 0)
+	for _, b := range m.budgets {
+		res = append(res, *b)
 	}
 	return res, nil
 }
 
-func (m *mockRepo) UpdateSimulation(ctx context.Context, year int, input *UpdateSimulationInput) (*BudgetYear, error) {
-	y := m.years[year]
-	if y == nil {
-		return nil, nil
+func (m *mockBudgetRepo) GetByYear(ctx context.Context, year int) (*Budget, error) {
+	b, ok := m.budgets[year]
+	if !ok {
+		return nil, ErrBudgetNotFound
 	}
-	if input.VarsPercent != nil {
-		y.Simulation.VarsPercent = *input.VarsPercent
-	}
-	if input.RendaPercent != nil {
-		y.Simulation.RendaPercent = *input.RendaPercent
-	}
-	return y, nil
+	return b, nil
 }
 
-func (m *mockRepo) AddMonthToYear(ctx context.Context, year int, month *Month) error {
-	y := m.years[year]
-	if y == nil {
-		return ErrYearNotFound
+func (m *mockBudgetRepo) Create(ctx context.Context, req CreateBudgetRequest) (*Budget, error) {
+	initBal := 0.0
+	if req.InitialBalance != nil {
+		initBal = *req.InitialBalance
 	}
-	for i, existing := range y.Months {
-		if existing.ID == month.ID {
-			y.Months[i] = *month
-			return nil
-		}
+	resTarget := 0.0
+	if req.EmergencyReserveTarget != nil {
+		resTarget = *req.EmergencyReserveTarget
 	}
-	y.Months = append(y.Months, *month)
-	return nil
+
+	b := &Budget{
+		ID:                     string(rune(req.Year)),
+		Year:                   req.Year,
+		InitialBalance:         initBal,
+		EmergencyReserveTarget: resTarget,
+		CreatedAt:              time.Now(),
+		UpdatedAt:              time.Now(),
+	}
+	m.budgets[req.Year] = b
+	return b, nil
 }
 
-func (m *mockRepo) GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error) {
-	y := m.years[year]
-	if y == nil {
-		return nil, nil
+func (m *mockBudgetRepo) Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error) {
+	b, ok := m.budgets[year]
+	if !ok {
+		return nil, ErrBudgetNotFound
 	}
-	return &YearViewModel{
-		Year:   *y,
-		Months: y.Months,
+	if req.InitialBalance != nil {
+		b.InitialBalance = *req.InitialBalance
+	}
+	if req.EmergencyReserveTarget != nil {
+		b.EmergencyReserveTarget = *req.EmergencyReserveTarget
+	}
+	b.UpdatedAt = time.Now()
+	return b, nil
+}
+
+func (m *mockBudgetRepo) GetSummary(ctx context.Context, year int) (*BudgetSummary, error) {
+	b, ok := m.budgets[year]
+	if !ok {
+		return nil, ErrBudgetNotFound
+	}
+	return &BudgetSummary{
+		Year:                   year,
+		InitialBalance:         b.InitialBalance,
+		EmergencyReserveTarget: b.EmergencyReserveTarget,
+		Months:                 make([]BudgetSummaryMonth, 12),
 	}, nil
 }
 
-func TestBudgetYearService(t *testing.T) {
-	repo := newMockRepo()
-	svc := NewService(repo)
+func TestBudgetService(t *testing.T) {
+	repo := newMockBudgetRepo()
+	svc := NewService(repo, nil, nil, nil, nil)
 	ctx := context.Background()
 
-	// Criar ano 2026
-	y, err := svc.CreateYear(ctx, &CreateBudgetYearInput{
-		Year: 2026,
-		Simulation: &SimulationSettings{
-			InitialBalance:   15000,
-			EmergencyReserve: 10000,
-		},
+	// Validação de ano
+	_, err := svc.Create(ctx, CreateBudgetRequest{Year: 1800})
+	if err == nil {
+		t.Fatalf("esperava erro para ano 1800")
+	}
+
+	// Criar orçamento 2026
+	initBal := 15000.0
+	resTarget := 10000.0
+	b, err := svc.Create(ctx, CreateBudgetRequest{
+		Year:                   2026,
+		InitialBalance:         &initBal,
+		EmergencyReserveTarget: &resTarget,
 	})
 	if err != nil {
-		t.Fatalf("falha ao criar ano: %v", err)
+		t.Fatalf("falha ao criar orçamento: %v", err)
 	}
-	if y.Year != 2026 {
-		t.Errorf("esperava ano 2026, veio %d", y.Year)
-	}
-
-	// 12 meses devem ter sido embutidos no ano
-	if len(y.Months) != 12 {
-		t.Errorf("esperava 12 meses embutidos, vieram %d", len(y.Months))
-	}
-	if y.Months[0].ID != "2026-01" {
-		t.Errorf("esperava primeiro mês 2026-01, veio %s", y.Months[0].ID)
+	if b.Year != 2026 {
+		t.Errorf("esperava ano 2026, veio %d", b.Year)
 	}
 
-	// Atualizar simulação do ano
-	newVars := 10.0
-	updated, err := svc.UpdateSimulation(ctx, 2026, &UpdateSimulationInput{
-		VarsPercent: &newVars,
+	// Atualizar orçamento
+	newInit := 20000.0
+	updated, err := svc.Patch(ctx, 2026, PatchBudgetRequest{
+		InitialBalance: &newInit,
 	})
-	if err != nil || updated.Simulation.VarsPercent != 10.0 {
-		t.Errorf("falha ao atualizar simulação: %v", err)
-	}
-
-	// Adicionar um mês extra ao ano
-	newMonth, err := svc.AddMonth(ctx, 2026, &CreateMonthInput{
-		ID:         "2026-13",
-		Name:       "Décimo Terceiro 2026",
-		ShortName:  "13º/26",
-		MonthIndex: 12,
-	})
-	if err != nil {
-		t.Fatalf("falha ao adicionar mês: %v", err)
-	}
-	if newMonth.ID != "2026-13" {
-		t.Errorf("esperava ID 2026-13, veio %s", newMonth.ID)
+	if err != nil || updated.InitialBalance != 20000 {
+		t.Errorf("falha ao atualizar orçamento: %v", err)
 	}
 
 	// Buscar YearViewModel
@@ -128,19 +122,13 @@ func TestBudgetYearService(t *testing.T) {
 	if err != nil || vm == nil {
 		t.Fatalf("falha ao buscar view model: %v", err)
 	}
-	if len(vm.Months) != 13 {
-		t.Errorf("esperava 13 meses na view model após adicionar mês, vieram %d", len(vm.Months))
+	if vm.Budget.Year != 2026 {
+		t.Errorf("esperava ano 2026 na view model, veio %d", vm.Budget.Year)
 	}
 
-	// Testar validação de ano inválido
-	_, err = svc.CreateYear(ctx, &CreateBudgetYearInput{Year: 1800})
-	if err != ErrInvalidYear {
-		t.Errorf("esperava ErrInvalidYear, veio %v", err)
-	}
-
-	// Testar adicionar mês a ano inexistente
-	_, err = svc.AddMonth(ctx, 2099, &CreateMonthInput{Name: "Jan 2099"})
-	if err != ErrYearNotFound {
-		t.Errorf("esperava ErrYearNotFound, veio %v", err)
+	// Buscar Summary
+	summary, err := svc.GetSummary(ctx, 2026)
+	if err != nil || summary.Year != 2026 {
+		t.Fatalf("falha ao buscar summary: %v", err)
 	}
 }

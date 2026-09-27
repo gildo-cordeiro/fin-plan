@@ -73,7 +73,7 @@ export const BudgetManagementModal = ({
 
   const categoryTotal = currentItems
     .filter((i) => !i.off)
-    .reduce((acc, i) => acc + (i.values[selectedMonthId] ?? 0), 0);
+    .reduce((acc, i) => acc + (i.values?.[selectedMonthId] ?? 0), 0);
 
   const handleAddNewItem = (nameToAdd?: string) => {
     const finalName = (nameToAdd || newItemName).trim();
@@ -184,7 +184,7 @@ export const BudgetManagementModal = ({
             </div>
           ) : (
             currentItems.map((item) => {
-              const val = item.values[selectedMonthId] ?? 0;
+              const val = item.values?.[selectedMonthId] ?? 0;
               return (
                 <div
                   key={item.id}

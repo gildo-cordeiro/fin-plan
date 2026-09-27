@@ -1,12 +1,18 @@
 import type {
-  BudgetYear,
+  Budget,
   YearViewModel,
-  BudgetItem,
-  OneTimeCost,
+  Item,
+  Entry,
+  Cost,
+  CostItem,
   FinancialGoal,
-  SimulationSettings,
-  MonthItem,
+  ReserveMovement,
+  BudgetSummary,
 } from '../types/budget';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function getBaseUrl(): string {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
@@ -54,90 +60,195 @@ async function request<T>(
   }
 }
 
-export interface FetchBudgetOptions {
-  timeoutMs?: number;
-  retries?: number;
-}
+// ---------------------------------------------------------------------------
+// API Service — endpoints PostgreSQL (plano de migração)
+// ---------------------------------------------------------------------------
 
 export const budgetApiService = {
-  // === Métodos Agregados por Ano (Nova API v1) ===
+  // === Budget ===
 
-  async fetchBudgetYears(): Promise<BudgetYear[]> {
-    return request<BudgetYear[]>('/api/v1/budget-years');
+  /** Lista todos os anos orçamentários. */
+  async fetchBudgets(): Promise<Budget[]> {
+    return request<Budget[]>('/api/v1/budgets');
   },
 
+  /** Carrega visão completa de um ano (budget + items/entries + costs/costItems + goals). */
   async fetchBudgetYear(year: number): Promise<YearViewModel> {
-    return request<YearViewModel>(`/api/v1/budget-years/${year}`);
+    return request<YearViewModel>(`/api/v1/budgets/${year}`);
   },
 
-  async createBudgetYear(year: number, simulation?: Partial<SimulationSettings>): Promise<BudgetYear> {
-    return request<BudgetYear>('/api/v1/budget-years', {
+  /** Cria um novo ano orçamentário. */
+  async createBudget(data: {
+    year: number;
+    initialBalance?: number;
+    emergencyReserveTarget?: number;
+  }): Promise<Budget> {
+    return request<Budget>('/api/v1/budgets', {
       method: 'POST',
-      body: JSON.stringify({ year, simulation }),
+      body: JSON.stringify(data),
     });
   },
 
-  async updateYearSimulation(year: number, patch: Partial<SimulationSettings>): Promise<BudgetYear> {
-    return request<BudgetYear>(`/api/v1/budget-years/${year}`, {
+  /** Atualiza initialBalance e/ou emergencyReserveTarget do budget. */
+  async updateBudget(
+    year: number,
+    patch: { initialBalance?: number; emergencyReserveTarget?: number }
+  ): Promise<Budget> {
+    return request<Budget>(`/api/v1/budgets/${year}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     });
   },
 
-  async addMonthToYear(year: number, month: Partial<MonthItem>): Promise<MonthItem> {
-    return request<MonthItem>(`/api/v1/budget-years/${year}/months`, {
+  /** Retorna sumário mensal agregado (fonte de verdade para totais). */
+  async fetchSummary(year: number): Promise<BudgetSummary> {
+    return request<BudgetSummary>(`/api/v1/budgets/${year}/summary`);
+  },
+
+  // === Items ===
+
+  /** Cria um item de orçamento. O backend gera automaticamente 12 entries. */
+  async createItem(data: {
+    budgetId: string;
+    name: string;
+    type: string;
+  }): Promise<Item> {
+    return request<Item>('/api/v1/items', {
       method: 'POST',
-      body: JSON.stringify(month),
+      body: JSON.stringify(data),
     });
   },
 
-  // === Métodos Atômicos: Budget Items ===
-
-  async createBudgetItem(item: Partial<BudgetItem>): Promise<BudgetItem> {
-    return request<BudgetItem>('/api/v1/budget-items', {
-      method: 'POST',
-      body: JSON.stringify(item),
-    });
-  },
-
-  async updateBudgetItem(id: string, patch: Partial<BudgetItem>): Promise<BudgetItem> {
-    return request<BudgetItem>(`/api/v1/budget-items/${id}`, {
+  /** Atualiza nome do item. */
+  async updateItem(id: string, patch: { name?: string }): Promise<Item> {
+    return request<Item>(`/api/v1/items/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     });
   },
 
-  async deleteBudgetItem(id: string): Promise<boolean> {
-    await request<{ success: boolean }>(`/api/v1/budget-items/${id}`, {
+  /** Exclui item e todas as suas entries (cascata). */
+  async deleteItem(id: string): Promise<void> {
+    await request<{ success: boolean }>(`/api/v1/items/${id}`, {
       method: 'DELETE',
     });
-    return true;
   },
 
-  // === Métodos Atômicos: One-Time Costs ===
+  // === Entries ===
 
-  async createOneTimeCost(cost: Partial<OneTimeCost>): Promise<OneTimeCost> {
-    return request<OneTimeCost>('/api/v1/one-time-costs', {
-      method: 'POST',
-      body: JSON.stringify(cost),
-    });
-  },
-
-  async updateOneTimeCost(id: string, patch: Partial<OneTimeCost>): Promise<OneTimeCost> {
-    return request<OneTimeCost>(`/api/v1/one-time-costs/${id}`, {
+  /**
+   * Atualiza uma entry. Usa PATCH parcial de verdade:
+   * - Para editar planejado: { plannedAmount: 8500 }
+   * - Para confirmar realizado: { actualAmount: 8400, paidDate: '2026-10-05' }
+   * - Para desconfirmar: { actualAmount: null, paidDate: null }
+   * O backend só altera os campos presentes no body.
+   */
+  async updateEntry(
+    id: string,
+    patch: {
+      plannedAmount?: number;
+      actualAmount?: number | null;
+      dueDate?: string | null;
+      paidDate?: string | null;
+    }
+  ): Promise<Entry> {
+    return request<Entry>(`/api/v1/entries/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     });
   },
 
-  async deleteOneTimeCost(id: string): Promise<boolean> {
-    await request<{ success: boolean }>(`/api/v1/one-time-costs/${id}`, {
-      method: 'DELETE',
+  // === Costs ===
+
+  /** Cria um projeto de custo pontual. */
+  async createCost(data: {
+    budgetId: string;
+    name: string;
+    defaultMonth?: number | null;
+    marginPercent?: number;
+    notes?: string;
+  }): Promise<Cost> {
+    return request<Cost>('/api/v1/costs', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
-    return true;
   },
 
-  // === Métodos Atômicos: Goals & Contributions ===
+  /**
+   * Detalha um cost com items[], totalPlanned e totalWithMargin
+   * (calculados no backend via SQL SUM).
+   */
+  async fetchCost(id: string): Promise<Cost> {
+    return request<Cost>(`/api/v1/costs/${id}`);
+  },
+
+  /** Atualiza propriedades do cost (PATCH parcial). */
+  async updateCost(
+    id: string,
+    patch: {
+      name?: string;
+      defaultMonth?: number | null;
+      marginPercent?: number;
+      notes?: string;
+    }
+  ): Promise<Cost> {
+    return request<Cost>(`/api/v1/costs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  },
+
+  /** Exclui cost e todos os seus cost_items (cascata). */
+  async deleteCost(id: string): Promise<void> {
+    await request<{ success: boolean }>(`/api/v1/costs/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // === Cost Items ===
+
+  /** Cria um item dentro de um projeto de custo pontual. */
+  async createCostItem(
+    costId: string,
+    data: {
+      name: string;
+      plannedAmount: number;
+      month?: number | null;
+    }
+  ): Promise<CostItem> {
+    return request<CostItem>(`/api/v1/costs/${costId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Atualiza um cost_item (PATCH parcial). */
+  async updateCostItem(
+    costId: string,
+    id: string,
+    patch: {
+      name?: string;
+      plannedAmount?: number;
+      actualAmount?: number | null;
+      month?: number | null;
+      dueDate?: string | null;
+      paidDate?: string | null;
+    }
+  ): Promise<CostItem> {
+    return request<CostItem>(`/api/v1/costs/${costId}/items/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+  },
+
+  /** Exclui um cost_item. */
+  async deleteCostItem(costId: string, id: string): Promise<void> {
+    await request<{ success: boolean }>(`/api/v1/costs/${costId}/items/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // === Goals & Contributions ===
 
   async createGoal(goal: Partial<FinancialGoal>): Promise<FinancialGoal> {
     return request<FinancialGoal>('/api/v1/goals', {
@@ -153,11 +264,10 @@ export const budgetApiService = {
     });
   },
 
-  async deleteGoal(id: string): Promise<boolean> {
+  async deleteGoal(id: string): Promise<void> {
     await request<{ success: boolean }>(`/api/v1/goals/${id}`, {
       method: 'DELETE',
     });
-    return true;
   },
 
   async addGoalContribution(
@@ -174,5 +284,25 @@ export const budgetApiService = {
     return request<FinancialGoal>(`/api/v1/goals/${goalId}/contributions/${contributionId}`, {
       method: 'DELETE',
     });
+  },
+
+  // === Reserve Movements (imutável — só Create e List) ===
+
+  /** Cria movimentação de reserva (aporte ou retirada). */
+  async createReserveMovement(data: {
+    budgetId: string;
+    month: number;
+    amount: number;
+    reason?: string;
+  }): Promise<ReserveMovement> {
+    return request<ReserveMovement>('/api/v1/reserve-movements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Lista histórico de movimentações da reserva para um ano. */
+  async fetchReserveMovements(year: number): Promise<ReserveMovement[]> {
+    return request<ReserveMovement[]>(`/api/v1/budgets/${year}/reserve-movements`);
   },
 };

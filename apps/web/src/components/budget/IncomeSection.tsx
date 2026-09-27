@@ -13,10 +13,11 @@ export const IncomeSection = () => {
     repeatValueForward,
   } = useBudget();
 
-  const { months, incomes } = state;
+  const { months } = state;
+  const incomes = state.incomes || [];
 
   const monthTotals = months.map((m) =>
-    incomes.reduce((acc, item) => acc + (item.values[m.id] ?? 0), 0)
+    incomes.reduce((acc, item) => acc + (item.values?.[m.id] ?? 0), 0)
   );
   const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
 
@@ -56,7 +57,7 @@ export const IncomeSection = () => {
 
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {incomes.map((item) => {
-              const rowTotal = months.reduce((acc, m) => acc + (item.values[m.id] ?? 0), 0);
+              const rowTotal = months.reduce((acc, m) => acc + (item.values?.[m.id] ?? 0), 0);
               return (
                 <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                   <td className="sticky left-0 z-10 bg-white dark:bg-slate-900 py-1.5 text-center text-slate-400">•</td>
@@ -74,7 +75,7 @@ export const IncomeSection = () => {
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
                         <CurrencyInput
-                          value={item.values[m.id] ?? 0}
+                          value={item.values?.[m.id] ?? 0}
                           onChange={(val) => updateItemValue('renda', item.id, m.id, val)}
                           ariaLabel={`${item.name} em ${m.shortName}`}
                         />

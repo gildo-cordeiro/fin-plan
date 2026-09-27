@@ -28,14 +28,14 @@ export const CategorySection = ({
   } = useBudget();
 
   const { months, lists, simulation } = state;
-  const items = lists[categoryKey];
+  const items = (lists && lists[categoryKey]) || [];
 
   const simFactor = categoryKey === 'vars' ? 1 + simulation.varsPercent / 100 : 1;
 
   const monthTotals = months.map((m) =>
     items
       .filter((i) => !i.off)
-      .reduce((acc, item) => acc + (item.values[m.id] ?? 0) * simFactor, 0)
+      .reduce((acc, item) => acc + (item.values?.[m.id] ?? 0) * simFactor, 0)
   );
   const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
 
@@ -75,7 +75,7 @@ export const CategorySection = ({
 
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {items.map((item) => {
-              const rowTotal = months.reduce((acc, m) => acc + (item.values[m.id] ?? 0), 0);
+              const rowTotal = months.reduce((acc, m) => acc + (item.values?.[m.id] ?? 0), 0);
               return (
                 <tr
                   key={item.id}
@@ -107,7 +107,7 @@ export const CategorySection = ({
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
                         <CurrencyInput
-                          value={item.values[m.id] ?? 0}
+                          value={item.values?.[m.id] ?? 0}
                           onChange={(val) => updateItemValue(categoryKey, item.id, m.id, val)}
                           disabled={item.off}
                           ariaLabel={`${item.name} em ${m.shortName}`}

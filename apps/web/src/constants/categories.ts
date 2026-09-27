@@ -73,6 +73,7 @@ export const CATEGORY_DEFINITIONS: Record<BudgetCategoryKey, CategoryMeta> = {
   cartao: cartaoMeta,
   fixa: fixaMeta,
   var: varMeta,
+  variavel: varMeta,
 };
 
 export const TRANSACTION_CATEGORIES: CategoryMeta[] = [

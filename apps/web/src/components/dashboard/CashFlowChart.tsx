@@ -10,7 +10,7 @@ export const CashFlowChart = () => {
     {
       label: 'Hoje',
       sublabel: 'Saldo Inicial em Caixa',
-      value: state.simulation.initialBalance,
+      value: state.budget?.initialBalance ?? 0,
       income: 0,
       expenses: 0,
       monthBalance: 0,

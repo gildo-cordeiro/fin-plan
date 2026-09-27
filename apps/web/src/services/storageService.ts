@@ -1,112 +1,180 @@
-import type { BudgetState, BudgetItem } from '../types/budget';
-import { normalizeBudgetItemType } from '../constants/enums';
-import { INITIAL_BUDGET_STATE } from '../constants/seedData';
+import type { SimulationSettings } from '../types/budget';
 
-export function migrateState(raw: unknown): BudgetState {
-  if (!raw || typeof raw !== 'object') {
-    return INITIAL_BUDGET_STATE;
+// ---------------------------------------------------------------------------
+// Schema v5 — localStorage restrito a: percentuais de simulação + UI prefs.
+// Dados reais (items, entries, costs, goals) são 100% backend.
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY = 'finplan-app-data-v5';
+
+export interface LocalSettings {
+  version: 5;
+  currentYear: number;
+  simulation: SimulationSettings;   // varsPercent, rendaPercent, oneTimeMarginPercent
+  theme: 'light' | 'dark';
+}
+
+const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
+  version: 5,
+  currentYear: new Date().getFullYear(),
+  simulation: {
+    varsPercent: 0,
+    rendaPercent: 0,
+    oneTimeMarginPercent: 0,
+  },
+  theme: 'light',
+};
+
+function getStorage(): Storage | null {
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+    return window.localStorage;
+  }
+  if (typeof localStorage !== 'undefined') {
+    return localStorage;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Migração v4 → v5
+// ---------------------------------------------------------------------------
+
+function migrateFromPrevious(): LocalSettings {
+  const storage = getStorage();
+  if (!storage) return DEFAULT_LOCAL_SETTINGS;
+
+  const legacyKeys = ['finplan-app-data', 'finplan-app-data-v3', 'finplan-app-data-v4'];
+  let legacyData: any = null;
+
+  for (const key of legacyKeys) {
+    try {
+      const raw = storage.getItem(key);
+      if (raw) {
+        legacyData = JSON.parse(raw);
+        storage.removeItem(key);
+      }
+    } catch {
+      // Ignora erros de parsing
+    }
   }
 
-  const data = raw as any;
+  if (!legacyData) return DEFAULT_LOCAL_SETTINGS;
 
-  let oneTimeCosts = INITIAL_BUDGET_STATE.oneTimeCosts;
-  if (Array.isArray(data.oneTimeCosts)) {
-    oneTimeCosts = data.oneTimeCosts.map((item: any) => ({
-      id: item.id,
-      name: item.name || 'Custo Pontual',
-      value: typeof item.value === 'number' ? item.value : (item.oneTimeValue ?? 0),
-      targetMonthId: item.targetMonthId,
-      off: Boolean(item.off),
-      notes: item.notes,
-    }));
-  }
-
-  const items: BudgetItem[] = Array.isArray(data.items)
-    ? data.items.map((i: any) => ({
-        ...i,
-        type: i.type || normalizeBudgetItemType(i.category || 'renda'),
-      }))
-    : [
-        ...(Array.isArray(data.incomes)
-          ? data.incomes.map((i: any) => ({ ...i, type: 'renda' as const }))
-          : []),
-        ...(Array.isArray(data.lists?.cartoes)
-          ? data.lists.cartoes.map((i: any) => ({ ...i, type: 'cartao' as const }))
-          : []),
-        ...(Array.isArray(data.lists?.fixas)
-          ? data.lists.fixas.map((i: any) => ({ ...i, type: 'fixa' as const }))
-          : []),
-        ...(Array.isArray(data.lists?.vars)
-          ? data.lists.vars.map((i: any) => ({ ...i, type: 'var' as const }))
-          : []),
-      ];
-
-  const incomes = items.filter((i) => i.type === 'renda');
-  const cartoes = items.filter((i) => i.type === 'cartao');
-  const fixas = items.filter((i) => i.type === 'fixa');
-  const vars = items.filter((i) => i.type === 'var');
-
-  const currentYear =
-    typeof data.currentYear === 'number'
-      ? data.currentYear
-      : data.months?.[0]?.year || INITIAL_BUDGET_STATE.currentYear;
-
-  const simulation = {
-    ...INITIAL_BUDGET_STATE.simulation,
-    ...(data.simulation ?? {}),
-  };
-
-  const years =
-    Array.isArray(data.years) && data.years.length > 0
-      ? data.years
-      : [
-          {
-            id: String(currentYear),
-            year: currentYear,
-            simulation,
-          },
-        ];
+  const simulation = legacyData.simulation || {};
 
   return {
-    ...INITIAL_BUDGET_STATE,
     version: 5,
-    currentYear,
-    years,
-    months: Array.isArray(data.months) && data.months.length > 0 ? data.months : INITIAL_BUDGET_STATE.months,
-    simulation,
-    items,
-    incomes,
-    lists: {
-      cartoes,
-      fixas,
-      vars,
+    currentYear: legacyData.currentYear || DEFAULT_LOCAL_SETTINGS.currentYear,
+    simulation: {
+      varsPercent: simulation.varsPercent ?? 0,
+      rendaPercent: simulation.rendaPercent ?? 0,
+      oneTimeMarginPercent: simulation.oneTimeMarginPercent ?? 0,
     },
-    oneTimeCosts,
-    goals: Array.isArray(data.goals) ? data.goals : INITIAL_BUDGET_STATE.goals,
+    theme: legacyData.theme || DEFAULT_LOCAL_SETTINGS.theme,
   };
 }
 
-export function loadTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
+// ---------------------------------------------------------------------------
+// CRUD de LocalSettings
+// ---------------------------------------------------------------------------
+
+export function loadLocalSettings(): LocalSettings {
+  const storage = getStorage();
+  if (!storage) return DEFAULT_LOCAL_SETTINGS;
 
   try {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const raw = storage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw) as LocalSettings;
+      if (data.version === 5) return data;
+    }
   } catch {
-    return 'light';
+    // Dados corrompidos
   }
+
+  const migrated = migrateFromPrevious();
+  saveLocalSettings(migrated);
+  return migrated;
+}
+
+export function saveLocalSettings(settings: LocalSettings): void {
+  const storage = getStorage();
+  if (!storage) return;
+
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.error('[StorageService] Falha ao salvar configurações locais:', error);
+  }
+}
+
+export function updateSimulationSettings(patch: Partial<SimulationSettings>): SimulationSettings {
+  const current = loadLocalSettings();
+  const updated: SimulationSettings = {
+    varsPercent: patch.varsPercent !== undefined ? patch.varsPercent : current.simulation.varsPercent,
+    rendaPercent: patch.rendaPercent !== undefined ? patch.rendaPercent : current.simulation.rendaPercent,
+    oneTimeMarginPercent: patch.oneTimeMarginPercent !== undefined ? patch.oneTimeMarginPercent : current.simulation.oneTimeMarginPercent,
+  };
+  saveLocalSettings({ ...current, simulation: updated });
+  return updated;
+}
+
+export function saveCurrentYear(year: number): void {
+  const current = loadLocalSettings();
+  saveLocalSettings({ ...current, currentYear: year });
+}
+
+// ---------------------------------------------------------------------------
+// Tema
+// ---------------------------------------------------------------------------
+
+export function loadTheme(): 'light' | 'dark' {
+  const storage = getStorage();
+
+  if (storage) {
+    try {
+      const raw = storage.getItem(STORAGE_KEY);
+      if (raw) {
+        const settings = JSON.parse(raw) as LocalSettings;
+        if (settings.theme) return settings.theme;
+      }
+    } catch {
+      // ignora
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  }
+
+  return 'light';
 }
 
 export function saveTheme(theme: 'light' | 'dark'): void {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+  const storage = getStorage();
+  if (storage) {
+    try {
+      const settings = loadLocalSettings();
+      saveLocalSettings({ ...settings, theme });
+    } catch {
+      // ignora
     }
-  } catch (error) {
-    console.error('[StorageService] Falha ao aplicar tema:', error);
+  }
+
+  if (typeof document !== 'undefined' && document.documentElement) {
+    try {
+      const root = document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    } catch (error) {
+      console.error('[StorageService] Falha ao aplicar classe no tema:', error);
+    }
   }
 }
