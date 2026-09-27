@@ -20,6 +20,7 @@ import (
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/middleware"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
+	"github.com/gildo-cordeiro/fin-plan/apps/api/migrations"
 )
 
 type App struct {
@@ -44,6 +45,12 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 			} else {
 				a.pool = pool
 				log.Println("[INFO] Conectado ao PostgreSQL com sucesso.")
+
+				if err := ensureSchema(poolCtx, pool); err != nil {
+					log.Printf("[ERROR] Falha ao aplicar schema PostgreSQL: %v", err)
+				} else {
+					log.Println("[INFO] Schema e tabelas do banco de dados verificados com sucesso.")
+				}
 			}
 		}
 	} else {
@@ -155,5 +162,23 @@ func (a *App) Run(ctx context.Context) error {
 	}
 
 	log.Println("[INFO] Servidor encerrado com sucesso.")
+	return nil
+}
+
+func ensureSchema(ctx context.Context, pool *pgxpool.Pool) error {
+	if _, err := pool.Exec(ctx, migrations.InitialSchemaSQL); err != nil {
+		return fmt.Errorf("falha ao executar migrations: %w", err)
+	}
+
+	// Garante que o orçamento do ano corrente (2026) exista como baseline se o banco for novo
+	_, err := pool.Exec(ctx, `
+		INSERT INTO budget (id, year, initial_balance, emergency_reserve_target)
+		VALUES ('2026', 2026, 0, 0)
+		ON CONFLICT (year) DO NOTHING;
+	`)
+	if err != nil {
+		log.Printf("[WARN] Falha ao criar orçamento baseline para 2026: %v", err)
+	}
+
 	return nil
 }
