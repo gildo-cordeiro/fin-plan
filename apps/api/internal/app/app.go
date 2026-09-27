@@ -70,7 +70,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	router := a.routes()
 	var handler http.Handler = router
 	handler = middleware.Auth(cfg.APISecretKey)(handler)
-	handler = middleware.CORS()(handler)
+	handler = middleware.CORS(cfg.AllowedOrigins)(handler)
 
 	a.server = &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),

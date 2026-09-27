@@ -24,5 +24,9 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func WriteError(w http.ResponseWriter, status int, message string) {
+	if status == http.StatusInternalServerError {
+		log.Printf("[ERROR] Internal Server Error: %s", message)
+		message = "Erro interno do servidor"
+	}
 	WriteJSON(w, status, ErrorResponse{Error: message})
 }

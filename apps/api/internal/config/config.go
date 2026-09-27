@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	DatabaseURL  string
-	APISecretKey string
-	Port         string
+	DatabaseURL    string
+	APISecretKey   string
+	Port           string
+	AllowedOrigins []string
 }
 
 func Load() *Config {
@@ -22,10 +23,21 @@ func Load() *Config {
 		dbURL = "postgres://postgres:postgres@localhost:5432/finplan?sslmode=disable"
 	}
 
+	originsRaw := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	var origins []string
+	if originsRaw == "" {
+		origins = []string{"http://localhost:5173", "http://localhost:3000"}
+	} else {
+		for _, o := range strings.Split(originsRaw, ",") {
+			origins = append(origins, strings.TrimSpace(o))
+		}
+	}
+
 	return &Config{
-		DatabaseURL:  dbURL,
-		APISecretKey: strings.TrimSpace(os.Getenv("API_SECRET_KEY")),
-		Port:         getEnvOrDefault("PORT", "8080"),
+		DatabaseURL:    dbURL,
+		APISecretKey:   strings.TrimSpace(os.Getenv("API_SECRET_KEY")),
+		Port:           getEnvOrDefault("PORT", "8080"),
+		AllowedOrigins: origins,
 	}
 }
 

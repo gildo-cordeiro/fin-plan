@@ -10,7 +10,7 @@ import (
 )
 
 func TestCORS_Preflight_AllowsPatchAndDelete(t *testing.T) {
-	handler := middleware.CORS()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.CORS([]string{"https://web-zeta-ten-62.vercel.app"})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -41,7 +41,7 @@ func TestCORS_Preflight_AllowsPatchAndDelete(t *testing.T) {
 
 func TestCORS_NonOptions_PassesThrough(t *testing.T) {
 	called := false
-	handler := middleware.CORS()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := middleware.CORS([]string{"http://localhost:5173"})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 		w.WriteHeader(http.StatusAccepted)
 	}))
