@@ -22,8 +22,6 @@ export interface Budget {
   year: number;
   initialBalance: number;
   emergencyReserveTarget: number;
-  reconciledMonth?: number | null;
-  reconciledBalance?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -149,8 +147,6 @@ export interface BudgetSummary {
   year: number;
   initialBalance: number;
   emergencyReserveTarget: number;
-  reconciledMonth?: number | null;
-  reconciledBalance?: number | null;
   months: BudgetSummaryMonth[];
   totals: BudgetSummaryTotals;
 }
@@ -178,8 +174,6 @@ export interface SimulationSettings {
   initialBalance?: number;
   emergencyReserveTarget?: number;
   emergencyReserve?: number;
-  reconciledMonth?: number | null;
-  reconciledBalance?: number | null;
 }
 
 // ---------------------------------------------------------------------------

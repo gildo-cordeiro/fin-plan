@@ -142,21 +142,4 @@ describe('budgetCalculator (client-side simulation on BudgetSummary)', () => {
     const avg = getAverageMonthlyVars(items);
     expect(avg).toBe(200); // 2400 / 12 meses
   });
-
-  it('aplica âncora de conciliação de saldo preservando meses anteriores e projetando futuros', () => {
-    const summary = createMockSummary();
-    summary.reconciledMonth = 11;
-    summary.reconciledBalance = 20000;
-
-    const months = buildMonthlySummaries(summary, defaultSim);
-
-    // Mês 10 (anterior à âncora): preserva histórico original (10000 + 3000 = 13000)
-    expect(months[0].accumulatedBalance).toBe(13000);
-
-    // Mês 11 (mês da âncora): assume exatamente o saldo real conciliado (20000)
-    expect(months[1].accumulatedBalance).toBe(20000);
-
-    // Mês 12 (posterior à âncora): projeta a partir de 20000 + sobra de dez (3500) = 23500
-    expect(months[2].accumulatedBalance).toBe(23500);
-  });
 });

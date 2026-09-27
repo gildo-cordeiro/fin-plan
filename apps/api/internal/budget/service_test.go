@@ -47,8 +47,6 @@ func (m *mockBudgetRepo) Create(ctx context.Context, req CreateBudgetRequest) (*
 		Year:                   req.Year,
 		InitialBalance:         initBal,
 		EmergencyReserveTarget: resTarget,
-		ReconciledMonth:        req.ReconciledMonth,
-		ReconciledBalance:      req.ReconciledBalance,
 		CreatedAt:              time.Now(),
 		UpdatedAt:              time.Now(),
 	}
@@ -67,12 +65,6 @@ func (m *mockBudgetRepo) Patch(ctx context.Context, year int, req PatchBudgetReq
 	if req.EmergencyReserveTarget != nil {
 		b.EmergencyReserveTarget = *req.EmergencyReserveTarget
 	}
-	if req.ReconciledMonth != nil {
-		b.ReconciledMonth = req.ReconciledMonth
-	}
-	if req.ReconciledBalance != nil {
-		b.ReconciledBalance = req.ReconciledBalance
-	}
 	b.UpdatedAt = time.Now()
 	return b, nil
 }
@@ -86,8 +78,6 @@ func (m *mockBudgetRepo) GetSummary(ctx context.Context, year int) (*BudgetSumma
 		Year:                   year,
 		InitialBalance:         b.InitialBalance,
 		EmergencyReserveTarget: b.EmergencyReserveTarget,
-		ReconciledMonth:        b.ReconciledMonth,
-		ReconciledBalance:      b.ReconciledBalance,
 		Months:                 make([]BudgetSummaryMonth, 12),
 	}, nil
 }
@@ -101,13 +91,6 @@ func TestBudgetService(t *testing.T) {
 	_, err := svc.Create(ctx, CreateBudgetRequest{Year: 1800})
 	if err == nil {
 		t.Fatalf("esperava erro para ano 1800")
-	}
-
-	// Validação de mês conciliado
-	invalidMonth := 13
-	_, err = svc.Create(ctx, CreateBudgetRequest{Year: 2026, ReconciledMonth: &invalidMonth})
-	if err == nil {
-		t.Fatalf("esperava erro para mês conciliado 13")
 	}
 
 	// Criar orçamento 2026
@@ -125,23 +108,13 @@ func TestBudgetService(t *testing.T) {
 		t.Errorf("esperava ano 2026, veio %d", b.Year)
 	}
 
-	// Atualizar orçamento com conciliação
+	// Atualizar orçamento
 	newInit := 20000.0
-	recMonth := 9
-	recBal := 18500.0
 	updated, err := svc.Patch(ctx, 2026, PatchBudgetRequest{
-		InitialBalance:    &newInit,
-		ReconciledMonth:   &recMonth,
-		ReconciledBalance: &recBal,
+		InitialBalance: &newInit,
 	})
 	if err != nil || updated.InitialBalance != 20000 {
 		t.Errorf("falha ao atualizar orçamento: %v", err)
-	}
-	if updated.ReconciledMonth == nil || *updated.ReconciledMonth != 9 {
-		t.Errorf("esperava ReconciledMonth = 9, veio %v", updated.ReconciledMonth)
-	}
-	if updated.ReconciledBalance == nil || *updated.ReconciledBalance != 18500.0 {
-		t.Errorf("esperava ReconciledBalance = 18500.0, veio %v", updated.ReconciledBalance)
 	}
 
 	// Buscar YearViewModel
@@ -157,8 +130,5 @@ func TestBudgetService(t *testing.T) {
 	summary, err := svc.GetSummary(ctx, 2026)
 	if err != nil || summary.Year != 2026 {
 		t.Fatalf("falha ao buscar summary: %v", err)
-	}
-	if summary.ReconciledMonth == nil || *summary.ReconciledMonth != 9 {
-		t.Errorf("esperava summary com ReconciledMonth = 9, veio %v", summary.ReconciledMonth)
 	}
 }

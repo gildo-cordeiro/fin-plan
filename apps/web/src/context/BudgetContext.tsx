@@ -111,8 +111,6 @@ export interface BudgetContextType {
   updateBudgetBalances: (patch: {
     initialBalance?: number;
     emergencyReserveTarget?: number;
-    reconciledMonth?: number | null;
-    reconciledBalance?: number | null;
   }) => Promise<void>;
 
   // Novas Ações Relacionais: Entry
@@ -405,14 +403,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const updateSimulation = (
     patch: Partial<SimulationSettings>
   ) => {
-    const {
-      initialBalance,
-      emergencyReserveTarget,
-      emergencyReserve,
-      reconciledMonth,
-      reconciledBalance,
-      ...simPatch
-    } = patch;
+    const { initialBalance, emergencyReserveTarget, emergencyReserve, ...simPatch } = patch;
     const targetReserve = emergencyReserveTarget !== undefined ? emergencyReserveTarget : emergencyReserve;
 
     // Atualiza percentuais de simulação no localStorage
@@ -421,18 +412,11 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setState((prev) => ({ ...prev, simulation: newSim }));
     }
 
-    // Se houver alteração de saldos ou conciliação, dispara PATCH para o backend
-    if (
-      initialBalance !== undefined ||
-      targetReserve !== undefined ||
-      reconciledMonth !== undefined ||
-      reconciledBalance !== undefined
-    ) {
+    // Se houver alteração de saldos, dispara PATCH para o backend
+    if (initialBalance !== undefined || targetReserve !== undefined) {
       const balancePatch = {
         initialBalance: initialBalance !== undefined ? initialBalance : state.budget?.initialBalance,
         emergencyReserveTarget: targetReserve !== undefined ? targetReserve : state.budget?.emergencyReserveTarget,
-        reconciledMonth: reconciledMonth !== undefined ? reconciledMonth : state.budget?.reconciledMonth,
-        reconciledBalance: reconciledBalance !== undefined ? reconciledBalance : state.budget?.reconciledBalance,
       };
 
       optimisticUpdate(
@@ -454,8 +438,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               ...prev.budget,
               initialBalance: balancePatch.initialBalance ?? prev.budget.initialBalance,
               emergencyReserveTarget: balancePatch.emergencyReserveTarget ?? prev.budget.emergencyReserveTarget,
-              reconciledMonth: balancePatch.reconciledMonth ?? prev.budget.reconciledMonth,
-              reconciledBalance: balancePatch.reconciledBalance ?? prev.budget.reconciledBalance,
             }
           : null,
       }));
@@ -465,8 +447,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const updateBudgetBalances = async (patch: {
     initialBalance?: number;
     emergencyReserveTarget?: number;
-    reconciledMonth?: number | null;
-    reconciledBalance?: number | null;
   }) => {
     updateSimulation(patch);
   };

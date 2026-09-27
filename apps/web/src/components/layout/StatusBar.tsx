@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
-import { formatBRL, getCurrentMonthId } from '../../utils/formatters';
+import { formatBRL } from '../../utils/formatters';
 import { EditBalanceModal } from '../modals/EditBalanceModal';
 
 export const StatusBar = () => {
-  const { metrics, state, isOnline, monthlySummaries } = useBudget();
+  const { metrics, state, isOnline } = useBudget();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
 
   const monthCount = state.months.length;
@@ -24,19 +24,6 @@ export const StatusBar = () => {
       ? Math.min(100, (totalGoalSaved / totalGoalTarget) * 100)
       : 0;
 
-  const currentMonthId = getCurrentMonthId();
-  const currentMonthSummary =
-    monthlySummaries.find((m) => m.month.id === currentMonthId) ||
-    monthlySummaries[0];
-
-  const displayBalance = currentMonthSummary
-    ? currentMonthSummary.accumulatedBalance
-    : (state.budget?.initialBalance ?? 0);
-
-  const hasAnchor =
-    state.budget?.reconciledMonth !== undefined &&
-    state.budget?.reconciledMonth !== null;
-
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-xs py-2 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-xs text-slate-500 dark:text-slate-400">
@@ -44,18 +31,13 @@ export const StatusBar = () => {
           type="button"
           onClick={() => setIsEditBalanceOpen(true)}
           className="flex items-center gap-1.5 hover:text-slate-800 dark:hover:text-slate-200 transition-colors group text-left cursor-pointer py-0.5"
-          title="Clique para conciliar o saldo da sua conta"
+          title="Clique para alterar seu saldo atual em conta"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Saldo em conta ({currentMonthSummary?.month.shortName ?? 'Hoje'}):</span>
+          <span>Saldo em conta hoje:</span>
           <strong className="font-mono text-slate-800 dark:text-slate-200 group-hover:underline">
-            {formatBRL(displayBalance)}
+            {formatBRL(state.budget?.initialBalance ?? 0)}
           </strong>
-          {hasAnchor && (
-            <span className="text-[10px] text-[#0e6b7a] dark:text-[#4ec2d3] font-semibold bg-[#0e6b7a]/10 dark:bg-[#4ec2d3]/10 px-1.5 py-0.5 rounded-md">
-              Âncora real
-            </span>
-          )}
           <span className="text-[11px] opacity-60 group-hover:opacity-100 transition-opacity ml-0.5">
             ✏️
           </span>

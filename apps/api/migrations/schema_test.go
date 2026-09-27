@@ -14,8 +14,8 @@ func TestGooseEmbedMigrations(t *testing.T) {
 		t.Fatalf("falha ao coletar migrações com goose: %v", err)
 	}
 
-	if len(migrations) < 2 {
-		t.Fatalf("esperava ao menos 2 migrações, encontrou %d", len(migrations))
+	if len(migrations) < 3 {
+		t.Fatalf("esperava ao menos 3 migrações, encontrou %d", len(migrations))
 	}
 
 	if migrations[0].Version != 1 {
@@ -23,5 +23,8 @@ func TestGooseEmbedMigrations(t *testing.T) {
 	}
 	if migrations[1].Version != 2 {
 		t.Errorf("esperava versão 2 na segunda migração, obteve %d", migrations[1].Version)
+	}
+	if migrations[2].Version != 3 {
+		t.Errorf("esperava versão 3 na terceira migração, obteve %d", migrations[2].Version)
 	}
 }

@@ -51,18 +51,12 @@ func (s *Service) Create(ctx context.Context, req CreateBudgetRequest) (*Budget,
 	if req.Year < 2000 || req.Year > 2100 {
 		return nil, errors.New("ano deve ser entre 2000 e 2100")
 	}
-	if req.ReconciledMonth != nil && (*req.ReconciledMonth < 1 || *req.ReconciledMonth > 12) {
-		return nil, errors.New("mês conciliado deve ser entre 1 e 12")
-	}
 	return s.repo.Create(ctx, req)
 }
 
 func (s *Service) Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error) {
 	if year < 2000 || year > 2100 {
 		return nil, errors.New("ano do orçamento inválido")
-	}
-	if req.ReconciledMonth != nil && (*req.ReconciledMonth < 1 || *req.ReconciledMonth > 12) {
-		return nil, errors.New("mês conciliado deve ser entre 1 e 12")
 	}
 	return s.repo.Patch(ctx, year, req)
 }

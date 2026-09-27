@@ -33,7 +33,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 	query := `
-		SELECT id, year, initial_balance, emergency_reserve_target, reconciled_month, reconciled_balance, created_at, updated_at
+		SELECT id, year, initial_balance, emergency_reserve_target, created_at, updated_at
 		FROM budget
 		ORDER BY year DESC
 	`
@@ -51,8 +51,6 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 			&b.Year,
 			&b.InitialBalance,
 			&b.EmergencyReserveTarget,
-			&b.ReconciledMonth,
-			&b.ReconciledBalance,
 			&b.CreatedAt,
 			&b.UpdatedAt,
 		); err != nil {
@@ -66,7 +64,7 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 
 func (r *PostgresRepository) GetByYear(ctx context.Context, year int) (*Budget, error) {
 	query := `
-		SELECT id, year, initial_balance, emergency_reserve_target, reconciled_month, reconciled_balance, created_at, updated_at
+		SELECT id, year, initial_balance, emergency_reserve_target, created_at, updated_at
 		FROM budget
 		WHERE year = $1
 	`
@@ -76,8 +74,6 @@ func (r *PostgresRepository) GetByYear(ctx context.Context, year int) (*Budget, 
 		&b.Year,
 		&b.InitialBalance,
 		&b.EmergencyReserveTarget,
-		&b.ReconciledMonth,
-		&b.ReconciledBalance,
 		&b.CreatedAt,
 		&b.UpdatedAt,
 	)
@@ -103,18 +99,16 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateBudgetRequest
 	}
 
 	query := `
-		INSERT INTO budget (id, year, initial_balance, emergency_reserve_target, reconciled_month, reconciled_balance)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, year, initial_balance, emergency_reserve_target, reconciled_month, reconciled_balance, created_at, updated_at
+		INSERT INTO budget (id, year, initial_balance, emergency_reserve_target)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, year, initial_balance, emergency_reserve_target, created_at, updated_at
 	`
 	var b Budget
-	err := r.pool.QueryRow(ctx, query, id, req.Year, initBal, reserveTarget, req.ReconciledMonth, req.ReconciledBalance).Scan(
+	err := r.pool.QueryRow(ctx, query, id, req.Year, initBal, reserveTarget).Scan(
 		&b.ID,
 		&b.Year,
 		&b.InitialBalance,
 		&b.EmergencyReserveTarget,
-		&b.ReconciledMonth,
-		&b.ReconciledBalance,
 		&b.CreatedAt,
 		&b.UpdatedAt,
 	)
@@ -138,16 +132,6 @@ func (r *PostgresRepository) Patch(ctx context.Context, year int, req PatchBudge
 	if req.EmergencyReserveTarget != nil {
 		setClauses = append(setClauses, "emergency_reserve_target = $"+strconv.Itoa(argID))
 		args = append(args, *req.EmergencyReserveTarget)
-		argID++
-	}
-	if req.ReconciledMonth != nil {
-		setClauses = append(setClauses, "reconciled_month = $"+strconv.Itoa(argID))
-		args = append(args, *req.ReconciledMonth)
-		argID++
-	}
-	if req.ReconciledBalance != nil {
-		setClauses = append(setClauses, "reconciled_balance = $"+strconv.Itoa(argID))
-		args = append(args, *req.ReconciledBalance)
 		argID++
 	}
 
@@ -224,19 +208,10 @@ func (r *PostgresRepository) GetSummary(ctx context.Context, year int) (*BudgetS
 		Year:                   year,
 		InitialBalance:         b.InitialBalance,
 		EmergencyReserveTarget: b.EmergencyReserveTarget,
-		ReconciledMonth:        b.ReconciledMonth,
-		ReconciledBalance:      b.ReconciledBalance,
 		Months:                 make([]BudgetSummaryMonth, 0, 12),
 	}
 
 	runningAccumulated := b.InitialBalance
-	hasAnchor := b.ReconciledMonth != nil && b.ReconciledBalance != nil && *b.ReconciledMonth >= 1 && *b.ReconciledMonth <= 12
-	anchorMonth := 0
-	anchorBal := 0.0
-	if hasAnchor {
-		anchorMonth = *b.ReconciledMonth
-		anchorBal = *b.ReconciledBalance
-	}
 
 	for rows.Next() {
 		var m BudgetSummaryMonth
@@ -253,22 +228,8 @@ func (r *PostgresRepository) GetSummary(ctx context.Context, year int) (*BudgetS
 
 		m.TotalExpenses = m.Cards + m.Fixed + m.Variable + m.OneTimeCosts
 		m.MonthBalance = m.Income - m.TotalExpenses
-
-		if hasAnchor {
-			if m.Month < anchorMonth {
-				runningAccumulated += m.MonthBalance
-				m.AccumulatedBalance = runningAccumulated
-			} else if m.Month == anchorMonth {
-				runningAccumulated = anchorBal
-				m.AccumulatedBalance = runningAccumulated
-			} else {
-				runningAccumulated += m.MonthBalance
-				m.AccumulatedBalance = runningAccumulated
-			}
-		} else {
-			runningAccumulated += m.MonthBalance
-			m.AccumulatedBalance = runningAccumulated
-		}
+		runningAccumulated += m.MonthBalance
+		m.AccumulatedBalance = runningAccumulated
 
 		summary.Months = append(summary.Months, m)
 
@@ -292,11 +253,7 @@ func (r *PostgresRepository) GetSummary(ctx context.Context, year int) (*BudgetS
 
 	summary.Totals.TotalExpenses = summary.Totals.Cards + summary.Totals.Fixed + summary.Totals.Variable + summary.Totals.OneTimeCosts
 	summary.Totals.NetBalance = summary.Totals.Income - summary.Totals.TotalExpenses
-	if hasAnchor {
-		summary.Totals.FinalAccumulated = runningAccumulated
-	} else {
-		summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance
-	}
+	summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance
 
 	return summary, nil
 }
