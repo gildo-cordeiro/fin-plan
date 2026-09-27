@@ -84,9 +84,6 @@ flowchart TD
 fin-plan/
 ├── docker-compose.yml           # Orquestração de containers da API Go e PostgreSQL
 ├── .env.example                 # Exemplo de variáveis de ambiente
-├── prompt.md                    # Especificação do schema SQL PostgreSQL
-├── finplan-frontend-migration-plan.md  # Plano de migração do frontend
-├── adendo-backend-sync-frontend.md     # Adendo de sincronização backend-frontend
 │
 ├── apps/
 │   ├── web/                     # 📦 Frontend React 18 SPA (Vite + Tailwind)
@@ -104,6 +101,23 @@ fin-plan/
 │       └── Dockerfile           # Imagem enxuta de produção
 │
 └── docs/
+    ├── adrs/                    # 📜 Registros de Decisões Arquiteturais (ADRs)
     ├── API.md                   # Contratos de rotas e especificações JSON da API
     └── ARCHITECTURE.md          # Este documento
 ```
+
+---
+
+## 5. Registros de Decisões Arquiteturais (ADRs)
+
+Para um histórico detalhado, contexto de decisão e trade-offs formais de engenharia, consulte o diretório [`docs/adrs/`](./adrs/README.md):
+- [ADR-0001: Monorepo com Deploys Desacoplados](./adrs/0001-arquitetura-monorepo-com-deploys-desacoplados.md)
+- [ADR-0002: Migração NoSQL para PostgreSQL Relacional](./adrs/0002-migracao-de-nosql-para-postgresql-relacional.md)
+- [ADR-0003: Interface Reativa com Atualizações Otimistas](./adrs/0003-interface-reativa-com-atualizacoes-otimistas.md)
+- [ADR-0004: Modelo Planejado vs. Realizado em Entries Mensais](./adrs/0004-modelo-planejado-vs-realizado-em-entries-mensais.md)
+- [ADR-0005: Projetos Hierárquicos de Custos Pontuais com Margem](./adrs/0005-projetos-hierarquicos-de-custos-pontuais-com-margem.md)
+- [ADR-0006: Reserva de Emergência como Livro-Razão Imutável](./adrs/0006-reserva-de-emergencia-como-livro-razao-imutavel.md)
+- [ADR-0007: Cálculos Agregados e Saldo Acumulado Server-Side](./adrs/0007-calculos-agregados-e-saldo-acumulado-server-side.md)
+- [ADR-0008: Semântica de PATCH Parcial Estrita](./adrs/0008-semantica-de-patch-parcial-estrita.md)
+- [ADR-0009: Estratégia de Identificadores (UUIDv4 vs Chave Natural)](./adrs/0009-estrategia-de-identificadores-uuidv4-e-chaves-naturais.md)
+

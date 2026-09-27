@@ -46,7 +46,8 @@ fin-plan/
 │       └── README.md          # Documentação específica da API Go
 │
 ├── docs/                      # 📚 Documentação Técnica Compartilhada
-│   ├── ARCHITECTURE.md        # Arquitetura Local-First, diagramas e modelo de dados normalizado
+│   ├── adrs/                  # 📜 Registros de Decisões Arquiteturais (ADRs)
+│   ├── ARCHITECTURE.md        # Arquitetura do sistema, diagramas e modelo de dados normalizado
 │   └── API.md                 # Contrato formal da API REST (/api/v1/*)
 │
 └── .agents/                   # 🤖 Diretrizes e Skills operacionais para agentes IA
@@ -190,5 +191,6 @@ O repositório possui workflows com gatilho manual (`workflow_dispatch`), permit
 
 ## 📚 Documentação Complementar
 
-- 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Detalhamento Local-First, diagrama Mermaid de persistência, modelo de dados e decisões de engenharia.
+- 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Detalhamento de arquitetura, diagrama Mermaid de fluxo, modelo de dados e decisões de engenharia.
 - 🔌 **[Especificação da API](docs/API.md)**: Contratos de endpoints `/api/v1/*`, payloads, cabeçalhos de autenticação e códigos de resposta.
+- 📜 **[Registros de Decisões Arquiteturais (ADRs)](docs/adrs/README.md)**: Catálogo com justificativas, alternativas e trade-offs das decisões técnicas tomadas.
