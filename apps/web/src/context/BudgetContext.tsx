@@ -382,6 +382,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---------------------------------------------------------------------------
