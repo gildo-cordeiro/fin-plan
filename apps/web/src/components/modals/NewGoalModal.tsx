@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useCreateGoalMutation } from '../../queries/goals';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
 
@@ -18,7 +18,7 @@ const PRESETS = [
 ];
 
 export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
-  const { addGoal } = useBudget();
+  const createGoalMutation = useCreateGoalMutation();
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('🏠');
@@ -36,7 +36,7 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    addGoal({
+    createGoalMutation.mutate({
       name: name.trim(),
       icon,
       targetAmount,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
+import { useGoalsQuery } from '../../queries/goals';
 import { useUIStore } from '../../store/uiStore';
 import { formatBRL } from '../../utils/formatters';
 import { EditBalanceModal } from '../modals/EditBalanceModal';
@@ -7,6 +8,7 @@ import { EditBalanceModal } from '../modals/EditBalanceModal';
 export const StatusBar = () => {
   const { metrics, state } = useBudget();
   const isOnline = useUIStore((s) => s.isOnline);
+  const { data: goals = [] } = useGoalsQuery();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
 
   const monthCount = state.months.length;
@@ -15,7 +17,7 @@ export const StatusBar = () => {
       ? (metrics.totalIncome - metrics.totalRegularExpenses) / monthCount
       : 0;
 
-  const activeGoals = state.goals.filter((g) => g.status === 'ativa');
+  const activeGoals = goals.filter((g) => g.status === 'ativa');
   const totalGoalTarget = activeGoals.reduce((a, g) => a + g.targetAmount, 0);
   const totalGoalSaved = activeGoals.reduce(
     (a, g) => a + g.contributions.reduce((s, c) => s + c.amount, 0),

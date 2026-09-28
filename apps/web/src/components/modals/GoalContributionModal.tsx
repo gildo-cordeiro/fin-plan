@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useAddGoalContributionMutation } from '../../queries/goals';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { Modal } from '../ui/Modal';
@@ -16,7 +16,7 @@ export const GoalContributionModal = ({
   isOpen,
   onClose,
 }: GoalContributionModalProps) => {
-  const { addContribution } = useBudget();
+  const addGoalContributionMutation = useAddGoalContributionMutation();
 
   const [amount, setAmount] = useState(0);
   const [note, setNote] = useState('');
@@ -30,7 +30,7 @@ export const GoalContributionModal = ({
     e.preventDefault();
     if (amount <= 0) return;
 
-    addContribution(goal.id, amount, note.trim() || undefined);
+    addGoalContributionMutation.mutate({ goalId: goal.id, amount, note: note.trim() || undefined }); //goal.id, amount, note.trim() || undefined);
     setAmount(0);
     setNote('');
     onClose();
