@@ -1,9 +1,9 @@
 import { useBudget } from '../../context/BudgetContext';
+import { useUIStore } from '../../store/uiStore';
 
 export const Header = () => {
+  const { theme, toggleTheme } = useUIStore();
   const {
-    theme,
-    toggleTheme,
     isLoading,
     isSaving,
     loadError,

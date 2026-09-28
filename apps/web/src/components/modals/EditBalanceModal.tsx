@@ -9,7 +9,7 @@ interface EditBalanceModalProps {
 }
 
 export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => {
-  const { state, updateSimulation } = useBudget();
+  const { state, updateBudgetBalances } = useBudget();
   const initialBal = state.budget?.initialBalance ?? 0;
   const initialRes = state.budget?.emergencyReserveTarget ?? 0;
 
@@ -25,7 +25,7 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSimulation({
+    updateBudgetBalances({
       initialBalance: balance,
       emergencyReserveTarget: reserve,
     });

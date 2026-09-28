@@ -1,10 +1,12 @@
 import { useBudget } from '../../context/BudgetContext';
+import { useUIStore } from '../../store/uiStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 
 export const SimulationPanel = () => {
-  const { state, metrics, updateSimulation } = useBudget();
-  const { simulation, items, costs, months, budget } = state;
+  const { state, metrics, updateBudgetBalances } = useBudget();
+  const { simulation, updateSimulation } = useUIStore();
+  const { items, costs, months, budget } = state;
 
   const isSimActive =
     simulation.varsPercent !== 0 || simulation.oneTimeMarginPercent !== 0;
@@ -338,7 +340,7 @@ export const SimulationPanel = () => {
           </label>
           <CurrencyInput
             value={initialBalance}
-            onChange={(val) => updateSimulation({ initialBalance: val })}
+            onChange={(val) => updateBudgetBalances({ initialBalance: val })}
             ariaLabel="Saldo disponível hoje"
           />
         </div>
@@ -349,7 +351,7 @@ export const SimulationPanel = () => {
           </label>
           <CurrencyInput
             value={emergencyReserve}
-            onChange={(val) => updateSimulation({ emergencyReserveTarget: val })}
+            onChange={(val) => updateBudgetBalances({ emergencyReserveTarget: val })}
             ariaLabel="Reserva de emergência"
           />
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../../context/BudgetContext';
 import { useToast } from '../../context/ToastContext';
+import { useUIStore } from '../../store/uiStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
@@ -32,6 +33,7 @@ export const MonthBudgetView = ({
     confirmEntry,
     unconfirmEntry,
   } = useBudget();
+  const simulation = useUIStore((s) => s.simulation);
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [budgetModalCategory, setBudgetModalCategory] = useState<ExpenseCategoryKey | 'renda'>('renda');
@@ -297,9 +299,9 @@ export const MonthBudgetView = ({
               <span>{isPositive ? 'Orçamento no azul' : 'Déficit previsto'}</span>
             </span>
 
-            {state.simulation.varsPercent !== 0 && (
+            {simulation.varsPercent !== 0 && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                <span>⚡ Simulação: Vars {state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%</span>
+                <span>⚡ Simulação: Vars {simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%</span>
               </span>
             )}
 
@@ -507,7 +509,7 @@ export const MonthBudgetView = ({
             </div>
             <div>
               <span className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400 block tabular-nums">
-                {state.simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
+                {simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
               </span>
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
                 {activeVarItems.filter((i) => !i.off).length} estimativas ativas neste mês
@@ -559,27 +561,27 @@ export const MonthBudgetView = ({
 
         <CollapsibleSection
           title={
-            state.simulation.varsPercent !== 0
-              ? `Despesas Variáveis (Estimativas) — ${state.simulation.varsPercent > 0 ? '+' : ''}${state.simulation.varsPercent}% simulado`
+            simulation.varsPercent !== 0
+              ? `Despesas Variáveis (Estimativas) — ${simulation.varsPercent > 0 ? '+' : ''}${simulation.varsPercent}% simulado`
               : 'Despesas Variáveis (Estimativas)'
           }
           icon="🛒"
           total={
-            state.simulation.varsPercent !== 0
+            simulation.varsPercent !== 0
               ? formatBRL(summary.variable)
               : formatBRL(rawVars)
           }
           totalColorClass={
-            state.simulation.varsPercent !== 0
+            simulation.varsPercent !== 0
               ? 'text-amber-600 dark:text-amber-400 font-bold'
               : 'text-amber-600 dark:text-amber-400'
           }
           defaultOpen={false}
         >
-          {state.simulation.varsPercent !== 0 && (
+          {simulation.varsPercent !== 0 && (
             <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
               <span>
-                ⚡ <strong>Simulação ativa ({state.simulation.varsPercent > 0 ? '+' : ''}{state.simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
+                ⚡ <strong>Simulação ativa ({simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
               </span>
             </div>
           )}

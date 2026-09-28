@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
+import { useUIStore } from '../../store/uiStore';
 import { formatBRL } from '../../utils/formatters';
 import { EditBalanceModal } from '../modals/EditBalanceModal';
 
 export const StatusBar = () => {
-  const { metrics, state, isOnline } = useBudget();
+  const { metrics, state } = useBudget();
+  const isOnline = useUIStore((s) => s.isOnline);
   const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
 
   const monthCount = state.months.length;

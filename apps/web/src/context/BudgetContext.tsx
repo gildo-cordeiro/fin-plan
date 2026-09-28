@@ -23,13 +23,12 @@ import { useBudgetCalculations } from '../hooks/useBudgetCalculations';
 import { getNextMonth, getPrevMonth, generateMonthSequence } from '../utils/formatters';
 import { generateId } from '../utils/idGenerator';
 import {
-  loadTheme,
-  saveTheme,
   loadLocalSettings,
   updateSimulationSettings,
 } from '../services/storageService';
 import { budgetApiService } from '../services/budgetApiService';
 import { useToast } from './ToastContext';
+import { useUIStore } from '../store/uiStore';
 
 // ---------------------------------------------------------------------------
 // Helpers para sincronizar itens com mapa de valores para retrocompatibilidade
@@ -89,9 +88,6 @@ export interface BudgetContextType {
   state: BudgetState;
   monthlySummaries: MonthSummary[];
   metrics: OverallMetrics;
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
-  isOnline: boolean;
 
   isLoading: boolean;
   isSaving: boolean;
@@ -107,7 +103,6 @@ export interface BudgetContextType {
   createYear: (year: number) => Promise<void>;
 
   // Simulação e parâmetros de Budget
-  updateSimulation: (patch: Partial<SimulationSettings>) => void;
   updateBudgetBalances: (patch: {
     initialBalance?: number;
     emergencyReserveTarget?: number;
@@ -186,7 +181,7 @@ const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
 export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => loadTheme());
+  
   const [state, setState] = useState<BudgetState>(() => {
     const local = loadLocalSettings();
     return {
@@ -197,7 +192,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   });
 
   const [availableYears, setAvailableYears] = useState<Budget[]>([]);
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -311,6 +305,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const selectYear = async (year: number) => {
+    useUIStore.getState().setCurrentYear(year);
     await loadYearData(year);
   };
 
@@ -326,6 +321,7 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (prev.some((b) => b.year === year)) return prev;
         return [...prev, newBudget].sort((a, b) => a.year - b.year);
       });
+      useUIStore.getState().setCurrentYear(year);
       await loadYearData(year);
       showToast(`Orçamento de ${year} criado com sucesso!`, { type: 'success' });
     } catch (err) {
@@ -373,10 +369,10 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     init();
 
     const handleOnline = () => {
-      setIsOnline(true);
+      useUIStore.getState().setIsOnline(true);
       refreshFromDb().catch(() => {});
     };
-    const handleOffline = () => setIsOnline(false);
+    const handleOffline = () => useUIStore.getState().setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -387,14 +383,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  useEffect(() => {
-    saveTheme(theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
 
   // ---------------------------------------------------------------------------
   // Simulação e Balances
@@ -1323,9 +1311,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         state,
         monthlySummaries,
         metrics,
-        theme,
-        toggleTheme,
-        isOnline,
         isLoading,
         isSaving,
         lastSaved,
@@ -1338,7 +1323,6 @@ export const BudgetProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         selectYear,
         createYear,
 
-        updateSimulation,
         updateBudgetBalances,
 
         confirmEntry,

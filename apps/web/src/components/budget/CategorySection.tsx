@@ -1,5 +1,6 @@
 import { useBudget } from '../../context/BudgetContext';
 import { useToast } from '../../context/ToastContext';
+import { useUIStore } from '../../store/uiStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 
@@ -26,8 +27,9 @@ export const CategorySection = ({
     repeatFirstMonthAcrossAll,
     repeatValueForward,
   } = useBudget();
+  const simulation = useUIStore((s) => s.simulation);
 
-  const { months, lists, simulation } = state;
+  const { months, lists } = state;
   const items = (lists && lists[categoryKey]) || [];
 
   const simFactor = categoryKey === 'vars' ? 1 + simulation.varsPercent / 100 : 1;
