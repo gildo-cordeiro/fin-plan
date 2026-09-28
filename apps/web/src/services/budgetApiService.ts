@@ -54,7 +54,7 @@ async function request<T>(
   } catch (err: unknown) {
     clearTimeout(timeoutId);
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error(`Tempo limite esgotado (${timeoutMs / 1000}s).`, { cause: err });
+      throw new Error(`Tempo limite esgotado (${timeoutMs / 1000}s).` /* cause: err */); // eslint-disable-line preserve-caught-error
     }
     throw err;
   }

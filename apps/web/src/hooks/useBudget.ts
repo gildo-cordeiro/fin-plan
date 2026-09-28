@@ -49,9 +49,10 @@ export const useBudget = () => {
 
   // Deriva o estado de items
   const items = useMemo(() => {
-    if (!yearVm?.items) return [];
-    return yearVm.items.map(i => enrichItemWithValues(i, currentYear));
-  }, [yearVm?.items, currentYear]); // eslint-disable-line react-hooks/preserve-manual-memoization
+    const vmItems = yearVm?.items;
+    if (!vmItems) return [];
+    return vmItems.map(i => enrichItemWithValues(i, currentYear));
+  }, [yearVm?.items, currentYear]);
 
   // Gera a lista de meses padrão (pode ser adaptada para ler do local state se quisermos um horizon view customizado)
   // Para manter compatível, retornamos os 12 meses do ano
