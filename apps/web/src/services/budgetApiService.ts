@@ -253,6 +253,10 @@ export const budgetApiService = {
 
   // === Goals & Contributions ===
 
+  async fetchGoals(): Promise<FinancialGoal[]> {
+    return request<FinancialGoal[]>('/api/v1/goals');
+  },
+
   async createGoal(goal: Partial<FinancialGoal>): Promise<FinancialGoal> {
     return request<FinancialGoal>('/api/v1/goals', {
       method: 'POST',

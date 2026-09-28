@@ -3,24 +3,41 @@ import { useBudget } from '../../context/BudgetContext';
 import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
+import {
+  useCostsQuery,
+  useCreateCostMutation,
+  useUpdateCostMutation,
+  useDeleteCostMutation,
+  useCreateCostItemMutation,
+  useUpdateCostItemMutation,
+  useDeleteCostItemMutation
+} from '../../queries/costs';
+import { useUpdateGoalMutation } from '../../queries/goals';
 
 export const OneTimeCostsSection = () => {
   const { showToast } = useToast();
-  const {
-    state,
-    createCost,
-    updateCost,
-    removeCost,
-    addCostItem,
-    updateCostItem,
-    removeCostItem,
-    confirmCostItem,
-    unconfirmCostItem,
-    updateGoal,
-    createReserveMovement,
-  } = useBudget();
+  const { state, createReserveMovement } = useBudget();
+  const currentYear = state.currentYear;
+  
+  const updateGoalMutation = useUpdateGoalMutation();
+  const { data: costs = [] } = useCostsQuery(currentYear);
+  const createCostMutation = useCreateCostMutation(currentYear);
+  const updateCostMutation = useUpdateCostMutation(currentYear);
+  const deleteCostMutation = useDeleteCostMutation(currentYear);
+  const createCostItemMutation = useCreateCostItemMutation(currentYear);
+  const updateCostItemMutation = useUpdateCostItemMutation(currentYear);
+  const deleteCostItemMutation = useDeleteCostItemMutation(currentYear);
 
-  const { goals, months, costs } = state;
+  const createCost = (name: string, defaultMonth?: number | null, marginPercent?: number, notes?: string) => createCostMutation.mutateAsync({ budgetId: String(currentYear), name, defaultMonth, marginPercent, notes });
+  const updateCost = (id: string, patch: any) => updateCostMutation.mutate({ id, patch });
+  const removeCost = (id: string) => deleteCostMutation.mutate(id);
+  const addCostItem = (costId: string, name: string, plannedAmount: number, month?: number | null) => createCostItemMutation.mutate({ costId, data: { name, plannedAmount, month } });
+  const updateCostItem = (costId: string, id: string, patch: any) => updateCostItemMutation.mutate({ costId, id, patch });
+  const removeCostItem = (costId: string, id: string) => deleteCostItemMutation.mutate({ costId, id });
+  const confirmCostItem = (costId: string, id: string, amount: number) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: amount } });
+  const unconfirmCostItem = (costId: string, id: string) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: null } });
+
+  const { goals, months } = state;
 
   // Estado para novo projeto
   const [newProjectName, setNewProjectName] = useState('');
@@ -59,7 +76,7 @@ export const OneTimeCostsSection = () => {
 
   const handleSyncWithGoal = (totalWithMargin: number) => {
     if (mudGoal) {
-      updateGoal(mudGoal.id, { targetAmount: Math.round(totalWithMargin) });
+      updateGoalMutation.mutate({ id: mudGoal.id, patch: { targetAmount: Math.round(totalWithMargin) } });
       showToast(`Meta "${mudGoal.name}" atualizada para ${formatBRL(totalWithMargin)}!`, { type: 'success' });
     }
   };

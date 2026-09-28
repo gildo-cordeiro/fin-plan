@@ -8,6 +8,7 @@ import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
 import { BudgetManagementModal } from '../modals/BudgetManagementModal';
 import type { Item, ExpenseCategoryKey } from '../../types/budget';
+import { useCostsQuery } from '../../queries/costs';
 
 interface MonthBudgetViewProps {
   monthId: string;
@@ -34,6 +35,7 @@ export const MonthBudgetView = ({
     unconfirmEntry,
   } = useBudget();
   const simulation = useUIStore((s) => s.simulation);
+  const { data: costs = [] } = useCostsQuery(state.currentYear);
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [budgetModalCategory, setBudgetModalCategory] = useState<ExpenseCategoryKey | 'renda'>('renda');
@@ -96,7 +98,7 @@ export const MonthBudgetView = ({
   const isPositive = monthBalance >= 0;
 
   // Itens de custos pontuais associados a este mês
-  const projectCostItems = state.costs.flatMap((c) =>
+  const projectCostItems = costs.flatMap((c) =>
     (c.items || [])
       .filter((ci) => (ci.month !== null && ci.month !== undefined ? ci.month === monthNum : c.defaultMonth === monthNum))
       .map((ci) => ({

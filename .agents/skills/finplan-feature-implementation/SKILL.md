@@ -124,6 +124,7 @@ fin-plan/
 - Não implemente resolução de conflitos/CRDT a menos que explicitamente
   solicitado — o projeto assume last-write-wins por design (ver limitação
   conhecida 7.1 em ARCHITECTURE.md).
+- Sempre abra um Pull Request (utilizando o github MCP via create_branch e create_pull_request) para a implementação da feature e cite a issue correspondente (ex: `Closes #123` no corpo do PR).
 - Ao final, rode `npm test` e `npm run build` dentro de `apps/web/` e confirme
   que passam antes de considerar a tarefa concluída.
 

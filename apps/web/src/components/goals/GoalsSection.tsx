@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+
 import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
@@ -49,13 +49,28 @@ interface GoalCardProps {
   onOpenContribution: (goal: FinancialGoal) => void;
 }
 
+import {
+  useUpdateGoalMutation,
+  useDeleteGoalMutation,
+  useDeleteGoalContributionMutation,
+  useCreateGoalMutation
+} from '../../queries/goals';
+
 const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
   const { showToast } = useToast();
-  const { updateGoal, removeGoal, restoreGoal, removeContribution, setGoalStatus } = useBudget();
+  
+  const updateGoalMutation = useUpdateGoalMutation();
+  const deleteGoalMutation = useDeleteGoalMutation();
+  const createGoalMutation = useCreateGoalMutation();
+  const deleteContributionMutation = useDeleteGoalContributionMutation();
 
   const [expanded, setExpanded] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingTarget, setEditingTarget] = useState(false);
+
+  const updateGoal = (id: string, patch: Partial<FinancialGoal>) => updateGoalMutation.mutate({ id, patch });
+  const setGoalStatus = (id: string, status: FinancialGoal['status']) => updateGoalMutation.mutate({ id, patch: { status } });
+  const removeContribution = (goalId: string, contributionId: string) => deleteContributionMutation.mutate({ goalId, contributionId });
 
   const totalSaved = goal.contributions.reduce((acc, c) => acc + c.amount, 0);
   const remaining = Math.max(0, goal.targetAmount - totalSaved);
@@ -171,15 +186,13 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
                 <button
                   type="button"
                   onClick={() => {
-                    const removed = removeGoal(goal.id);
-                    if (removed) {
-                      showToast(`Meta "${removed.name}" excluída`, {
-                        action: {
-                          label: 'Desfazer',
-                          onClick: () => restoreGoal(removed),
-                        },
-                      });
-                    }
+                    deleteGoalMutation.mutate(goal.id);
+                    showToast(`Meta "${goal.name}" excluída`, {
+                      action: {
+                        label: 'Desfazer',
+                        onClick: () => createGoalMutation.mutate(goal),
+                      },
+                    });
                   }}
                   className="text-left px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                 >
@@ -308,9 +321,10 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
   );
 };
 
+import { useGoalsQuery } from '../../queries/goals';
+
 export const GoalsSection = () => {
-  const { state } = useBudget();
-  const { goals } = state;
+  const { data: goals = [] } = useGoalsQuery();
 
   const [isNewGoalOpen, setIsNewGoalOpen] = useState(false);
   const [selectedGoalForContrib, setSelectedGoalForContrib] = useState<FinancialGoal | null>(null);
