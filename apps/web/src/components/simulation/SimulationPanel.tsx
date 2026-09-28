@@ -1,4 +1,4 @@
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { useUIStore } from '../../store/uiStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';

@@ -1,4 +1,4 @@
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useUIStore } from '../../store/uiStore';
 import { CurrencyInput } from '../ui/CurrencyInput';

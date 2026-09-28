@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';

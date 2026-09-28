@@ -9,7 +9,7 @@ import { GoalsSection } from './components/goals/GoalsSection';
 import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
 import { SimulationPanel } from './components/simulation/SimulationPanel';
 import { BudgetManagementModal } from './components/modals/BudgetManagementModal';
-import { useBudget } from './context/BudgetContext';
+import { useBudget } from './hooks/useBudget';
 import { getDefaultActiveMonthId } from './utils/formatters';
 
 export const BudgetAppContent = () => {
@@ -47,7 +47,7 @@ export const BudgetAppContent = () => {
             <div>
               <p className="font-semibold text-xs text-slate-900 dark:text-slate-100">Carregando dados do banco...</p>
               <p className="text-[11px] text-slate-400">
-                Buscando orçamento no MongoDB Atlas. Se o servidor estiver hibernando (plano gratuito), aguarde alguns instantes enquanto ele inicia.
+                Buscando orçamento no banco de dados. Se o servidor estiver hibernando (plano gratuito), aguarde alguns instantes enquanto ele inicia.
               </p>
             </div>
           </div>
