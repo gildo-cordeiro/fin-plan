@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { CurrencyInput } from '../ui/CurrencyInput';

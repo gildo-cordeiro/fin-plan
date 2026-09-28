@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { useGoalsQuery } from '../../queries/goals';
 import { useUIStore } from '../../store/uiStore';
 import { formatBRL } from '../../utils/formatters';

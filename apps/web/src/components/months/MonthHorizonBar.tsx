@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { MONTH_NAMES } from '../../utils/formatters';
 
 export const MonthHorizonBar = () => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useBudget } from '../../context/BudgetContext';
+import { useBudget } from '../../hooks/useBudget';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { Modal } from '../ui/Modal';
 import { TRANSACTION_CATEGORIES } from '../../constants/categories';
