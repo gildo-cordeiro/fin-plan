@@ -178,3 +178,15 @@ export function saveTheme(theme: 'light' | 'dark'): void {
     }
   }
 }
+
+export function initTheme(): void {
+  const current = loadTheme();
+  
+  if (typeof document !== 'undefined' && document.documentElement) {
+    if (current === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+}

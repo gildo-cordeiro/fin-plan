@@ -4,7 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { ToastProvider } from './context/ToastContext';
 import { BudgetAppContent } from './App';
+import { initTheme } from './services/storageService';
 import './index.css';
+
+initTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
