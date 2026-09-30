@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 interface CollapsibleSectionProps {
   title: string;
-  icon?: string;
+  icon?: ReactNode;
   total?: string;
   totalColorClass?: string;
   defaultOpen?: boolean;
