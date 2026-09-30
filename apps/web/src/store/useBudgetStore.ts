@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { loadTheme, saveTheme, loadLocalSettings, updateSimulationSettings, saveCurrentYear } from '../services/storageService';
 import type { SimulationSettings } from '../types/budget';
 
-export interface UIState {
+export interface BudgetStoreState {
   theme: 'light' | 'dark';
   currentYear: number;
   simulation: SimulationSettings;
@@ -14,7 +14,7 @@ export interface UIState {
   setIsOnline: (status: boolean) => void;
 }
 
-export const useUIStore = create<UIState>((set) => {
+export const useBudgetStore = create<BudgetStoreState>()((set) => {
   const local = loadLocalSettings();
   
   return {
@@ -26,6 +26,12 @@ export const useUIStore = create<UIState>((set) => {
     toggleTheme: () => set((state) => {
       const nextTheme = state.theme === 'light' ? 'dark' : 'light';
       saveTheme(nextTheme);
+      // Optional: apply class dark to body if not handled by App.tsx
+      if (nextTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       return { theme: nextTheme };
     }),
 

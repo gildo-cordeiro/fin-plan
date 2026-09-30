@@ -4,45 +4,62 @@
 
 @layer base {
   :root {
-    --bg: #f4f6f8;
-    --card: #ffffff;
-    --tx: #14202b;
-    --mut: #627282;
-    --bd: #dbe3e9;
-    --ac: #0e6b7a;
-    --acbg: #e5f2f4;
-    --ok: #0f7a55;
-    --bad: #c53030;
-    --c-renda: #0f7a55;
-    --c-cartao: #c2653d;
-    --c-fixa: #3b6998;
-    --c-var: #c09420;
-    --c-mud: #7c4fb0;
+    --background: 0 0% 98%; /* zinc-50 */
+    --foreground: 240 5.9% 10%; /* zinc-900 */
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 240 5.9% 10%; /* zinc-900 */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 5.9% 10%;
+    --primary: 162 73% 30%; /* teal-600 */
+    --primary-foreground: 0 0% 98%; /* zinc-50 */
+    --secondary: 240 4.8% 95.9%; /* zinc-100 */
+    --secondary-foreground: 240 5.9% 10%; /* zinc-900 */
+    --muted: 240 4.8% 95.9%; /* zinc-100 */
+    --muted-foreground: 240 3.8% 46.1%; /* zinc-500 */
+    --accent: 240 4.8% 95.9%; /* zinc-100 */
+    --accent-foreground: 240 5.9% 10%; /* zinc-900 */
+    --destructive: 346 87% 53%; /* rose-500 */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%; /* zinc-200 */
+    --input: 240 5.9% 90%; /* zinc-200 */
+    --ring: 162 73% 30%; /* teal-600 */
+    --radius: 0.5rem;
+    --success: 142 71% 45%; /* emerald-500 */
+    --warning: 38 92% 50%; /* amber-500 */
   }
 
   .dark {
-    --bg: #0b1116;
-    --card: #131c24;
-    --tx: #e7eff5;
-    --mut: #8f9ea9;
-    --bd: #22303c;
-    --ac: #4ec2d3;
-    --acbg: #102a33;
-    --ok: #3dd69c;
-    --bad: #f87171;
-    --c-renda: #3dd69c;
-    --c-cartao: #e0835b;
-    --c-fixa: #6892c5;
-    --c-var: #d4a93b;
-    --c-mud: #ab7ed9;
+    --background: 240 10% 3.9%; /* zinc-950 */
+    --foreground: 0 0% 98%; /* zinc-50 */
+    --card: 240 5.9% 10%; /* zinc-900 */
+    --card-foreground: 0 0% 98%; /* zinc-50 */
+    --popover: 240 5.9% 10%; /* zinc-900 */
+    --popover-foreground: 0 0% 98%; /* zinc-50 */
+    --primary: 162 73% 30%; /* teal-600 */
+    --primary-foreground: 0 0% 98%; /* zinc-50 */
+    --secondary: 240 3.7% 15.9%; /* zinc-800 */
+    --secondary-foreground: 0 0% 98%; /* zinc-50 */
+    --muted: 240 3.7% 15.9%; /* zinc-800 */
+    --muted-foreground: 240 5% 64.9%; /* zinc-400 */
+    --accent: 240 3.7% 15.9%; /* zinc-800 */
+    --accent-foreground: 0 0% 98%; /* zinc-50 */
+    --destructive: 346 87% 53%; /* rose-500 */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%; /* zinc-800 */
+    --input: 240 3.7% 15.9%; /* zinc-800 */
+    --ring: 162 73% 30%; /* teal-600 */
+    --success: 142 71% 45%; /* emerald-500 */
+    --warning: 38 92% 50%; /* amber-500 */
   }
+}
 
+@layer base {
+  * {
+    @apply border-border;
+  }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--bg);
-    color: var(--tx);
-    font-size: 14px;
-    line-height: 1.5;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 

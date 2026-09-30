@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useUIStore } from '../store/uiStore';
+import { useBudgetStore } from '../store/useBudgetStore';
 import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation } from '../queries/budget';
 import { calculateBudget } from '../services/budgetCalculator';
 import { type BudgetCategoryKey, normalizeBudgetItemType } from '../constants/enums';
@@ -25,9 +25,9 @@ function enrichItemWithValues(item: Item, year: number): Item {
 
 export const useBudget = () => {
   const queryClient = useQueryClient();
-  const currentYear = useUIStore(s => s.currentYear);
-  const simulation = useUIStore(s => s.simulation);
-  const setCurrentYear = useUIStore(s => s.setCurrentYear);
+  const currentYear = useBudgetStore(s => s.currentYear);
+  const simulation = useBudgetStore(s => s.simulation);
+  const setCurrentYear = useBudgetStore(s => s.setCurrentYear);
 
   const { data: yearVm, isLoading: isYearLoading, error: yearError } = useBudgetYearQuery(currentYear);
   const { data: summaryData, isLoading: isSummaryLoading, error: summaryError } = useBudgetSummaryQuery(currentYear);
