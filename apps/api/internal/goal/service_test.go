@@ -23,7 +23,6 @@ func (m *mockRepo) Create(ctx context.Context, req CreateGoalRequest) (*Goal, er
 		Name:          req.Name,
 		Description:   req.Description,
 		TargetAmount:  req.TargetAmount,
-		Icon:          req.Icon,
 		Color:         req.Color,
 		Status:        status,
 		Contributions: make([]GoalContribution, 0),
