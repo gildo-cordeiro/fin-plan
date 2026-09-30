@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, Settings, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Settings, Plus, Wallet, CreditCard, Home, ShoppingCart, Package } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/Popover';
 import { Button } from '../ui/Button';
 
@@ -405,19 +405,19 @@ export const MonthBudgetView = ({
 
       {/* ACCORDION ACCOUNTS */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-        <CollapsibleSection title="Rendas & Entradas" icon="💰" total={formatBRL(rawIncome)} defaultOpen={true}>
+        <CollapsibleSection title="Rendas & Entradas" icon={<Wallet className="w-4 h-4 text-emerald-600" />} total={formatBRL(rawIncome)} defaultOpen={true}>
           {renderItems(activeIncomeItems, 'renda', false)}
         </CollapsibleSection>
         
-        <CollapsibleSection title="Cartões de Crédito" icon="💳" total={formatBRL(rawCards)} defaultOpen={false}>
+        <CollapsibleSection title="Cartões de Crédito" icon={<CreditCard className="w-4 h-4 text-amber-600" />} total={formatBRL(rawCards)} defaultOpen={false}>
           {renderItems(activeCardItems, 'cartoes', true)}
         </CollapsibleSection>
         
-        <CollapsibleSection title="Despesas Fixas" icon="🏠" total={formatBRL(rawFixed)} defaultOpen={false}>
+        <CollapsibleSection title="Despesas Fixas" icon={<Home className="w-4 h-4 text-blue-600" />} total={formatBRL(rawFixed)} defaultOpen={false}>
           {renderItems(activeFixedItems, 'fixas', true)}
         </CollapsibleSection>
         
-        <CollapsibleSection title="Despesas Variáveis" icon="🛒" total={simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)} defaultOpen={false}>
+        <CollapsibleSection title="Despesas Variáveis" icon={<ShoppingCart className="w-4 h-4 text-orange-600" />} total={simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)} defaultOpen={false}>
           {simulation.varsPercent !== 0 && (
             <div className="p-2.5 mx-4 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
               <span>
@@ -429,7 +429,7 @@ export const MonthBudgetView = ({
         </CollapsibleSection>
         
         {oneTime > 0 && (
-          <CollapsibleSection title="Custos Pontuais / Projetos" icon="📦" total={formatBRL(oneTime)} totalColorClass="text-purple-600 dark:text-purple-400" defaultOpen={false}>
+          <CollapsibleSection title="Custos Pontuais / Projetos" icon={<Package className="w-4 h-4 text-purple-600" />} total={formatBRL(oneTime)} totalColorClass="text-purple-600 dark:text-purple-400" defaultOpen={false}>
             <div className="space-y-2 pt-2 pb-2 mx-4">
               <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
                 <span>
