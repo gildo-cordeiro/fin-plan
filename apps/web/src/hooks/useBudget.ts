@@ -3,7 +3,7 @@ import { useBudgetStore } from '../store/useBudgetStore';
 import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation } from '../queries/budget';
 import { calculateBudget } from '../services/budgetCalculator';
 import { type BudgetCategoryKey, normalizeBudgetItemType } from '../constants/enums';
-import { generateMonthSequence } from '../utils/formatters';
+import { generateMonthSequence } from '../lib/format';
 import type { BudgetState, Item, MonthSummary } from '../types/budget';
 import { budgetApiService } from '../services/budgetApiService';
 import { useQueryClient, useMutation } from '@tanstack/react-query';

@@ -10,7 +10,7 @@ import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
 import { SimulationPanel } from './components/simulation/SimulationPanel';
 import { BudgetManagementModal } from './components/modals/BudgetManagementModal';
 import { useBudget } from './hooks/useBudget';
-import { getDefaultActiveMonthId } from './utils/formatters';
+import { getDefaultActiveMonthId } from './lib/format';
 
 export const BudgetAppContent = () => {
   const { state, isLoading, loadError, refreshFromDb } = useBudget();

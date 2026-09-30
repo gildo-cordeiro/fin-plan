@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 import { MonthHorizonBar } from '../months/MonthHorizonBar';
 import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';

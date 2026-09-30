@@ -3,7 +3,7 @@ import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 import { CATEGORY_DEFINITIONS } from '../../constants/categories';
 import { normalizeBudgetItemType, type ExpenseCategoryKey } from '../../constants/enums';
 import type { BudgetItem } from '../../types/budget';

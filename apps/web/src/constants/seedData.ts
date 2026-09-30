@@ -1,5 +1,5 @@
 import type { BudgetState, MonthItem, SimulationSettings } from '../types/budget';
-import { generateMonthSequence } from '../utils/formatters';
+import { generateMonthSequence } from '../lib/format';
 
 const currentYear = new Date().getFullYear();
 

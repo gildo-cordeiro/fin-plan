@@ -9,7 +9,7 @@ import {
   generateMonthSequence,
   getCurrentMonthId,
   getDefaultActiveMonthId,
-} from '../utils/formatters';
+} from '../lib/format';
 
 describe('formatters', () => {
   describe('formatBRL', () => {

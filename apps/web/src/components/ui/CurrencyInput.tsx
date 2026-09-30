@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from 'react';
-import { formatDecimalBR, parseDecimalBR } from '../../utils/formatters';
+import { formatDecimalBR, parseDecimalBR } from '../../lib/format';
 
 interface CurrencyInputProps {
   value: number;

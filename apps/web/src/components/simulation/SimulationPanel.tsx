@@ -1,7 +1,7 @@
 import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 
 export const SimulationPanel = () => {
   const { state, metrics, updateBudgetBalances } = useBudget();

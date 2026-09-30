@@ -3,7 +3,7 @@ import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
 import { BudgetManagementModal } from '../modals/BudgetManagementModal';
