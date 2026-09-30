@@ -66,12 +66,13 @@ describe('formatters', () => {
   });
 
   describe('formatCompactBRL', () => {
-    it('formats thousands with k suffix', () => {
-      expect(formatCompactBRL(5000)).toBe('5,0k');
+    it('formats thousands with mil suffix', () => {
+      // O espaço gerado pelo Intl é um non-breaking space
+      expect(formatCompactBRL(5000).replace(/\s/g, ' ')).toBe('R$ 5,00 mil');
     });
 
-    it('formats millions with M suffix', () => {
-      expect(formatCompactBRL(2500000)).toBe('2,5M');
+    it('formats millions with mi suffix', () => {
+      expect(formatCompactBRL(2500000).replace(/\s/g, ' ')).toBe('R$ 2,50 mi');
     });
   });
 
