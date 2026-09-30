@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useBudget } from '../../hooks/useBudget';
 import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
@@ -113,9 +114,7 @@ export const IncomeSection = () => {
                           onClick={() => removeItem('renda', item.id)}
                           title="Remover"
                           className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          ✕
-                        </button>
+                        ><X className="w-4 h-4 inline-block" /></button>
                       )}
                     </div>
                   </td>

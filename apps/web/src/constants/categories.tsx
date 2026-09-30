@@ -1,10 +1,13 @@
 import { ExpenseCategory, BudgetCategory, type BudgetCategoryKey } from './enums';
 
+import type { LucideIcon } from 'lucide-react';
+import { Wallet, CreditCard, Home, ShoppingCart } from 'lucide-react';
+
 export interface CategoryMeta {
   key: BudgetCategoryKey;
   label: string;
   shortLabel: string;
-  icon: string;
+  icon: LucideIcon;
   color: string;
   textColor: string;
   borderColor: string;
@@ -17,7 +20,7 @@ const rendaMeta: CategoryMeta = {
   key: BudgetCategory.Renda,
   label: 'Rendas & Entradas',
   shortLabel: 'Renda',
-  icon: '💰',
+  icon: Wallet,
   color: '#10b981',
   textColor: 'text-emerald-700 dark:text-emerald-400',
   borderColor: 'border-emerald-300 dark:border-emerald-700',
@@ -30,7 +33,7 @@ const cartaoMeta: CategoryMeta = {
   key: ExpenseCategory.Cartoes,
   label: 'Cartões de Crédito',
   shortLabel: 'Cartões',
-  icon: '💳',
+  icon: CreditCard,
   color: '#f97316',
   textColor: 'text-orange-700 dark:text-orange-400',
   borderColor: 'border-orange-300 dark:border-orange-700',
@@ -43,7 +46,7 @@ const fixaMeta: CategoryMeta = {
   key: ExpenseCategory.Fixas,
   label: 'Despesas Fixas',
   shortLabel: 'Fixas',
-  icon: '🏠',
+  icon: Home,
   color: '#3b82f6',
   textColor: 'text-blue-700 dark:text-blue-400',
   borderColor: 'border-blue-300 dark:border-blue-700',
@@ -56,7 +59,7 @@ const varMeta: CategoryMeta = {
   key: ExpenseCategory.Vars,
   label: 'Despesas Variáveis',
   shortLabel: 'Variáveis',
-  icon: '🛒',
+  icon: ShoppingCart,
   color: '#eab308',
   textColor: 'text-amber-700 dark:text-amber-400',
   borderColor: 'border-amber-300 dark:border-amber-700',

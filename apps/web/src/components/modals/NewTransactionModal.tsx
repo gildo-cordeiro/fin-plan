@@ -114,7 +114,7 @@ export const NewTransactionModal = ({
                       : 'bg-slate-50/70 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span className="text-base">{cat.icon}</span>
+                  <cat.icon className="w-4 h-4" />
                   <span className={isSelected ? cat.textColor : ''}>{cat.label}</span>
                 </button>
               );

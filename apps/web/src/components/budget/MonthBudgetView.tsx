@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, Settings, Plus, Wallet, CreditCard, Home, ShoppingCart, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Settings, Plus, Wallet, CreditCard, Home, ShoppingCart, Package, X, Check, Zap } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/Popover';
 import { Button } from '../ui/Button';
 
@@ -265,9 +265,7 @@ export const MonthBudgetView = ({
                       : 'Confirmar pagamento / recebimento (Realizado)'
                   }
                   aria-label={isConfirmed ? 'Desmarcar pagamento' : 'Confirmar pagamento'}
-                >
-                  ✓
-                </button>
+                ><Check className="w-4 h-4 inline-block" /></button>
               )}
 
               {canDeleteEach && (
@@ -292,9 +290,7 @@ export const MonthBudgetView = ({
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
                   title="Remover conta"
                   aria-label={`Remover ${item.name}`}
-                >
-                  ✕
-                </button>
+                ><X className="w-4 h-4 inline-block" /></button>
               )}
             </div>
           );
@@ -420,8 +416,7 @@ export const MonthBudgetView = ({
         <CollapsibleSection title="Despesas Variáveis" icon={<ShoppingCart className="w-4 h-4 text-orange-600" />} total={simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)} defaultOpen={false}>
           {simulation.varsPercent !== 0 && (
             <div className="p-2.5 mx-4 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
-              <span>
-                ⚡ <strong>Simulação ativa ({simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
+              <span><Zap className="w-4 h-4 inline-block" /><strong>Simulação ativa ({simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
               </span>
             </div>
           )}

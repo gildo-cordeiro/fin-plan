@@ -1,4 +1,6 @@
+import { X, Target, Pencil, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { getIcon } from '../../lib/icons';
 
 import { useToast } from '../../context/ToastContext';
 import { MoneyInput } from '../ui/MoneyInput';
@@ -8,16 +10,17 @@ import { NewGoalModal } from '../modals/NewGoalModal';
 import { GoalContributionModal } from '../modals/GoalContributionModal';
 
 function getCleanGoalIcon(icon?: string, name?: string): string {
-  if (icon && !/[a-zA-Z0-9]/.test(icon) && icon.length <= 4) {
+  if (icon && !/[a-zA-Z0-9]/.test(icon) && icon.length > 4) {
     return icon;
   }
   const lower = (name || '').toLowerCase();
-  if (lower.includes('reserva') || lower.includes('emergencia')) return '🛡️';
-  if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) return '📦';
-  if (lower.includes('viagem') || lower.includes('ferias')) return '✈️';
-  if (lower.includes('carro') || lower.includes('veiculo') || lower.includes('moto')) return '🚗';
-  if (lower.includes('estudo') || lower.includes('curso')) return '📚';
-  return '🎯';
+  if (lower.includes('reserva') || lower.includes('emergencia')) return 'Shield';
+  if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) return 'Package';
+  if (lower.includes('viagem') || lower.includes('ferias')) return 'Plane';
+  if (lower.includes('carro') || lower.includes('veiculo') || lower.includes('moto')) return 'Car';
+  if (lower.includes('estudo') || lower.includes('curso')) return 'Book';
+  if (icon && icon.length > 1) return icon;
+  return 'Target';
 }
 
 const ContributionRow = ({
@@ -38,9 +41,7 @@ const ContributionRow = ({
       onClick={onRemove}
       className="text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
       title="Remover este aporte"
-    >
-      ✕
-    </button>
+    ><X className="w-4 h-4 inline-block" /></button>
   </div>
 );
 
@@ -93,7 +94,10 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 text-lg flex items-center justify-center shrink-0 select-none shadow-xs">
-            {cleanIcon}
+            {(() => {
+              const Icon = getIcon(cleanIcon);
+              return <Icon className="w-5 h-5" />;
+            })()}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -237,7 +241,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
                   title="Clique para editar o valor da meta"
                 >
                   <span>{formatBRL(goal.targetAmount)}</span>
-                  <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✏️</span>
+                  <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="w-4 h-4 inline-block" /></span>
                 </button>
               )}
             </div>
@@ -350,7 +354,7 @@ export const GoalsSection = () => {
           className="w-full p-3 flex items-center justify-between text-left hover:bg-teal-100/40 dark:hover:bg-teal-900/20 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <span className="text-sm">🎯</span>
+            <span className="text-sm"><Target className="w-4 h-4 inline-block" /></span>
             <strong className="text-teal-950 dark:text-teal-200 font-semibold text-xs">
               Como funciona a divisão entre Orçamento e Metas?
             </strong>
@@ -370,9 +374,7 @@ export const GoalsSection = () => {
       {goals.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-[#0e6b7a] dark:text-[#4ec2d3] flex items-center justify-center text-sm shrink-0">
-              🎯
-            </div>
+            <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-[#0e6b7a] dark:text-[#4ec2d3] flex items-center justify-center text-sm shrink-0"><Target className="w-4 h-4 inline-block" /></div>
             <div>
               <span className="text-[11px] text-slate-400 block font-medium">Total das Metas</span>
               <strong className="font-mono text-slate-800 dark:text-slate-100 text-sm">{formatBRL(totalTarget)}</strong>
@@ -380,9 +382,7 @@ export const GoalsSection = () => {
           </div>
 
           <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm shrink-0">
-              💰
-            </div>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm shrink-0"><Wallet className="w-4 h-4 inline-block" /></div>
             <div>
               <span className="text-[11px] text-slate-400 block font-medium">Total Guardado</span>
               <strong className="font-mono text-emerald-600 dark:text-emerald-400 text-sm">{formatBRL(totalSaved)}</strong>
@@ -445,7 +445,7 @@ export const GoalsSection = () => {
 
       {goals.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-          <span className="text-3xl mb-2">🎯</span>
+          <span className="text-3xl mb-2"><Target className="w-4 h-4 inline-block" /></span>
           <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
             Nenhuma meta cadastrada ainda
           </p>

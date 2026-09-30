@@ -1,3 +1,4 @@
+import { X, Check, Package, Truck, Folder, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
@@ -56,8 +57,8 @@ export const OneTimeCostsSection = () => {
   const mudGoal = goals.find(
     (g) =>
       g.name.toLowerCase().includes('mudan') ||
-      g.icon === '🏠' ||
-      g.icon === '🚚'
+      g.icon === '🏠' || g.icon === 'Home' ||
+      g.icon === '🚚' || g.icon === 'Truck'
   );
 
   const handleCreateProject = async () => {
@@ -101,7 +102,7 @@ export const OneTimeCostsSection = () => {
         <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">🚚</span>
+              <span className="text-xl"><Truck className="w-4 h-4 inline-block" /></span>
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 Custos Pontuais e Projetos Especiais
               </h2>
@@ -152,7 +153,7 @@ export const OneTimeCostsSection = () => {
         {/* Lista de Projetos (Cost) */}
         {costs.length === 0 && !isCreatingProject ? (
           <div className="text-center py-8 text-slate-400 dark:text-slate-500 space-y-2">
-            <span className="text-3xl block">📦</span>
+            <span className="text-3xl block"><Package className="w-4 h-4 inline-block" /></span>
             <p className="text-xs font-medium">Nenhum projeto de custo pontual cadastrado.</p>
             <button
               type="button"
@@ -184,7 +185,7 @@ export const OneTimeCostsSection = () => {
                   <div className="p-3.5 bg-gradient-to-r from-purple-500/10 via-transparent to-transparent border-b border-slate-200/80 dark:border-slate-800 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                        <span className="text-lg">📁</span>
+                        <span className="text-lg"><Folder className="w-4 h-4 inline-block" /></span>
                         <input
                           type="text"
                           value={cost.name}
@@ -368,9 +369,7 @@ export const OneTimeCostsSection = () => {
                                     ? `Pago em ${item.paidDate}. Clique para desconfirmar.`
                                     : 'Marcar como pago'
                                 }
-                              >
-                                ✓
-                              </button>
+                              ><Check className="w-4 h-4 inline-block" /></button>
 
                               {/* Remover Item */}
                               <button
@@ -378,9 +377,7 @@ export const OneTimeCostsSection = () => {
                                 onClick={() => removeCostItem(cost.id, item.id)}
                                 className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
                                 title="Remover item"
-                              >
-                                ✕
-                              </button>
+                              ><X className="w-4 h-4 inline-block" /></button>
                             </div>
                           );
                         })}
@@ -420,7 +417,7 @@ export const OneTimeCostsSection = () => {
         <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">🛡️</span>
+              <span className="text-xl"><Shield className="w-4 h-4 inline-block" /></span>
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                 Movimentações da Reserva de Emergência
               </h3>

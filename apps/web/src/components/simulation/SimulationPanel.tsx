@@ -1,3 +1,4 @@
+import { Circle, Wand2 } from 'lucide-react';
 import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { MoneyInput } from '../ui/MoneyInput';
@@ -33,7 +34,7 @@ export const SimulationPanel = () => {
       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xl">🔮</span>
+            <span className="text-xl"><Wand2 className="w-4 h-4 inline-block" /></span>
             <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
               Simulador de Cenários ("E se...")
             </h3>
@@ -245,7 +246,7 @@ export const SimulationPanel = () => {
           {!isSimActive ? (
             metrics.minAccumulatedBalance < 0 ? (
               <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
-                <span>🔴</span>
+                <span><Circle className="w-4 h-4 inline-block" /></span>
                 <span>
                   <strong>Atenção (Orçamento Base):</strong> Suas contas originais ficam negativas em{' '}
                   <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
@@ -261,7 +262,7 @@ export const SimulationPanel = () => {
             )
           ) : willHaveDeficit ? (
             <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
-              <span>🔴</span>
+              <span><Circle className="w-4 h-4 inline-block" /></span>
               <span>
                 <strong>Atenção:</strong> Neste cenário simulado, seu saldo ficará negativo em{' '}
                 <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.

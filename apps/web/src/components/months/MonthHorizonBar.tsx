@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react';
 import { useState, FormEvent } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { MONTH_NAMES } from '../../lib/format';
@@ -102,7 +103,7 @@ export const MonthHorizonBar = () => {
             title="Definir mês inicial e quantidade personalizada"
             aria-label="Personalizar período de meses"
           >
-            <span>⚙️</span>
+            <span><Settings className="w-4 h-4 inline-block" /></span>
             <span>Personalizar</span>
           </button>
         </div>

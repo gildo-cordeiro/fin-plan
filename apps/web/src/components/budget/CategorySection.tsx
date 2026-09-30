@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -159,9 +160,7 @@ export const CategorySection = ({
                         title="Remover conta"
                         aria-label={`Remover ${item.name}`}
                         className="px-1.5 py-0.5 text-xs text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                      >
-                        ✕
-                      </button>
+                      ><X className="w-4 h-4 inline-block" /></button>
                     </div>
                   </td>
                 </tr>

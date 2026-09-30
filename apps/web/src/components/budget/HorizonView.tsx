@@ -5,7 +5,7 @@ import { MonthHorizonBar } from '../months/MonthHorizonBar';
 import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
 import { MonthlySummaryTable } from '../summary/MonthlySummaryTable';
-import { BarChart3, TrendingUp, Layers } from 'lucide-react';
+import { BarChart3, TrendingUp, Layers, LineChart, Lightbulb } from 'lucide-react';
 
 export const HorizonView = () => {
   const { monthlySummaries } = useBudget();
@@ -25,7 +25,7 @@ export const HorizonView = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <span>📈</span>
+              <span><LineChart className="w-4 h-4 inline-block" /></span>
               <span>Projeção Financeira & Visualização de Fluxo</span>
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
@@ -77,7 +77,7 @@ export const HorizonView = () => {
 
         {totalReserveWithdrawal > 0 && (
           <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-200 shadow-2xs transition-all duration-300">
-            <span className="text-base shrink-0">💡</span>
+            <span className="text-base shrink-0"><Lightbulb className="w-4 h-4 inline-block" /></span>
             <div className="leading-snug">
               <strong>Retirada da Reserva:</strong> Em{' '}
               <strong>{deficitMonths.map((m) => m.month.shortName).join(', ')}</strong> você precisará retirar{' '}

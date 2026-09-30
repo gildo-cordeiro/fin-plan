@@ -3,25 +3,27 @@ import { useCreateGoalMutation } from '../../queries/goals';
 import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
 
+import { getIcon } from '../../lib/icons';
+
 interface NewGoalModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const EMOJI_OPTIONS = ['🏠', '🚚', '🛡️', '✈️', '🚗', '🛋️', '💻', '💍', '🎓', '🎯', '🏖️', '🚀'];
+const EMOJI_OPTIONS = ['Home', 'Truck', 'Shield', 'Plane', 'Car', 'Sofa', 'Laptop', 'Gem', 'GraduationCap', 'Target', 'Umbrella', 'Rocket'];
 
 const PRESETS = [
-  { name: 'Mudança de Residência', icon: '🏠', target: 6000, desc: 'Caminhão, pintura, caução e taxas' },
-  { name: 'Reserva de Emergência', icon: '🛡️', target: 15000, desc: '6 meses de despesas fixas' },
-  { name: 'Viagem de Férias', icon: '✈️', target: 5000, desc: 'Passagens, hospedagem e passeios' },
-  { name: 'Móveis & Eletros Novos', icon: '🛋️', target: 4000, desc: 'Geladeira, sofá e decoração' },
+  { name: 'Mudança de Residência', icon: 'Home', target: 6000, desc: 'Caminhão, pintura, caução e taxas' },
+  { name: 'Reserva de Emergência', icon: 'Shield', target: 15000, desc: '6 meses de despesas fixas' },
+  { name: 'Viagem de Férias', icon: 'Plane', target: 5000, desc: 'Passagens, hospedagem e passeios' },
+  { name: 'Móveis & Eletros Novos', icon: 'Sofa', target: 4000, desc: 'Geladeira, sofá e decoração' },
 ];
 
 export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
   const createGoalMutation = useCreateGoalMutation();
 
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('🏠');
+  const [icon, setIcon] = useState('Home');
   const [targetAmount, setTargetAmount] = useState(0);
   const [description, setDescription] = useState('');
 
@@ -72,7 +74,12 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
                 onClick={() => handleSelectPreset(p)}
                 className="flex items-center gap-2 p-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-left text-xs transition-colors"
               >
-                <span className="text-base">{p.icon}</span>
+                <span>
+                  {(() => {
+                    const Icon = getIcon(p.icon);
+                    return <Icon className="w-4 h-4" />;
+                  })()}
+                </span>
                 <span className="truncate font-medium text-slate-700 dark:text-slate-300">
                   {p.name}
                 </span>

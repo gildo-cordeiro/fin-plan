@@ -15,11 +15,13 @@ interface BudgetManagementModalProps {
   monthId: string;
 }
 
-const TABS: Array<{ key: ExpenseCategoryKey | 'renda'; label: string; icon: string }> = [
-  { key: 'renda',   label: 'Renda & Entradas', icon: '💰' },
-  { key: 'cartoes', label: 'Cartões',          icon: '💳' },
-  { key: 'fixas',   label: 'Despesas Fixas',   icon: '🏠' },
-  { key: 'vars',    label: 'Variáveis',        icon: '🛒' },
+import { Wallet, CreditCard, Home, ShoppingCart, type LucideIcon, X, Settings } from 'lucide-react';
+
+const TABS: Array<{ key: ExpenseCategoryKey | 'renda'; label: string; icon: LucideIcon }> = [
+  { key: 'renda',   label: 'Renda & Entradas', icon: Wallet },
+  { key: 'cartoes', label: 'Cartões',          icon: CreditCard },
+  { key: 'fixas',   label: 'Despesas Fixas',   icon: Home },
+  { key: 'vars',    label: 'Variáveis',        icon: ShoppingCart },
 ];
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -155,7 +157,7 @@ export const BudgetManagementModal = ({
       title={
         <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
           <div className="flex items-center gap-2">
-            <span>⚙️</span>
+            <span><Settings className="w-4 h-4 inline-block" /></span>
             <span>Central de Orçamento: Renda & Despesas</span>
           </div>
           <select
@@ -190,7 +192,7 @@ export const BudgetManagementModal = ({
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                <span>{tab.icon}</span>
+                <span><tab.icon className="w-4 h-4" /></span>
                 <span className="truncate">{tab.label}</span>
               </button>
             );
@@ -265,9 +267,7 @@ export const BudgetManagementModal = ({
                       title="Excluir conta"
                       aria-label={`Excluir ${item.name}`}
                       className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-600 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition-colors"
-                    >
-                      ✕
-                    </button>
+                    ><X className="w-4 h-4 inline-block" /></button>
                   </div>
                 </div>
               );
