@@ -1,5 +1,5 @@
 import { useBudget } from '../../hooks/useBudget';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 
 export const IncomeSection = () => {
@@ -74,7 +74,7 @@ export const IncomeSection = () => {
                   {months.map((m, mIdx) => (
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
-                        <CurrencyInput
+                        <MoneyInput
                           value={item.values?.[m.id] ?? 0}
                           onChange={(val) => updateItemValue('renda', item.id, m.id, val)}
                           ariaLabel={`${item.name} em ${m.shortName}`}

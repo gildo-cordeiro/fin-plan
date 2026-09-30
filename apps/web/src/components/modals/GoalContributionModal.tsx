@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAddGoalContributionMutation } from '../../queries/goals';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { Modal } from '../ui/Modal';
 import type { FinancialGoal } from '../../types/budget';
@@ -70,7 +70,7 @@ export const GoalContributionModal = ({
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Valor a Guardar (R$)
             </label>
-            <CurrencyInput
+            <MoneyInput
               value={amount}
               onChange={setAmount}
               placeholder="0,00"

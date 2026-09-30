@@ -1,7 +1,7 @@
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useBudgetStore } from '../../store/useBudgetStore';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 
 interface CategorySectionProps {
@@ -108,7 +108,7 @@ export const CategorySection = ({
                   {months.map((m, mIdx) => (
                     <td key={m.id} className="py-1.5 px-1">
                       <div className="relative group">
-                        <CurrencyInput
+                        <MoneyInput
                           value={item.values?.[m.id] ?? 0}
                           onChange={(val) => updateItemValue(categoryKey, item.id, m.id, val)}
                           disabled={item.off}

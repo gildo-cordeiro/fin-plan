@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { useToast } from '../../context/ToastContext';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
@@ -220,7 +220,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
             <div className="flex items-center justify-end font-mono font-bold text-slate-800 dark:text-slate-200 text-sm">
               {editingTarget ? (
                 <div className="w-28 inline-block">
-                  <CurrencyInput
+                  <MoneyInput
                     value={goal.targetAmount || 0}
                     onChange={(v) => updateGoal(goal.id, { targetAmount: v })}
                     onKeyDown={(e) => {

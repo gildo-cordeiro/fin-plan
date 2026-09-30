@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useBudgetStore } from '../../store/useBudgetStore';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
 import { NewTransactionModal } from '../modals/NewTransactionModal';
@@ -189,7 +189,7 @@ export const MonthBudgetView = ({
               />
 
               <div className="w-28 sm:w-32 shrink-0">
-                <CurrencyInput
+                <MoneyInput
                   value={plannedVal}
                   onChange={(v) => {
                     setSessionActiveItemIds((prev) => new Set(prev).add(item.id));

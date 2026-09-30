@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { CATEGORY_DEFINITIONS } from '../../constants/categories';
 import { normalizeBudgetItemType, type ExpenseCategoryKey } from '../../constants/enums';
@@ -241,7 +241,7 @@ export const BudgetManagementModal = ({
                   />
 
                   <div className="w-28 sm:w-32 shrink-0">
-                    <CurrencyInput
+                    <MoneyInput
                       value={val}
                       onChange={(v) => updateItemValue(activeTab, item.id, selectedMonthId, v)}
                       disabled={item.off}
@@ -295,7 +295,7 @@ export const BudgetManagementModal = ({
               className="flex-1 min-w-[140px] px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#0e6b7a]"
             />
             <div className="w-28 shrink-0">
-              <CurrencyInput
+              <MoneyInput
                 value={newItemValue}
                 onChange={setNewItemValue}
                 debounceMs={0}

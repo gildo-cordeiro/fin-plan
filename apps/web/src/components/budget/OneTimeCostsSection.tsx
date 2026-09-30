@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import {
   useCostsQuery,
@@ -339,7 +339,7 @@ export const OneTimeCostsSection = () => {
 
                               {/* Valor Planejado */}
                               <div className="w-28 sm:w-32 shrink-0">
-                                <CurrencyInput
+                                <MoneyInput
                                   value={item.plannedAmount}
                                   onChange={(v) =>
                                     updateCostItem(cost.id, item.id, { plannedAmount: v })
@@ -474,7 +474,7 @@ export const OneTimeCostsSection = () => {
 
             <div>
               <label className="text-slate-500 dark:text-slate-400 block mb-1">Valor:</label>
-              <CurrencyInput
+              <MoneyInput
                 value={reserveAmount}
                 onChange={setReserveAmount}
                 placeholder="0,00"

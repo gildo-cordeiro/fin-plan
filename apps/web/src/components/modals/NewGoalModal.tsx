@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCreateGoalMutation } from '../../queries/goals';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
 
 interface NewGoalModalProps {
@@ -123,7 +123,7 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
               Valor Alvo Total (R$)
             </label>
-            <CurrencyInput
+            <MoneyInput
               value={targetAmount}
               onChange={setTargetAmount}
               placeholder="0,00"

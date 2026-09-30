@@ -1,6 +1,6 @@
 import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { useSimulationMetrics } from '../../hooks/useSimulationMetrics';
 
@@ -290,7 +290,7 @@ export const SimulationPanel = () => {
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Saldo disponível hoje (R$)
           </label>
-          <CurrencyInput
+          <MoneyInput
             value={initialBalance}
             onChange={(val) => updateBudgetBalances({ initialBalance: val })}
             ariaLabel="Saldo disponível hoje"
@@ -301,7 +301,7 @@ export const SimulationPanel = () => {
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Reserva que não quer tocar (R$)
           </label>
-          <CurrencyInput
+          <MoneyInput
             value={emergencyReserve}
             onChange={(val) => updateBudgetBalances({ emergencyReserveTarget: val })}
             ariaLabel="Reserva de emergência"

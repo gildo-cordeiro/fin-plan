@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../../hooks/useBudget';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
 import { TRANSACTION_CATEGORIES } from '../../constants/categories';
 import type { ExpenseCategoryKey } from '../../types/budget';
@@ -155,7 +155,7 @@ export const NewTransactionModal = ({
             Valor (R$)
           </label>
           <div className="text-base font-semibold">
-            <CurrencyInput
+            <MoneyInput
               value={value}
               onChange={setValue}
               placeholder="0,00"

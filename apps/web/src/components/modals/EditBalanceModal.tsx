@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../../hooks/useBudget';
-import { CurrencyInput } from '../ui/CurrencyInput';
+import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
 
 interface EditBalanceModalProps {
@@ -45,7 +45,7 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Saldo em Conta Hoje (R$)
           </label>
-          <CurrencyInput
+          <MoneyInput
             value={balance}
             onChange={setBalance}
             placeholder="0,00"
@@ -61,7 +61,7 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Reserva que não quer mexer (R$)
           </label>
-          <CurrencyInput
+          <MoneyInput
             value={reserve}
             onChange={setReserve}
             placeholder="0,00"
