@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, ChevronDown, Settings, Plus } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/Popover';
+import { Button } from '../ui/Button';
+
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { useBudgetStore } from '../../store/useBudgetStore';
@@ -15,11 +19,14 @@ interface MonthBudgetViewProps {
   onNavigateToGoals?: () => void;
   onNavigateToHorizon?: () => void;
   onNavigateToSimulations?: () => void;
+
+  onMonthChange: (monthId: string) => void;
 }
 
 export const MonthBudgetView = ({
   monthId,
   onNavigateToGoals,
+  onMonthChange,
 }: MonthBudgetViewProps) => {
   const { showToast } = useToast();
   const {
@@ -33,7 +40,28 @@ export const MonthBudgetView = ({
     repeatValueForward,
     confirmEntry,
     unconfirmEntry,
+    availableYears,
+    selectYear,
   } = useBudget();
+  const { months, currentYear } = state;
+
+  const currentIdx = months.findIndex((m) => m.id === monthId);
+  const canPrev = currentIdx > 0;
+  const canNext = currentIdx < months.length - 1;
+
+  const yearList = availableYears.map((y) => y.year);
+  if (!yearList.includes(currentYear)) {
+    yearList.push(currentYear);
+  }
+  yearList.sort((a, b) => a - b);
+
+  const handleYearChange = async (y: number) => {
+    if (y === currentYear) return;
+    await selectYear(y);
+    const targetMonthIndex = currentIdx >= 0 ? months[currentIdx].monthIndex : new Date().getMonth();
+    const targetMonthPad = String(targetMonthIndex + 1).padStart(2, '0');
+    onMonthChange(`${y}-${targetMonthPad}`);
+  };
   const simulation = useBudgetStore((s) => s.simulation);
   const { data: costs = [] } = useCostsQuery(state.currentYear);
 
@@ -287,301 +315,111 @@ export const MonthBudgetView = ({
 
   return (
     <div className="space-y-4">
+      {/* HEADER ROW */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl px-4 py-3 shadow-sm flex flex-col sm:flex-row flex-wrap sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => canPrev && onMonthChange(months[currentIdx - 1].id)} disabled={!canPrev} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer">
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="font-bold text-base sm:text-lg px-2 text-slate-800 dark:text-slate-200 cursor-pointer">
+                {month.name} {currentYear} <ChevronDown className="w-4 h-4 ml-1.5 opacity-50"/>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3 rounded-2xl" align="center">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className="text-xs font-semibold text-slate-500">Ano do Orçamento</span>
+                <select
+                  value={currentYear}
+                  onChange={(e) => handleYearChange(Number(e.target.value))}
+                  className="text-sm font-bold text-[#0e6b7a] dark:text-[#4ec2d3] bg-transparent outline-none cursor-pointer"
+                >
+                  {yearList.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {months.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => onMonthChange(m.id)}
+                    className={`text-xs py-1.5 rounded-lg font-medium transition-colors cursor-pointer ${m.id === monthId ? 'bg-[#0e6b7a] text-white shadow-sm' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'}`}
+                  >
+                    {m.shortName}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <Button variant="ghost" size="icon" onClick={() => canNext && onMonthChange(months[currentIdx + 1].id)} disabled={!canNext} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer">
+            <ChevronRight className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleOpenBudgetModal('renda')} className="text-slate-600 dark:text-slate-300 bg-transparent border-slate-200 dark:border-slate-700 cursor-pointer">
+            <Settings className="w-4 h-4 mr-1.5"/> Editar Orçamento
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => handleOpenAddModal('fixas')} className="bg-[#0e6b7a] hover:bg-[#09525e] text-white cursor-pointer">
+            <Plus className="w-4 h-4 mr-1.5"/> Novo Item
+          </Button>
+        </div>
+      </div>
+
+      {/* SUMMARY CARD */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                isPositive
-                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-              }`}
-            >
-              <span>{isPositive ? '🟢' : '🔴'}</span>
-              <span>{isPositive ? 'Orçamento no azul' : 'Déficit previsto'}</span>
-            </span>
-
-            {simulation.varsPercent !== 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                <span>⚡ Simulação: Vars {simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%</span>
-              </span>
-            )}
-
-            <span className="text-xs text-slate-400">em {month.name}</span>
+        <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
+          <div className="flex-1 p-3 pt-0 sm:p-3 sm:py-0 text-center sm:text-left">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Renda Prevista</div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">{formatBRL(income)}</div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleOpenBudgetModal('renda')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0e6b7a] hover:bg-[#09525e] text-white shadow-xs hover:shadow transition-all cursor-pointer"
-            >
-              <span>⚙️</span>
-              <span>Editar Orçamento</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleOpenAddModal('fixas')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
-            >
-              <span>+</span>
-              <span>Novo Item</span>
-            </button>
+          <div className="flex-1 p-3 sm:p-3 sm:py-0 text-center sm:text-left">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Total de Despesas</div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">{formatBRL(totalExpenses)}</div>
+            {oneTime > 0 && <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium mt-0.5">📦 Inclui {formatBRL(oneTime)} pontuais</div>}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-          <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-0.5">
-              Renda Prevista
-            </span>
-            <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-800 dark:text-emerald-300 tabular-nums">
-              {formatBRL(income)}
-            </span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-0.5">
-              Total de Despesas
-            </span>
-            <span className="text-xl sm:text-2xl font-bold font-mono text-rose-800 dark:text-rose-300 tabular-nums">
-              {formatBRL(totalExpenses)}
-            </span>
-            {oneTime > 0 && (
-              <span className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold block mt-0.5">
-                📦 Inclui {formatBRL(oneTime)} de custos pontuais
-              </span>
-            )}
-          </div>
-
-          <div
-            className={`p-3 rounded-xl border ${
-              isPositive
-                ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700'
-                : 'bg-rose-100/50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {isPositive ? 'Sobra do Mês' : 'Déficit do Mês'}
-              </span>
-              {income > 0 && isPositive && (
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
-                  {savingsRate.toFixed(0)}% poupado
-                </span>
-              )}
+          <div className="flex-1 p-3 pb-0 sm:p-3 sm:py-0 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isPositive ? 'Sobra do Mês' : 'Déficit'}</span>
+              {income > 0 && isPositive && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">{savingsRate.toFixed(0)}% poupado</span>}
             </div>
-            <span
-              className={`text-xl sm:text-2xl font-bold font-mono tabular-nums ${
-                isPositive
-                  ? 'text-slate-900 dark:text-slate-100'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
-            >
+            <div className={`text-xl sm:text-2xl font-bold font-mono tabular-nums ${isPositive ? 'text-emerald-600 dark:text-emerald-500' : 'text-rose-600 dark:text-rose-500'}`}>
               {formatBRL(monthBalance)}
-            </span>
+            </div>
           </div>
         </div>
 
-        {isPositive && monthBalance > 0 && (
-          <div className="p-2.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900/40 flex items-center justify-between text-xs text-teal-800 dark:text-teal-300">
-            <span className="flex items-center gap-1.5">
-              <span>💡</span>
-              <span>
-                Você tem <strong>{formatBRL(monthBalance)}</strong> de sobra neste mês.
-              </span>
-            </span>
-            {onNavigateToGoals && (
-              <button
-                type="button"
-                onClick={onNavigateToGoals}
-                className="font-bold underline hover:opacity-80 shrink-0 cursor-pointer"
-              >
-                Destinar para Metas / Projetos →
-              </button>
-            )}
-          </div>
-        )}
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
+          <div className={`h-full transition-all ${totalExpenses > income ? 'bg-rose-500' : (totalExpenses / income > 0.8 ? 'bg-amber-500' : 'bg-emerald-500')}`} style={{ width: `${Math.min(income > 0 ? (totalExpenses / income) * 100 : (totalExpenses > 0 ? 100 : 0), 100)}%` }} />
+        </div>
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>Saldo acumulado em conta até {month.shortName}:</span>
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span>Saldo acumulado (caixa) previsto para o fim de {month.shortName}:</span>
           <strong className="font-mono text-sm text-slate-800 dark:text-slate-200 tabular-nums">
             {formatBRL(accumulatedBalance)}
           </strong>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Valores Base do Sistema (Alimentação dos Cálculos)
-          </span>
-          <button
-            type="button"
-            onClick={() => handleOpenBudgetModal('renda')}
-            className="text-xs font-semibold text-[#0e6b7a] dark:text-[#4ec2d3] hover:underline cursor-pointer"
-          >
-            Abrir Central de Edição ↗
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <div
-            onClick={() => handleOpenBudgetModal('renda')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>💰</span>
-                <span>Renda & Entradas</span>
-              </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 group-hover:underline font-semibold">
-                Editar ✏️
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-lg font-bold text-emerald-700 dark:text-emerald-400 block tabular-nums">
-                {formatBRL(rawIncome)}
-              </span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {activeIncomeItems.filter((i) => !i.off).length} fontes ativas neste mês
-              </span>
-            </div>
-          </div>
-
-          <div
-            onClick={() => handleOpenBudgetModal('cartoes')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-orange-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>💳</span>
-                <span>Cartões de Crédito</span>
-              </span>
-              <span className="text-[10px] text-orange-600 dark:text-orange-400 group-hover:underline font-semibold">
-                Editar ✏️
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-lg font-bold text-orange-600 dark:text-orange-400 block tabular-nums">
-                {formatBRL(rawCards)}
-              </span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {activeCardItems.filter((i) => !i.off).length} faturas ativas neste mês
-              </span>
-            </div>
-          </div>
-
-          <div
-            onClick={() => handleOpenBudgetModal('fixas')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>🏠</span>
-                <span>Despesas Fixas</span>
-              </span>
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 group-hover:underline font-semibold">
-                Editar ✏️
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400 block tabular-nums">
-                {formatBRL(rawFixed)}
-              </span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {activeFixedItems.filter((i) => !i.off).length} contas ativas neste mês
-              </span>
-            </div>
-          </div>
-
-          <div
-            onClick={() => handleOpenBudgetModal('vars')}
-            className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-amber-500/50 hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <span>🛒</span>
-                <span>Despesas Variáveis</span>
-              </span>
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 group-hover:underline font-semibold">
-                Editar ✏️
-              </span>
-            </div>
-            <div>
-              <span className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400 block tabular-nums">
-                {simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)}
-              </span>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                {activeVarItems.filter((i) => !i.off).length} estimativas ativas neste mês
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2.5 pt-1">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Detalhamento de Contas e Lançamentos
-          </span>
-          <span className="text-[11px] text-slate-400 dark:text-slate-500">
-            Clique na categoria para expandir e editar itens
-          </span>
-        </div>
-
-        <CollapsibleSection
-          title="Rendas & Entradas"
-          icon="💰"
-          total={formatBRL(rawIncome)}
-          totalColorClass="text-emerald-600 dark:text-emerald-400"
-          defaultOpen={false}
-        >
+      {/* ACCORDION ACCOUNTS */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+        <CollapsibleSection title="Rendas & Entradas" icon="💰" total={formatBRL(rawIncome)} defaultOpen={true}>
           {renderItems(activeIncomeItems, 'renda', false)}
         </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Cartões de Crédito"
-          icon="💳"
-          total={formatBRL(rawCards)}
-          totalColorClass="text-orange-600 dark:text-orange-400"
-          defaultOpen={false}
-        >
+        
+        <CollapsibleSection title="Cartões de Crédito" icon="💳" total={formatBRL(rawCards)} defaultOpen={false}>
           {renderItems(activeCardItems, 'cartoes', true)}
         </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Despesas Fixas (Recorrentes)"
-          icon="🏠"
-          total={formatBRL(rawFixed)}
-          totalColorClass="text-blue-600 dark:text-blue-400"
-          defaultOpen={false}
-        >
+        
+        <CollapsibleSection title="Despesas Fixas" icon="🏠" total={formatBRL(rawFixed)} defaultOpen={false}>
           {renderItems(activeFixedItems, 'fixas', true)}
         </CollapsibleSection>
-
-        <CollapsibleSection
-          title={
-            simulation.varsPercent !== 0
-              ? `Despesas Variáveis (Estimativas) — ${simulation.varsPercent > 0 ? '+' : ''}${simulation.varsPercent}% simulado`
-              : 'Despesas Variáveis (Estimativas)'
-          }
-          icon="🛒"
-          total={
-            simulation.varsPercent !== 0
-              ? formatBRL(summary.variable)
-              : formatBRL(rawVars)
-          }
-          totalColorClass={
-            simulation.varsPercent !== 0
-              ? 'text-amber-600 dark:text-amber-400 font-bold'
-              : 'text-amber-600 dark:text-amber-400'
-          }
-          defaultOpen={false}
-        >
+        
+        <CollapsibleSection title="Despesas Variáveis" icon="🛒" total={simulation.varsPercent !== 0 ? formatBRL(summary.variable) : formatBRL(rawVars)} defaultOpen={false}>
           {simulation.varsPercent !== 0 && (
-            <div className="p-2.5 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
+            <div className="p-2.5 mx-4 my-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center justify-between">
               <span>
                 ⚡ <strong>Simulação ativa ({simulation.varsPercent > 0 ? '+' : ''}{simulation.varsPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawVars)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.variable)}</strong> neste mês.
               </span>
@@ -589,19 +427,13 @@ export const MonthBudgetView = ({
           )}
           {renderItems(activeVarItems, 'vars', true)}
         </CollapsibleSection>
-
+        
         {oneTime > 0 && (
-          <CollapsibleSection
-            title="Custos Pontuais / Projetos (Neste Mês)"
-            icon="🚚"
-            total={formatBRL(oneTime)}
-            totalColorClass="text-purple-600 dark:text-purple-400"
-            defaultOpen={false}
-          >
-            <div className="space-y-2 pt-2">
+          <CollapsibleSection title="Custos Pontuais / Projetos" icon="📦" total={formatBRL(oneTime)} totalColorClass="text-purple-600 dark:text-purple-400" defaultOpen={false}>
+            <div className="space-y-2 pt-2 pb-2 mx-4">
               <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 text-xs text-purple-900 dark:text-purple-200 flex items-center justify-between">
                 <span>
-                  ✓ Estes custos foram agendados para cair no orçamento deste mês (<strong>{month.name}</strong>).
+                  ✓ Estes custos foram agendados para cair no orçamento deste mês.
                 </span>
                 {onNavigateToGoals && (
                   <button
@@ -609,13 +441,13 @@ export const MonthBudgetView = ({
                     onClick={onNavigateToGoals}
                     className="font-bold underline hover:opacity-80 shrink-0 ml-2 cursor-pointer"
                   >
-                    Gerenciar na aba Metas →
+                    Ver Metas →
                   </button>
                 )}
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {monthOneTimeItems.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs">
+                  <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg">
                     <span className="text-slate-800 dark:text-slate-200 font-medium">
                       {item.name}
                     </span>
