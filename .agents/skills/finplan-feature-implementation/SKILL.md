@@ -103,6 +103,7 @@ fin-plan/
 
 ## Restrições (não fazer)
 
+- Use sempre ícones do pacote `lucide-react` em vez de emojis hardcoded (ex: 🚚, ⚠️) ou outras bibliotecas de ícones na UI.
 - Não inclua comentários no código gerado a menos que sejam estritamente
   necessários para explicar decisões não-óbvias (workarounds, regras de
   negócio contraintuitivas ou referências a limitações externas). Comentários

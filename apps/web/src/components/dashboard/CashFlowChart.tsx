@@ -1,10 +1,91 @@
-import { useState } from 'react';
+import { Truck, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
 import { useBudget } from '../../hooks/useBudget';
 import { formatBRL } from '../../lib/format';
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const currentHover = payload[0].payload;
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs w-64 space-y-2">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <span className="font-bold text-slate-800 dark:text-slate-200">
+            {currentHover.sublabel}
+          </span>
+          <span
+            className={`font-mono font-bold \${
+              currentHover.value < 0
+                ? 'text-rose-600 dark:text-rose-400'
+                : 'text-[#0e6b7a] dark:text-[#4ec2d3]'
+            }`}
+          >
+            {formatBRL(currentHover.value)}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {currentHover.oneTime > 0 && (
+            <span className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+              <Truck className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Custos pontuais: <strong className="font-mono">{formatBRL(currentHover.oneTime)}</strong>
+            </span>
+          )}
+          {currentHover.label !== 'Hoje' && (
+            currentHover.needsReserveWithdrawal ? (
+              <span className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 leading-snug">
+                <AlertTriangle className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para não negativar
+              </span>
+            ) : currentHover.monthBalance < 0 ? (
+              <span className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-300 leading-snug">
+                <Info className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Gastos excederam renda ({formatBRL(Math.abs(currentHover.monthBalance))})
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300 leading-snug">
+                <CheckCircle2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Sobra do mês: <strong className="font-mono">{formatBRL(currentHover.monthBalance)}</strong>
+              </span>
+            )
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  const hasDeficit = payload.needsReserveWithdrawal;
+  const isNegative = payload.value < 0;
+
+  const dotColor = isNegative
+    ? '#e11d48'
+    : hasDeficit
+    ? '#f59e0b'
+    : '#0e6b7a';
+
+  return (
+    <svg x={cx - 15} y={cy - 15} width={30} height={30} className="overflow-visible">
+      {(payload.oneTime || 0) > 0 && (
+        <circle cx="15" cy="15" r="8" fill="none" stroke="#9333ea" strokeWidth="1.5" strokeDasharray="2 2" />
+      )}
+      {hasDeficit && (
+        <circle cx="15" cy="15" r="6" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeOpacity="0.7" />
+      )}
+      <circle cx="15" cy="15" r="4" fill={dotColor} stroke="#ffffff" strokeWidth="1.5" />
+    </svg>
+  );
+};
+
 export const CashFlowChart = () => {
   const { monthlySummaries, state } = useBudget();
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const dataPoints = [
     {
@@ -35,36 +116,11 @@ export const CashFlowChart = () => {
     }),
   ];
 
-  const values = dataPoints.map((p) => p.value).concat([0]);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
-  const valSpan = maxVal - minVal || 1;
-
-  const n = dataPoints.length;
-  const W = Math.max(500, n * 52);
-  const H = 210;
-  const padLeft = 30;
-  const padRight = 30;
-  const padTop = 20;
-  const padBottom = 30;
-
-  const getX = (idx: number) => padLeft + (idx * (W - padLeft - padRight)) / Math.max(1, n - 1);
-  const getY = (val: number) => padTop + (1 - (val - minVal) / valSpan) * (H - padTop - padBottom);
-
-  const zeroY = getY(0);
-
-  const linePath = dataPoints
-    .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${getX(idx).toFixed(1)} ${getY(p.value).toFixed(1)}`)
-    .join(' ');
-
-  const areaPath = `${linePath} L ${getX(n - 1)} ${H - padBottom} L ${getX(0)} ${H - padBottom} Z`;
-
-  const currentHover = hoveredIdx !== null ? dataPoints[hoveredIdx] : null;
   const hasAnyOneTime = dataPoints.some((p) => (p.oneTime || 0) > 0);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-full shadow-2xs transition-shadow duration-200">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-h-[28px]">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4 min-h-[28px]">
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
             Trajetória do Saldo Acumulado
@@ -89,180 +145,41 @@ export const CashFlowChart = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-1 my-auto">
-        <div style={{ minWidth: W }} className="relative select-none">
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block">
+      <div className="flex-1 min-h-[240px] -ml-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={dataPoints}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
             <defs>
-              <linearGradient id="cashGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0e6b7a" stopOpacity="0.22" />
-                <stop offset="100%" stopColor="#0e6b7a" stopOpacity="0.0" />
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#0e6b7a" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#0e6b7a" stopOpacity={0} />
               </linearGradient>
             </defs>
-
-            <line
-              x1={padLeft}
-              y1={zeroY}
-              x2={W - padRight}
-              y2={zeroY}
-              stroke="#cbd5e1"
-              className="dark:stroke-slate-700"
-              strokeDasharray="3 3"
-              strokeWidth="1.2"
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" className="dark:stroke-slate-700/50" />
+            <XAxis 
+              dataKey="label" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fontSize: 11, fill: '#64748b', fontWeight: 500 }} 
+              dy={10}
             />
-            <text
-              x={W - padRight + 4}
-              y={zeroY + 3}
-              fontSize="9"
-              fill="#94a3b8"
-              fontWeight="600"
-              className="font-mono select-none"
-            >
-              R$ 0
-            </text>
-
-            <path d={areaPath} fill="url(#cashGradient)" />
-
-            <path
-              d={linePath}
-              fill="none"
+            <YAxis hide domain={['auto', 'auto']} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />
+            <ReferenceLine y={0} stroke="#cbd5e1" strokeDasharray="3 3" className="dark:stroke-slate-700" />
+            <Area
+              type="monotone"
+              dataKey="value"
               stroke="#0e6b7a"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#colorValue)"
+              activeDot={{ r: 6, strokeWidth: 0, fill: '#0e6b7a' }}
+              dot={<CustomDot />}
             />
-
-            {dataPoints.map((pt, idx) => {
-              const cx = getX(idx);
-              const cy = getY(pt.value);
-              const isHovered = hoveredIdx === idx;
-              const hasDeficit = pt.needsReserveWithdrawal;
-              const isNegative = pt.value < 0;
-
-              const dotColor = isNegative
-                ? '#e11d48'
-                : hasDeficit
-                ? '#f59e0b'
-                : '#0e6b7a';
-
-              return (
-                <g
-                  key={idx}
-                  onMouseEnter={() => setHoveredIdx(idx)}
-                  onMouseLeave={() => setHoveredIdx(null)}
-                  className="cursor-pointer"
-                >
-                  <line
-                    x1={cx}
-                    y1={padTop}
-                    x2={cx}
-                    y2={H - padBottom}
-                    stroke="#94a3b8"
-                    strokeWidth="1"
-                    strokeDasharray="2 2"
-                    opacity={isHovered ? 1 : 0}
-                    className="transition-opacity duration-200"
-                  />
-
-                  {(pt.oneTime || 0) > 0 && (
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={isHovered ? 12 : 8.5}
-                      fill="none"
-                      stroke="#9333ea"
-                      strokeWidth={1.5}
-                      strokeDasharray="2 2"
-                      className="transition-all duration-200 ease-out"
-                    />
-                  )}
-
-                  {hasDeficit && (
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={isHovered ? 9 : 7}
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth={1.5}
-                      strokeOpacity={0.7}
-                      className="transition-all duration-200 ease-out"
-                    />
-                  )}
-
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={isHovered ? 6.5 : 4}
-                    fill={dotColor}
-                    stroke="#ffffff"
-                    strokeWidth={1.5}
-                    className="transition-all duration-200 ease-out"
-                  />
-
-                  <text
-                    x={cx}
-                    y={H - 8}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill={isHovered ? '#0e6b7a' : '#627282'}
-                    fontWeight={isHovered ? '700' : '500'}
-                    className="transition-colors duration-150 select-none"
-                  >
-                    {pt.label}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-      </div>
-
-      <div className="mt-3 min-h-[38px] px-3 py-1.5 flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 transition-all duration-200">
-        {currentHover ? (
-          <div className="w-full flex flex-wrap items-center justify-between gap-2 transition-all duration-200 ease-out opacity-100">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {currentHover.sublabel}:
-              </span>
-              <span
-                className={`font-mono font-bold ${
-                  currentHover.value < 0
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : 'text-[#0e6b7a] dark:text-[#4ec2d3]'
-                }`}
-              >
-                Saldo acumulado: {formatBRL(currentHover.value)}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {currentHover.oneTime > 0 && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
-                  🚚 Custos pontuais: <strong className="font-mono">{formatBRL(currentHover.oneTime)}</strong>
-                </span>
-              )}
-              {currentHover.label !== 'Hoje' && (
-                currentHover.needsReserveWithdrawal ? (
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 transition-all duration-200">
-                    ⚠️ Retirar <strong className="font-mono">{formatBRL(currentHover.withdrawalAmount)}</strong> da reserva para não negativar (déficit do mês: {formatBRL(Math.abs(currentHover.monthBalance))}, amortizado pelo saldo em conta)
-                  </span>
-                ) : currentHover.monthBalance < 0 ? (
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-300 transition-all duration-200">
-                    ℹ️ Gastos acima da renda em {formatBRL(Math.abs(currentHover.monthBalance))}, mas coberto 100% pelo saldo em conta
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300 transition-all duration-200">
-                    🟢 Sobra de <strong className="font-mono">{formatBRL(currentHover.monthBalance)}</strong> no mês (dinheiro livre)
-                  </span>
-                )
-              )}
-            </div>
-          </div>
-        ) : (
-          <span className="text-slate-400 text-[11px] transition-opacity duration-200">
-            Passe o mouse ou toque nos pontos do gráfico para ver a sobra do mês ou o valor a retirar da reserva.
-          </span>
-        )}
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

@@ -61,6 +61,7 @@ Analisar (o que estiver no alvo do pedido — um arquivo, um diretório ou o
   real do componente.
 
 ### 4. Arquitetura e consistência
+- Uso de emojis hardcoded na UI em vez de ícones padronizados (deve-se usar `lucide-react`).
 - Componente fazendo chamada de API diretamente em vez de passar por
   `budgetApiService.ts`/`BudgetContext`.
 - Lógica de negócio (cálculo, formatação financeira) implementada dentro de

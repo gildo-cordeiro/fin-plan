@@ -1,9 +1,10 @@
 import { useBudget } from '../../hooks/useBudget';
-import { formatBRL } from '../../lib/format';
+import { formatBRL, getCurrentMonthId } from '../../lib/format';
 
 export const MonthlySummaryTable = () => {
   const { monthlySummaries, state } = useBudget();
   const { months } = state;
+  const currentId = getCurrentMonthId();
 
   const totalIncome   = monthlySummaries.reduce((acc, m) => acc + m.income, 0);
   const totalCards    = monthlySummaries.reduce((acc, m) => acc + m.cards, 0);
@@ -41,7 +42,7 @@ export const MonthlySummaryTable = () => {
       {monthlySummaries.map((x) => (
         <td
           key={x.month.id}
-          className={`py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap ${
+          className={`py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap ${x.month.id === currentId ? 'bg-slate-50 dark:bg-slate-800/50 ' : ''}${ 
             field === 'monthBalance'
               ? x.monthBalance < 0
                 ? 'text-[#c53030] dark:text-[#f87171] font-bold'
@@ -49,7 +50,7 @@ export const MonthlySummaryTable = () => {
               : 'text-slate-700 dark:text-slate-300'
           }`}
         >
-          {formatBRL(x[field])}
+          {formatBRL(x[field], { hideSymbol: true })}
         </td>
       ))}
       <td
@@ -61,7 +62,7 @@ export const MonthlySummaryTable = () => {
             : 'text-slate-800 dark:text-slate-200'
         }`}
       >
-        {formatBRL(total)}
+        {formatBRL(total, { hideSymbol: true })}
       </td>
     </tr>
   );
@@ -121,7 +122,7 @@ export const MonthlySummaryTable = () => {
                       : 'text-[#0e6b7a] dark:text-[#4ec2d3]'
                   }`}
                 >
-                  {formatBRL(x.accumulatedBalance)}
+                  {formatBRL(x.accumulatedBalance, { hideSymbol: true })}
                 </td>
               ))}
               <td className="sticky right-0 z-10 bg-[#e5f2f4] dark:bg-[#102a33] py-2.5 px-3 text-right font-mono tabular-nums text-slate-500 border-l border-[#0e6b7a]/20">

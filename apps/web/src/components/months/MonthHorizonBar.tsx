@@ -2,6 +2,8 @@ import { Settings } from 'lucide-react';
 import { useState, FormEvent } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { MONTH_NAMES } from '../../lib/format';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
+
 
 export const MonthHorizonBar = () => {
   const {
@@ -72,7 +74,7 @@ export const MonthHorizonBar = () => {
           <button
             type="button"
             onClick={addNextMonth}
-            className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
             title="Adicionar próximo mês mantendo os valores repetidos"
             aria-label="Adicionar próximo mês ao horizonte"
           >
@@ -83,7 +85,7 @@ export const MonthHorizonBar = () => {
             <button
               type="button"
               onClick={() => removeMonth(lastMonth.id)}
-              className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-semibold text-xs transition-colors cursor-pointer"
               title="Remover último mês do horizonte"
               aria-label="Remover último mês do horizonte"
             >
@@ -99,7 +101,7 @@ export const MonthHorizonBar = () => {
               setCustomCount(state.months.length);
               setIsCustomOpen(true);
             }}
-            className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+            className="px-2.5 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
             title="Definir mês inicial e quantidade personalizada"
             aria-label="Personalizar período de meses"
           >
@@ -125,15 +127,21 @@ export const MonthHorizonBar = () => {
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                     Mês Inicial
                   </label>
-                  <select
-                    value={customStartMonth}
-                    onChange={(e) => setCustomStartMonth(Number(e.target.value))}
-                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-slate-800 dark:text-slate-200"
+                  <Select
+                    value={customStartMonth.toString()}
+                    onValueChange={(val) => setCustomStartMonth(Number(val))}
                   >
-                    {MONTH_NAMES.map((name, idx) => (
-                      <option key={idx} value={idx}>{name}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-[30px] text-xs bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES.map((name, idx) => (
+                        <SelectItem key={idx} value={idx.toString()} className="text-xs">
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
