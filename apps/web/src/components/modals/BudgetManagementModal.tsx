@@ -15,7 +15,7 @@ interface BudgetManagementModalProps {
   monthId: string;
 }
 
-import { Wallet, CreditCard, Home, ShoppingCart, type LucideIcon, X, Settings } from 'lucide-react';
+import { Wallet, CreditCard, Home, ShoppingCart, type LucideIcon } from 'lucide-react';
 
 const TABS: Array<{ key: ExpenseCategoryKey | 'renda'; label: string; icon: LucideIcon }> = [
   { key: 'renda',   label: 'Renda & Entradas', icon: Wallet },
@@ -157,7 +157,7 @@ export const BudgetManagementModal = ({
       title={
         <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
           <div className="flex items-center gap-2">
-            <span><Settings className="w-4 h-4 inline-block" /></span>
+            <span>⚙️</span>
             <span>Central de Orçamento: Renda & Despesas</span>
           </div>
           <select
@@ -267,7 +267,9 @@ export const BudgetManagementModal = ({
                       title="Excluir conta"
                       aria-label={`Excluir ${item.name}`}
                       className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-600 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs transition-colors"
-                    ><X className="w-4 h-4 inline-block" /></button>
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               );

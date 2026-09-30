@@ -98,7 +98,6 @@ export interface FinancialGoal {
   name: string;
   description?: string;
   targetAmount: number;
-  icon?: string;
   color?: string;
   status: GoalStatus;
   contributions: GoalContribution[];

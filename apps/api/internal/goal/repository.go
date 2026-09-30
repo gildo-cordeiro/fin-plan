@@ -41,9 +41,9 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateGoalRequest) 
 	}
 
 	query := `
-		INSERT INTO goal (name, description, target_amount, icon, color, status)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, name, description, target_amount, icon, color, status
+		INSERT INTO goal (name, description, target_amount, color, status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, name, description, target_amount, color, status
 	`
 
 	var g Goal
@@ -51,7 +51,6 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateGoalRequest) 
 		req.Name,
 		req.Description,
 		req.TargetAmount,
-		req.Icon,
 		req.Color,
 		status,
 	).Scan(
@@ -59,7 +58,6 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateGoalRequest) 
 		&g.Name,
 		&g.Description,
 		&g.TargetAmount,
-		&g.Icon,
 		&g.Color,
 		&g.Status,
 	)
@@ -73,7 +71,7 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateGoalRequest) 
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Goal, error) {
 	queryGoal := `
-		SELECT id, name, description, target_amount, icon, color, status
+		SELECT id, name, description, target_amount, color, status
 		FROM goal
 		WHERE id = $1
 	`
@@ -84,7 +82,6 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Goal, err
 		&g.Name,
 		&g.Description,
 		&g.TargetAmount,
-		&g.Icon,
 		&g.Color,
 		&g.Status,
 	)
@@ -127,7 +124,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Goal, err
 
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]Goal, error) {
 	queryGoals := `
-		SELECT id, name, description, target_amount, icon, color, status
+		SELECT id, name, description, target_amount, color, status
 		FROM goal
 		ORDER BY name ASC
 	`
@@ -148,7 +145,6 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Goal, error) {
 			&g.Name,
 			&g.Description,
 			&g.TargetAmount,
-			&g.Icon,
 			&g.Color,
 			&g.Status,
 		); err != nil {
@@ -216,11 +212,7 @@ func (r *PostgresRepository) Patch(ctx context.Context, id string, req PatchGoal
 		args = append(args, *req.TargetAmount)
 		argID++
 	}
-	if req.Icon != nil {
-		setClauses = append(setClauses, "icon = $"+strconv.Itoa(argID))
-		args = append(args, *req.Icon)
-		argID++
-	}
+
 	if req.Color != nil {
 		setClauses = append(setClauses, "color = $"+strconv.Itoa(argID))
 		args = append(args, *req.Color)

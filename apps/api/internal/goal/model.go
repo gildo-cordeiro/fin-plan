@@ -13,7 +13,6 @@ type Goal struct {
 	Name          string             `json:"name"`
 	Description   *string            `json:"description,omitempty"`
 	TargetAmount  float64            `json:"targetAmount"`
-	Icon          *string            `json:"icon,omitempty"`
 	Color         *string            `json:"color,omitempty"`
 	Status        string             `json:"status"`
 	Contributions []GoalContribution `json:"contributions"`
@@ -23,7 +22,6 @@ type CreateGoalRequest struct {
 	Name         string  `json:"name"`
 	Description  *string `json:"description,omitempty"`
 	TargetAmount float64 `json:"targetAmount"`
-	Icon         *string `json:"icon,omitempty"`
 	Color        *string `json:"color,omitempty"`
 	Status       *string `json:"status,omitempty"`
 }
@@ -32,7 +30,6 @@ type PatchGoalRequest struct {
 	Name         *string  `json:"name,omitempty"`
 	Description  *string  `json:"description,omitempty"`
 	TargetAmount *float64 `json:"targetAmount,omitempty"`
-	Icon         *string  `json:"icon,omitempty"`
 	Color        *string  `json:"color,omitempty"`
 	Status       *string  `json:"status,omitempty"`
 }

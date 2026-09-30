@@ -56,9 +56,7 @@ export const OneTimeCostsSection = () => {
   // Metas para sincronizar
   const mudGoal = goals.find(
     (g) =>
-      g.name.toLowerCase().includes('mudan') ||
-      g.icon === '🏠' || g.icon === 'Home' ||
-      g.icon === '🚚' || g.icon === 'Truck'
+      g.name.toLowerCase().includes('mudan') 
   );
 
   const handleCreateProject = async () => {

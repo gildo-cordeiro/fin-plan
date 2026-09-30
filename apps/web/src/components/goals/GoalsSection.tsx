@@ -9,17 +9,13 @@ import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
 import { GoalContributionModal } from '../modals/GoalContributionModal';
 
-function getCleanGoalIcon(icon?: string, name?: string): string {
-  if (icon && !/[a-zA-Z0-9]/.test(icon) && icon.length > 4) {
-    return icon;
-  }
+export function getCleanGoalIcon(name?: string): string {
   const lower = (name || '').toLowerCase();
   if (lower.includes('reserva') || lower.includes('emergencia')) return 'Shield';
   if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) return 'Package';
   if (lower.includes('viagem') || lower.includes('ferias')) return 'Plane';
   if (lower.includes('carro') || lower.includes('veiculo') || lower.includes('moto')) return 'Car';
   if (lower.includes('estudo') || lower.includes('curso')) return 'Book';
-  if (icon && icon.length > 1) return icon;
   return 'Target';
 }
 
@@ -79,7 +75,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
   const isDone = goal.status === 'concluida';
   const isPaused = goal.status === 'pausada';
 
-  const cleanIcon = getCleanGoalIcon(goal.icon, goal.name);
+  const cleanIcon = getCleanGoalIcon(goal.name);
 
   return (
     <div

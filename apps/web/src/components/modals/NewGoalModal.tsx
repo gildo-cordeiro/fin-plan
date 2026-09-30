@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useCreateGoalMutation } from '../../queries/goals';
 import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
-
+import { getCleanGoalIcon } from '../goals/GoalsSection';
 import { getIcon } from '../../lib/icons';
 
 interface NewGoalModalProps {
@@ -10,26 +10,22 @@ interface NewGoalModalProps {
   onClose: () => void;
 }
 
-const EMOJI_OPTIONS = ['Home', 'Truck', 'Shield', 'Plane', 'Car', 'Sofa', 'Laptop', 'Gem', 'GraduationCap', 'Target', 'Umbrella', 'Rocket'];
-
 const PRESETS = [
-  { name: 'Mudança de Residência', icon: 'Home', target: 6000, desc: 'Caminhão, pintura, caução e taxas' },
-  { name: 'Reserva de Emergência', icon: 'Shield', target: 15000, desc: '6 meses de despesas fixas' },
-  { name: 'Viagem de Férias', icon: 'Plane', target: 5000, desc: 'Passagens, hospedagem e passeios' },
-  { name: 'Móveis & Eletros Novos', icon: 'Sofa', target: 4000, desc: 'Geladeira, sofá e decoração' },
+  { name: 'Mudança de Residência', target: 6000, desc: 'Caminhão, pintura, caução e taxas' },
+  { name: 'Reserva de Emergência', target: 15000, desc: '6 meses de despesas fixas' },
+  { name: 'Viagem de Férias', target: 5000, desc: 'Passagens, hospedagem e passeios' },
+  { name: 'Móveis & Eletros Novos', target: 4000, desc: 'Geladeira, sofá e decoração' },
 ];
 
 export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
   const createGoalMutation = useCreateGoalMutation();
 
   const [name, setName] = useState('');
-  const [icon, setIcon] = useState('Home');
   const [targetAmount, setTargetAmount] = useState(0);
   const [description, setDescription] = useState('');
 
   const handleSelectPreset = (p: typeof PRESETS[0]) => {
     setName(p.name);
-    setIcon(p.icon);
     setTargetAmount(p.target);
     setDescription(p.desc);
   };
@@ -40,14 +36,12 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
 
     createGoalMutation.mutate({
       name: name.trim(),
-      icon,
       targetAmount,
       description: description.trim(),
       status: 'ativa',
     });
 
     setName('');
-    setIcon('🏠');
     setTargetAmount(0);
     setDescription('');
     onClose();
@@ -76,7 +70,7 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
               >
                 <span>
                   {(() => {
-                    const Icon = getIcon(p.icon);
+                    const Icon = getIcon(getCleanGoalIcon(p.name));
                     return <Icon className="w-4 h-4" />;
                   })()}
                 </span>
@@ -91,30 +85,9 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
         <form onSubmit={handleSave} className="space-y-3.5">
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              Ícone e Nome da Meta
+              Nome da Meta
             </label>
             <div className="flex gap-2">
-              <div className="relative group">
-                <button
-                  type="button"
-                  className="w-11 h-11 flex items-center justify-center text-2xl rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 transition-colors"
-                >
-                  {icon}
-                </button>
-                <div className="absolute left-0 top-12 z-10 hidden group-hover:grid group-focus-within:grid grid-cols-4 gap-1 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl w-40">
-                  {EMOJI_OPTIONS.map((e) => (
-                    <button
-                      key={e}
-                      type="button"
-                      onClick={() => setIcon(e)}
-                      className="h-8 flex items-center justify-center text-lg hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <input
                 type="text"
                 autoFocus
