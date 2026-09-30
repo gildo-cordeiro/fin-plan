@@ -72,7 +72,7 @@ export const useBudget = () => {
   // Cálculos do orçamento (monthlySummaries e metrics)
   const calculations = useMemo(() => {
     if (!state.summary) {
-      return { monthlySummaries: [] as MonthSummary[], metrics: { finalAccumulated: 0, totalAvailableAfterReserve: 0, totalOneTimeCosts: 0, netFinalAfterOneTime: 0, minAccumulatedBalance: 0, minAccumulatedMonth: '-', averageSavingsRate: 0, totalIncome: 0, totalRegularExpenses: 0 } };
+      return { monthlySummaries: [] as MonthSummary[], metrics: { finalAccumulated: 0, totalAvailableAfterReserve: 0, totalOneTimeCosts: 0, netFinalAfterOneTime: 0, minAccumulatedBalance: 0, minAccumulatedMonth: '-', averageSavingsRate: 0, totalIncome: 0, totalRegularExpenses: 0, averageMonthlyBalance: 0 } };
     }
     return calculateBudget(state.summary, simulation);
   }, [state.summary, simulation]);
