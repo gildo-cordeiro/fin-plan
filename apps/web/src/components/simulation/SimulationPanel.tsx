@@ -2,10 +2,11 @@ import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../lib/format';
+import { useSimulationMetrics } from '../../hooks/useSimulationMetrics';
 
 export const SimulationPanel = () => {
   const { state, metrics, updateBudgetBalances } = useBudget();
-  const { simulation, updateSimulation } = useBudgetStore();
+  const simulation = useBudgetStore(s => s.simulation); const updateSimulation = useBudgetStore(s => s.updateSimulation);
   const { items, costs, months, budget } = state;
 
   const isSimActive =
@@ -41,7 +42,7 @@ export const SimulationPanel = () => {
   const totalRawVarsAllMonths = months.reduce((acc, m) => {
     return acc + activeVars.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
   }, 0);
-  const avgMonthlyRawVars = months.length > 0 ? totalRawVarsAllMonths / months.length : 0;
+  const avgMonthlyRawVars = monthsCount > 0 ? totalRawVarsAllMonths / monthsCount : 0;
   const avgMonthlySimVars = avgMonthlyRawVars * (1 + simulation.varsPercent / 100);
   const diffMonthlyVars = avgMonthlySimVars - avgMonthlyRawVars;
 
@@ -225,7 +226,7 @@ export const SimulationPanel = () => {
 
       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-          Impacto Geral no Fluxo de Caixa ({months.length} Meses)
+          Impacto Geral no Fluxo de Caixa ({monthsCount} Meses)
         </span>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -283,7 +284,7 @@ export const SimulationPanel = () => {
               </span>
             ) : (
               <span className="text-[10px] text-slate-400 block">
-                Base original em {months.length} meses
+                Base original em {monthsCount} meses
               </span>
             )}
           </div>

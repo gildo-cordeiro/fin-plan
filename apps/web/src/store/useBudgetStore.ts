@@ -26,12 +26,6 @@ export const useBudgetStore = create<BudgetStoreState>()((set) => {
     toggleTheme: () => set((state) => {
       const nextTheme = state.theme === 'light' ? 'dark' : 'light';
       saveTheme(nextTheme);
-      // Optional: apply class dark to body if not handled by App.tsx
-      if (nextTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
       return { theme: nextTheme };
     }),
 

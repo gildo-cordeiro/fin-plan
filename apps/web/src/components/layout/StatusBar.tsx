@@ -9,12 +9,6 @@ export const StatusBar = () => {
   const { metrics, state } = useBudget();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = useState(false);
 
-  const monthCount = state.months.length;
-  const avgMonthlyBalance =
-    monthCount > 0
-      ? (metrics.totalIncome - metrics.totalRegularExpenses) / monthCount
-      : 0;
-
   return (
     <>
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground mb-4">
@@ -38,10 +32,10 @@ export const StatusBar = () => {
           <strong
             className={cn(
               "tabular-nums font-semibold",
-              avgMonthlyBalance >= 0 ? "text-success" : "text-destructive"
+              metrics.averageMonthlyBalance >= 0 ? "text-success" : "text-destructive"
             )}
           >
-            {formatBRL(avgMonthlyBalance)}
+            {formatBRL(metrics.averageMonthlyBalance)}
           </strong>
         </div>
       </div>

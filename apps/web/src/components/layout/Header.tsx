@@ -4,7 +4,7 @@ import { useBudgetStore } from '../../store/useBudgetStore';
 
 
 export const Header = () => {
-  const { theme, toggleTheme, isOnline } = useBudgetStore();
+  const theme = useBudgetStore(s => s.theme); const toggleTheme = useBudgetStore(s => s.toggleTheme); const isOnline = useBudgetStore(s => s.isOnline);
   const {
     isLoading,
     isSaving,
