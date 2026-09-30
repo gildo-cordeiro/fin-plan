@@ -1,80 +1,32 @@
-import { useBudget } from '../../hooks/useBudget';
+﻿import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../lib/format';
+import { useSimulationMetrics } from '../../hooks/useSimulationMetrics';
 
 export const SimulationPanel = () => {
   const { state, metrics, updateBudgetBalances } = useBudget();
-  const { simulation, updateSimulation } = useBudgetStore();
-  const { items, costs, months, budget } = state;
+  const simulation = useBudgetStore(s => s.simulation);
+  const updateSimulation = useBudgetStore(s => s.updateSimulation);
 
-  const isSimActive =
-    simulation.varsPercent !== 0 || simulation.oneTimeMarginPercent !== 0;
+  const simulationMetrics = useSimulationMetrics();
+  const {
+    isSimActive,
+    initialBalance,
+    emergencyReserve,
+    avgMonthlyRawVars,
+    avgMonthlySimVars,
+    diffMonthlyVars,
+    rawOneTimeTotal,
+    simOneTimeTotal,
+    diffOneTime,
+    currentFinal,
+    finalDiff,
+    willHaveDeficit,
+    willInvadeReserve
+  } = simulationMetrics;
 
-  const initialBalance = budget?.initialBalance ?? 0;
-  const emergencyReserve = budget?.emergencyReserveTarget ?? 0;
-
-  const activeVars = items.filter((i) => (i.type === 'variavel' || (i.type as string) === 'var') && !i.off);
-  const activeIncomes = items.filter((i) => i.type === 'renda' && !i.off);
-  const activeCards = items.filter((i) => i.type === 'cartao' && !i.off);
-  const activeFixed = items.filter((i) => i.type === 'fixa' && !i.off);
-
-  // Mapeia custos pontuais a partir dos projetos (Cost e CostItem)
-  const activeProjectCostItems = costs.flatMap((c) =>
-    (c.items || []).map((ci) => ({
-      value: ci.plannedAmount,
-      month: ci.month ?? c.defaultMonth,
-      targetMonthId: ci.month
-        ? `${state.currentYear}-${String(ci.month).padStart(2, '0')}`
-        : c.defaultMonth
-        ? `${state.currentYear}-${String(c.defaultMonth).padStart(2, '0')}`
-        : undefined,
-    }))
-  );
-
-  const activeLegacyCosts = (state.oneTimeCosts || [])
-    .filter((i) => !i.off)
-    .map((i) => ({ value: i.value, month: null, targetMonthId: i.targetMonthId }));
-
-  const activeOneTime = activeProjectCostItems.length > 0 ? activeProjectCostItems : activeLegacyCosts;
-
-  const totalRawVarsAllMonths = months.reduce((acc, m) => {
-    return acc + activeVars.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
-  }, 0);
-  const avgMonthlyRawVars = months.length > 0 ? totalRawVarsAllMonths / months.length : 0;
-  const avgMonthlySimVars = avgMonthlyRawVars * (1 + simulation.varsPercent / 100);
-  const diffMonthlyVars = avgMonthlySimVars - avgMonthlyRawVars;
-
-  const rawOneTimeTotal = activeOneTime.reduce((acc, i) => acc + (i.value || 0), 0);
-  const simOneTimeTotal = rawOneTimeTotal * (1 + simulation.oneTimeMarginPercent / 100);
-  const diffOneTime = simOneTimeTotal - rawOneTimeTotal;
-
-  let baseRunning = initialBalance;
-  months.forEach((m) => {
-    const inc = activeIncomes.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
-    const crd = activeCards.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
-    const fix = activeFixed.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
-    const vr = activeVars.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);
-    const oneTimeThisMonth = activeOneTime
-      .filter((i) => i.targetMonthId === m.id)
-      .reduce((sum, i) => sum + (i.value || 0), 0);
-
-    baseRunning += inc - (crd + fix + vr + oneTimeThisMonth);
-  });
-  const hasDistributed = activeOneTime.some((i) => i.targetMonthId);
-  const baseFinal = hasDistributed ? baseRunning : baseRunning - rawOneTimeTotal;
-
-  const currentFinal = metrics.finalAccumulated;
-  const finalDiff = currentFinal - baseFinal;
-
-  const willHaveDeficit = metrics.minAccumulatedBalance < 0;
-
-  const willInvadeReserve =
-    isSimActive &&
-    !willHaveDeficit &&
-    emergencyReserve > 0 &&
-    finalDiff < 0 &&
-    (initialBalance >= emergencyReserve || metrics.minAccumulatedBalance < emergencyReserve);
+  const monthsCount = state.months.length;
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
@@ -225,7 +177,7 @@ export const SimulationPanel = () => {
 
       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
-          Impacto Geral no Fluxo de Caixa ({months.length} Meses)
+          Impacto Geral no Fluxo de Caixa ({monthsCount} Meses)
         </span>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -283,7 +235,7 @@ export const SimulationPanel = () => {
               </span>
             ) : (
               <span className="text-[10px] text-slate-400 block">
-                Base original em {months.length} meses
+                Base original em {monthsCount} meses
               </span>
             )}
           </div>
