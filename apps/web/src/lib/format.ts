@@ -18,11 +18,11 @@ export function formatBRL(value: number, optionsOrIncludeSign?: { compact?: bool
     : optionsOrIncludeSign || {};
 
   const formatter = new Intl.NumberFormat('pt-BR', {
-    style: options.hideSymbol ? 'decimal' : 'currency',
+    style: (options as any).hideSymbol ? 'decimal' : 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-    notation: options.compact ? 'compact' : 'standard',
+    notation: (options as any).compact ? 'compact' : 'standard',
   });
 
   let formatted = formatter.format(Math.abs(value));
