@@ -33,8 +33,12 @@ export const CollapsibleSection = ({
           <span className={`text-[10px] text-slate-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
             ▶
           </span>
-          {icon && <span className="text-sm leading-none">{icon}</span>}
-          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</span>
+          {icon && (
+            <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm leading-none">
+              {icon}
+            </span>
+          )}
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 ml-1">{title}</span>
         </div>
         {total !== undefined && (
           <span className={`text-sm font-bold font-mono tabular-nums ${totalColorClass}`}>
