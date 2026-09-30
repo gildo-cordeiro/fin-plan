@@ -1,6 +1,5 @@
-import { X, Target, Pencil, Wallet } from 'lucide-react';
+import { X, Target, Pencil, Wallet, Shield, Package, Plane, Car, Book, LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { getIcon } from '../../lib/icons';
 
 import { useToast } from '../../context/ToastContext';
 import { MoneyInput } from '../ui/MoneyInput';
@@ -9,14 +8,14 @@ import { FinancialGoal, GoalContribution } from '../../types/budget';
 import { NewGoalModal } from '../modals/NewGoalModal';
 import { GoalContributionModal } from '../modals/GoalContributionModal';
 
-export function getCleanGoalIcon(name?: string): string {
+export function getCleanGoalIcon(name?: string): LucideIcon {
   const lower = (name || '').toLowerCase();
-  if (lower.includes('reserva') || lower.includes('emergencia')) return 'Shield';
-  if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) return 'Package';
-  if (lower.includes('viagem') || lower.includes('ferias')) return 'Plane';
-  if (lower.includes('carro') || lower.includes('veiculo') || lower.includes('moto')) return 'Car';
-  if (lower.includes('estudo') || lower.includes('curso')) return 'Book';
-  return 'Target';
+  if (lower.includes('reserva') || lower.includes('emergencia')) return Shield;
+  if (lower.includes('mudanca') || lower.includes('casa') || lower.includes('ap')) return Package;
+  if (lower.includes('viagem') || lower.includes('ferias')) return Plane;
+  if (lower.includes('carro') || lower.includes('veiculo') || lower.includes('moto')) return Car;
+  if (lower.includes('estudo') || lower.includes('curso')) return Book;
+  return Target;
 }
 
 const ContributionRow = ({
@@ -75,7 +74,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
   const isDone = goal.status === 'concluida';
   const isPaused = goal.status === 'pausada';
 
-  const cleanIcon = getCleanGoalIcon(goal.name);
+  const GoalIcon = getCleanGoalIcon(goal.name);
 
   return (
     <div
@@ -90,10 +89,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 text-lg flex items-center justify-center shrink-0 select-none shadow-xs">
-            {(() => {
-              const Icon = getIcon(cleanIcon);
-              return <Icon className="w-5 h-5" />;
-            })()}
+            <GoalIcon className="w-5 h-5" />
           </div>
 
           <div className="flex-1 min-w-0">

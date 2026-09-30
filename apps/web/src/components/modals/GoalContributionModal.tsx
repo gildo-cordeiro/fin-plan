@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { getIcon } from '../../lib/icons';
 import { getCleanGoalIcon } from '../goals/GoalsSection';
 import { useAddGoalContributionMutation } from '../../queries/goals';
 import { MoneyInput } from '../ui/MoneyInput';
@@ -46,8 +45,8 @@ export const GoalContributionModal = ({
         <div className="flex items-center gap-2">
           <span>
             {(() => {
-              const Icon = getIcon(getCleanGoalIcon(goal.name));
-              return <Icon className="w-5 h-5" />;
+              const GoalIcon = getCleanGoalIcon(goal.name);
+              return <GoalIcon className="w-5 h-5" />;
             })()}
           </span>
           <span>Registrar Aporte</span>

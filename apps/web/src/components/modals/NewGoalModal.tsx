@@ -3,7 +3,6 @@ import { useCreateGoalMutation } from '../../queries/goals';
 import { MoneyInput } from '../ui/MoneyInput';
 import { Modal } from '../ui/Modal';
 import { getCleanGoalIcon } from '../goals/GoalsSection';
-import { getIcon } from '../../lib/icons';
 
 interface NewGoalModalProps {
   isOpen: boolean;
@@ -70,8 +69,8 @@ export const NewGoalModal = ({ isOpen, onClose }: NewGoalModalProps) => {
               >
                 <span>
                   {(() => {
-                    const Icon = getIcon(getCleanGoalIcon(p.name));
-                    return <Icon className="w-4 h-4" />;
+                    const PresetIcon = getCleanGoalIcon(p.name);
+                    return <PresetIcon className="w-4 h-4" />;
                   })()}
                 </span>
                 <span className="truncate font-medium text-slate-700 dark:text-slate-300">
