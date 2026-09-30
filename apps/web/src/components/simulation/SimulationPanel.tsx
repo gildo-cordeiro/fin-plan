@@ -1,4 +1,4 @@
-﻿import { useBudget } from '../../hooks/useBudget';
+import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../lib/format';
