@@ -109,6 +109,11 @@ export function buildOverallMetrics(
       ? Math.max(0, ((sumTotalIncome - sumTotalRegularExpenses) / sumTotalIncome) * 100)
       : 0;
 
+  const averageMonthlyBalance =
+    monthlySummaries.length > 0
+      ? (sumTotalIncome - sumTotalRegularExpenses) / monthlySummaries.length
+      : 0;
+
   return {
     finalAccumulated,
     totalAvailableAfterReserve,
@@ -119,6 +124,7 @@ export function buildOverallMetrics(
     averageSavingsRate,
     totalIncome: sumTotalIncome,
     totalRegularExpenses: sumTotalRegularExpenses,
+    averageMonthlyBalance,
   };
 }
 
@@ -146,6 +152,7 @@ export function calculateBudget(
         averageSavingsRate: 0,
         totalIncome: 0,
         totalRegularExpenses: 0,
+        averageMonthlyBalance: 0,
       },
     };
   }

@@ -206,6 +206,7 @@ export interface OverallMetrics {
   averageSavingsRate: number;
   totalIncome: number;
   totalRegularExpenses: number;
+  averageMonthlyBalance: number;
 }
 
 // ---------------------------------------------------------------------------
