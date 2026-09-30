@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAddGoalContributionMutation } from '../../queries/goals';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 import { Modal } from '../ui/Modal';
 import type { FinancialGoal } from '../../types/budget';
 

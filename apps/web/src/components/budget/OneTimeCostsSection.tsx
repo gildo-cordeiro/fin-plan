@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 import {
   useCostsQuery,
   useCreateCostMutation,

@@ -1,6 +1,6 @@
 import { useBudget } from '../../hooks/useBudget';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 
 export const IncomeSection = () => {
   const {

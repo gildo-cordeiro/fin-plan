@@ -6,7 +6,7 @@ import type {
   Item,
   Cost,
 } from '../types/budget';
-import { createMonthItem } from '../utils/formatters';
+import { createMonthItem } from '../lib/format';
 
 // ---------------------------------------------------------------------------
 // Conversão: BudgetSummary (backend) → MonthSummary[] + OverallMetrics

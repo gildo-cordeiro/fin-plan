@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
-import { formatBRL } from '../../utils/formatters';
+import { formatBRL } from '../../lib/format';
 
 export const MonthlyBarChart = () => {
   const { monthlySummaries } = useBudget();
