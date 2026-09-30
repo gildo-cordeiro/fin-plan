@@ -10,7 +10,6 @@ import { OneTimeCostsSection } from './components/budget/OneTimeCostsSection';
 import { SimulationPanel } from './components/simulation/SimulationPanel';
 import { BudgetManagementModal } from './components/modals/BudgetManagementModal';
 import { useBudget } from './hooks/useBudget';
-import { useBudgetStore } from './store/useBudgetStore';
 import { getDefaultActiveMonthId } from './lib/format';
 
 export const BudgetAppContent = () => {
@@ -22,21 +21,11 @@ export const BudgetAppContent = () => {
   );
   const [isInitialSetupOpen, setIsInitialSetupOpen] = useState(false);
 
-  const theme = useBudgetStore(s => s.theme);
-
   useEffect(() => {
     if (state.months.length > 0 && !state.months.some((m) => m.id === activeMonthId)) {
       setActiveMonthId(getDefaultActiveMonthId(state.months));
     }
   }, [state.months, activeMonthId]);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
 
   const containerMaxWidth =
     tab === 'horizonte'
