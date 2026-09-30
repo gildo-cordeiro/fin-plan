@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { NavMenu, type TabId } from './components/layout/NavMenu';
 import { StatusBar } from './components/layout/StatusBar';
-import { MonthSelector } from './components/months/MonthSelector';
 import { MonthBudgetView } from './components/budget/MonthBudgetView';
 import { HorizonView } from './components/budget/HorizonView';
 import { GoalsSection } from './components/goals/GoalsSection';
@@ -76,17 +75,9 @@ export const BudgetAppContent = () => {
 
         {tab === 'mes' && (
           <div className="space-y-3">
-            <MonthSelector
-              activeMonthId={activeMonthId}
-              onMonthChange={setActiveMonthId}
-              viewMode="month"
-              onViewModeChange={(m) => {
-                if (m === 'table') setTab('horizonte');
-              }}
-            />
-
             <MonthBudgetView
               monthId={activeMonthId}
+              onMonthChange={setActiveMonthId}
               onNavigateToGoals={() => setTab('metas')}
               onNavigateToHorizon={() => setTab('horizonte')}
               onNavigateToSimulations={() => setTab('simulador')}
