@@ -10,43 +10,38 @@ export const MONTH_SHORT_NAMES = [
   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
 ];
 
-export function formatBRL(value: number, optionsOrIncludeSign?: { compact?: boolean; hideSymbol?: boolean } | boolean): string {
+export type FormatBRLOptions = { 
+  compact?: boolean; 
+  hideSymbol?: boolean; 
+  includeSign?: boolean;
+};
+
+export function formatBRL(value: number, options?: FormatBRLOptions | boolean): string {
   if (isNaN(value)) value = 0;
   
-  const options = typeof optionsOrIncludeSign === 'boolean' 
-    ? { includeSign: optionsOrIncludeSign } 
-    : optionsOrIncludeSign || {};
+  const config: FormatBRLOptions = typeof options === 'boolean' 
+    ? { includeSign: options } 
+    : options || {};
 
   const formatter = new Intl.NumberFormat('pt-BR', {
-    style: (options as any).hideSymbol ? 'decimal' : 'currency',
+    style: config.hideSymbol ? 'decimal' : 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-    notation: (options as any).compact ? 'compact' : 'standard',
+    notation: config.compact ? 'compact' : 'standard',
   });
 
-  let formatted = formatter.format(Math.abs(value));
+  const formatted = formatter.format(Math.abs(value));
   
   if (value < 0) {
     return `- ${formatted}`;
   }
-  if ((options as any).includeSign && value > 0) {
+  if (config.includeSign && value > 0) {
     return `+ ${formatted}`;
   }
   return formatted;
 }
 
-export function formatMonth(month: number, year: number): string {
-  const date = new Date(year, month - 1, 1);
-  const formatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
-  const formatted = formatter.format(date);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-/**
- * Formata um número no formato decimal pt-BR (ex: 1234.5 -> "1.234,50").
- * Se allowEmpty for true e o valor for 0, retorna string vazia para exibir placeholder.
- */
 export function formatDecimalBR(value: number, allowEmpty = true): string {
   if (isNaN(value) || (allowEmpty && value === 0)) return '';
   return value.toLocaleString('pt-BR', {
@@ -55,9 +50,6 @@ export function formatDecimalBR(value: number, allowEmpty = true): string {
   });
 }
 
-/**
- * Converte entrada do usuário (aceitando "1.234,56", "1234,56", "1234.56", "1,234.56") em number.
- */
 export function parseDecimalBR(raw: string): number {
   if (!raw) return 0;
   const trimmed = raw.trim();
