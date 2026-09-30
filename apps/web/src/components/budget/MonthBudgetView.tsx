@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
-import { useUIStore } from '../../store/uiStore';
+import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 import { CollapsibleSection } from '../ui/CollapsibleSection';
@@ -34,7 +34,7 @@ export const MonthBudgetView = ({
     confirmEntry,
     unconfirmEntry,
   } = useBudget();
-  const simulation = useUIStore((s) => s.simulation);
+  const simulation = useBudgetStore((s) => s.simulation);
   const { data: costs = [] } = useCostsQuery(state.currentYear);
 
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);

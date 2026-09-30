@@ -1,11 +1,11 @@
 import { useBudget } from '../../hooks/useBudget';
-import { useUIStore } from '../../store/uiStore';
+import { useBudgetStore } from '../../store/useBudgetStore';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { formatBRL } from '../../utils/formatters';
 
 export const SimulationPanel = () => {
   const { state, metrics, updateBudgetBalances } = useBudget();
-  const { simulation, updateSimulation } = useUIStore();
+  const { simulation, updateSimulation } = useBudgetStore();
   const { items, costs, months, budget } = state;
 
   const isSimActive =
