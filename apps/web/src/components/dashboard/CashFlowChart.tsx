@@ -145,7 +145,7 @@ export const CashFlowChart = () => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-[240px] -ml-4">
+      <div className="w-full h-[240px] -ml-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={dataPoints}

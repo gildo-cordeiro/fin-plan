@@ -102,8 +102,8 @@ export const useBudget = () => {
 
     updateBudgetBalances: async (patch: any) => { await updateBudgetMut.mutateAsync(patch); },
 
-    confirmEntry: async (entryId: string, actualAmount?: number) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount } }); },
-    unconfirmEntry: async (entryId: string) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount: null } }); },
+    confirmEntry: async (entryId: string, actualAmount?: number) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount, paidDate: new Date().toISOString().split('T')[0] } }); },
+    unconfirmEntry: async (entryId: string) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount: null, paidDate: null } }); },
     updatePlannedAmount,
 
     addItem: async (category: BudgetCategoryKey, customName?: string) => { 
