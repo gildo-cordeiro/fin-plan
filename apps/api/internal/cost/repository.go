@@ -226,9 +226,13 @@ func (r *PostgresRepository) Patch(ctx context.Context, id string, req PatchCost
 		argID++
 	}
 	if req.DefaultMonth != nil {
-		setClauses = append(setClauses, "default_month = $"+strconv.Itoa(argID))
-		args = append(args, *req.DefaultMonth)
-		argID++
+		if *req.DefaultMonth == 0 {
+			setClauses = append(setClauses, "default_month = NULL")
+		} else {
+			setClauses = append(setClauses, "default_month = $"+strconv.Itoa(argID))
+			args = append(args, *req.DefaultMonth)
+			argID++
+		}
 	}
 	if req.MarginPercent != nil {
 		setClauses = append(setClauses, "margin_percent = $"+strconv.Itoa(argID))
