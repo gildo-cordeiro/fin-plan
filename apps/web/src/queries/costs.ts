@@ -86,7 +86,7 @@ export function useUpdateCostItemMutation(year: number) {
     }: {
       costId: string;
       id: string;
-      patch: { name?: string; plannedAmount?: number; actualAmount?: number | null; notes?: string };
+      patch: { name?: string; plannedAmount?: number; actualAmount?: number | null; notes?: string; month?: number | null; dueDate?: string | null; paidDate?: string | null };
     }) => budgetApiService.updateCostItem(costId, id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });
