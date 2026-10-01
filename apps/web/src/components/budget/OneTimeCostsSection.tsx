@@ -35,8 +35,8 @@ export const OneTimeCostsSection = () => {
   const addCostItem = (costId: string, name: string, plannedAmount: number, month?: number | null) => createCostItemMutation.mutate({ costId, data: { name, plannedAmount, month } });
   const updateCostItem = (costId: string, id: string, patch: any) => updateCostItemMutation.mutate({ costId, id, patch });
   const removeCostItem = (costId: string, id: string) => deleteCostItemMutation.mutate({ costId, id });
-  const confirmCostItem = (costId: string, id: string, amount: number) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: amount } });
-  const unconfirmCostItem = (costId: string, id: string) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: null } });
+  const confirmCostItem = (costId: string, id: string, amount: number) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: amount, paidDate: new Date().toISOString().split('T')[0] } });
+  const unconfirmCostItem = (costId: string, id: string) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: -1, paidDate: '' } });
 
   const { goals, months } = state;
 
@@ -212,7 +212,7 @@ export const OneTimeCostsSection = () => {
                           value={cost.defaultMonth ?? ''}
                           onChange={(e) =>
                             updateCost(cost.id, {
-                              defaultMonth: e.target.value ? parseInt(e.target.value, 10) : null,
+                              defaultMonth: e.target.value ? parseInt(e.target.value, 10) : 0,
                             })
                           }
                           className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 font-semibold cursor-pointer outline-none"
@@ -319,7 +319,7 @@ export const OneTimeCostsSection = () => {
                                   value={item.month ?? ''}
                                   onChange={(e) =>
                                     updateCostItem(cost.id, item.id, {
-                                      month: e.target.value ? parseInt(e.target.value, 10) : null,
+                                      month: e.target.value ? parseInt(e.target.value, 10) : 0,
                                     })
                                   }
                                   className="text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer outline-none"

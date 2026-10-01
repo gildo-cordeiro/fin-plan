@@ -89,9 +89,13 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, req *PatchEn
 		argIdx++
 	}
 	if req.ActualAmount != nil {
-		setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
-		args = append(args, *req.ActualAmount)
-		argIdx++
+		if *req.ActualAmount < 0 {
+			setClauses = append(setClauses, "actual_amount = NULL")
+		} else {
+			setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
+			args = append(args, *req.ActualAmount)
+			argIdx++
+		}
 	}
 	if req.DueDate != nil {
 		if *req.DueDate == "" {

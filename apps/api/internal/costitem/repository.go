@@ -114,14 +114,22 @@ func (r *PostgresRepository) Update(ctx context.Context, costID, id string, req 
 		argIdx++
 	}
 	if req.ActualAmount != nil {
-		setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
-		args = append(args, *req.ActualAmount)
-		argIdx++
+		if *req.ActualAmount < 0 {
+			setClauses = append(setClauses, "actual_amount = NULL")
+		} else {
+			setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
+			args = append(args, *req.ActualAmount)
+			argIdx++
+		}
 	}
 	if req.Month != nil {
-		setClauses = append(setClauses, fmt.Sprintf("month = $%d", argIdx))
-		args = append(args, *req.Month)
-		argIdx++
+		if *req.Month == 0 {
+			setClauses = append(setClauses, "month = NULL")
+		} else {
+			setClauses = append(setClauses, fmt.Sprintf("month = $%d", argIdx))
+			args = append(args, *req.Month)
+			argIdx++
+		}
 	}
 	if req.DueDate != nil {
 		if *req.DueDate == "" {

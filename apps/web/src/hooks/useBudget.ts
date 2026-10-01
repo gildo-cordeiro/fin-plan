@@ -103,7 +103,7 @@ export const useBudget = () => {
     updateBudgetBalances: async (patch: any) => { await updateBudgetMut.mutateAsync(patch); },
 
     confirmEntry: async (entryId: string, actualAmount?: number) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount, paidDate: new Date().toISOString().split('T')[0] } }); },
-    unconfirmEntry: async (entryId: string) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount: null, paidDate: null } }); },
+    unconfirmEntry: async (entryId: string) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount: -1, paidDate: '' as any } }); },
     updatePlannedAmount,
 
     addItem: async (category: BudgetCategoryKey, customName?: string) => { 
