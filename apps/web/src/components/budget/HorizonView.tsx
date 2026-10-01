@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { formatBRL } from '../../lib/format';
-import { MonthHorizonBar } from '../months/MonthHorizonBar';
 import { CashFlowChart } from '../dashboard/CashFlowChart';
 import { MonthlyBarChart } from '../dashboard/MonthlyBarChart';
 import { MonthlySummaryTable } from '../summary/MonthlySummaryTable';
@@ -19,8 +18,6 @@ export const HorizonView = () => {
 
   return (
     <div className="space-y-4">
-      <MonthHorizonBar />
-
       <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
