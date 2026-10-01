@@ -1,7 +1,7 @@
-# docker-compose.yml — FinPlan API (Go)
+# docker-compose.yml — FinPlan (API Go + PostgreSQL)
 #
 # Uso:
-#   docker compose up --build        # build + inicia backend Go
+#   docker compose up --build        # build + inicia backend Go + PostgreSQL
 #   docker compose up -d             # em background
 #   docker compose down              # para e remove containers
 #
@@ -9,6 +9,18 @@
 # ou serem passadas via ambiente do shell.
 
 services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-finplan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finplan}
+      POSTGRES_DB: ${POSTGRES_DB:-finplan}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   api:
     build:
       context: ./apps/api
@@ -16,8 +28,12 @@ services:
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
     environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-finplan}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-finplan}:${POSTGRES_PASSWORD:-finplan}@db:5432/${POSTGRES_DB:-finplan}?sslmode=disable
       - API_SECRET_KEY=${API_SECRET_KEY:-}
       - PORT=${PORT:-8080}
+    depends_on:
+      - db
     restart: unless-stopped
+
+volumes:
+  pgdata:

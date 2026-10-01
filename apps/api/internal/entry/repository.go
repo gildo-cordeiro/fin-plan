@@ -164,3 +164,5 @@ func (r *PostgresRepository) CreateBatch(ctx context.Context, entries []Entry) e
 	}
 	return nil
 }
+
+

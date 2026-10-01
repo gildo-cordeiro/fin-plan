@@ -128,3 +128,4 @@ func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewMode
 		ReserveMovements: movements,
 	}, nil
 }
+

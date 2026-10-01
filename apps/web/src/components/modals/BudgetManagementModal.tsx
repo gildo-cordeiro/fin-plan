@@ -6,7 +6,7 @@ import { MoneyInput } from '../ui/MoneyInput';
 import { formatBRL } from '../../lib/format';
 import { CATEGORY_DEFINITIONS } from '../../constants/categories';
 import { normalizeBudgetItemType, type ExpenseCategoryKey } from '../../constants/enums';
-import type { BudgetItem } from '../../types/budget';
+import type { Item } from '../../types/budget';
 
 interface BudgetManagementModalProps {
   isOpen: boolean;
@@ -43,7 +43,6 @@ export const BudgetManagementModal = ({
     monthlySummaries,
     addTransaction,
     removeItem,
-    restoreItem,
     updateItemName,
     toggleItemActive,
     updateItemValue,
@@ -79,18 +78,18 @@ export const BudgetManagementModal = ({
 
   const selectedMonthNum = parseInt(selectedMonthId.split('-')[1], 10) || 1;
 
-  const isItemActiveInMonth = (item: BudgetItem): boolean => {
+  const isItemActiveInMonth = (item: Item): boolean => {
     const val = item.values?.[selectedMonthId] ?? 0;
-    const entry = item.entries?.find((e) => e.month === selectedMonthNum);
+    const entry = item.entries?.find((e: any) => e.month === selectedMonthNum);
     const isConfirmed = Boolean(entry?.paidDate);
     const hasActual =
-      entry?.actualAmount !== null &&
-      entry?.actualAmount !== undefined &&
-      entry?.actualAmount > 0;
+      (entry as any)?.actualAmount !== null &&
+      (entry as any)?.actualAmount !== undefined &&
+      (entry as any)?.actualAmount > 0;
     return val > 0 || isConfirmed || hasActual || sessionItemIds.has(item.id);
   };
 
-  const currentItems: BudgetItem[] = state.items
+  const currentItems: Item[] = state.items
     .filter((i) => i.type === normalizeBudgetItemType(activeTab))
     .filter(isItemActiveInMonth);
 
@@ -116,7 +115,7 @@ export const BudgetManagementModal = ({
     showToast(`"${finalName}" adicionado em ${CATEGORY_DEFINITIONS[activeTab].label}`);
   };
 
-  const handleRemove = (item: BudgetItem) => {
+  const handleRemove = (item: Item) => {
     setSessionItemIds((prev) => {
       const next = new Set(prev);
       next.delete(item.id);
@@ -125,15 +124,12 @@ export const BudgetManagementModal = ({
     const removed = removeItem(activeTab, item.id);
     if (removed) {
       showToast(`"${removed.name}" removido`, {
-        action: {
-          label: 'Desfazer',
-          onClick: () => restoreItem(activeTab, removed),
-        },
+        
       });
     }
   };
 
-  const handleRepeatForward = (item: BudgetItem) => {
+  const handleRepeatForward = (item: Item) => {
     repeatValueForward(activeTab, item.id, selectedMonthId);
     showToast(`Valor de "${item.name}" repetido para os meses seguintes.`);
   };
@@ -390,3 +386,6 @@ export const BudgetManagementModal = ({
     </Modal>
   );
 };
+
+
+

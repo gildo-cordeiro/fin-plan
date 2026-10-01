@@ -230,42 +230,4 @@ export interface BudgetState {
   simulation: SimulationSettings;
 
   // Compatibilidade transitória com componentes existentes
-  incomes?: Item[];
-  lists?: {
-    cartoes: Item[];
-    fixas: Item[];
-    vars: Item[];
-  };
-  oneTimeCosts?: OneTimeCost[];
-}
-
-// ---------------------------------------------------------------------------
-// Tipos legados mantidos para compatibilidade transitória durante migração.
-// Remover quando todos os componentes forem atualizados.
-// ---------------------------------------------------------------------------
-
-/** @deprecated Usar Item + Entry diretamente. */
-export type BudgetItem = Item;
-
-/** @deprecated Usar Cost + CostItem. */
-export interface OneTimeCost {
-  id: string;
-  name: string;
-  value: number;
-  targetMonthId?: string;
-  off?: boolean;
-  notes?: string;
-}
-
-/** @deprecated Usar Budget diretamente. */
-export interface BudgetYear {
-  id: string;
-  year: number;
-  simulation: SimulationSettings & {
-    initialBalance: number;
-    emergencyReserve: number;
-  };
-  months?: MonthItem[];
-  createdAt?: string;
-  updatedAt?: string;
 }

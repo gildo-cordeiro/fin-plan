@@ -1,6 +1,6 @@
 # 💸 FinPlan — Planejador Financeiro Pessoal (Monorepo)
 
-FinPlan é uma aplicação web moderna de planejamento financeiro pessoal de alta precisão, desenvolvida com React 18, TypeScript, Vite, Tailwind CSS e Go. Projetada sob o paradigma **Local-First**, combina resposta instantânea de interface (0ms de latência percebida) com persistência em nuvem atômica no **MongoDB Atlas** através de uma API REST de alta performance desenvolvida em Go.
+FinPlan é uma aplicação web moderna de planejamento financeiro pessoal de alta precisão, desenvolvida com React 18, TypeScript, Vite, Tailwind CSS e Go. Projetada sob o paradigma **100% Backend Relacional**, combina resposta instantânea de interface (0ms de latência percebida) com persistência em nuvem atômica no **PostgreSQL** através de uma API REST de alta performance desenvolvida em Go.
 
 O repositório adota arquitetura de **Monorepo** com deploys completamente desacoplados entre frontend SPA e backend containerizado.
 
@@ -12,8 +12,8 @@ O repositório adota arquitetura de **Monorepo** com deploys completamente desac
 |---|---|---|
 | **Monorepo** | Docker Compose | Raiz (`/`) |
 | **Frontend Web** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React | [`apps/web/`](apps/web/) |
-| **Backend REST** | Go 1.27, `net/http` nativo, MongoDB Go Driver 1.17, Docker Distroless | [`apps/api/`](apps/api/) |
-| **Banco de Dados & Cache** | MongoDB Atlas (coleções normalizadas: `budget_years`, `months`, `budget_items`, `one_time_costs`, `goals`) | Nuvem |
+| **Backend REST** | Go 1.27, `net/http` nativo, pgx/v5, Goose v3, Docker Distroless | [`apps/api/`](apps/api/) |
+| **Banco de Dados & Cache** | PostgreSQL (modelo relacional normalizado: budget, item, entry, cost, cost_item, goal, goal_contribution, reserve_movement) | Nuvem |
 | **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E), Go testing (`go test ./...`) | [`apps/web/`](apps/web/), [`apps/api/`](apps/api/) |
 | **Deploy Frontend** | Vercel (SPA estática) | Independente |
 | **Deploy Backend** | Container Docker Distroless (`apps/api/Dockerfile`) | Independente (Cloud Run, Fly.io, Railway, etc.) |
@@ -52,7 +52,10 @@ fin-plan/
 │
 └── .agents/                   # 🤖 Diretrizes e Skills operacionais para agentes IA
     └── skills/
-        └── finplan-feature-implementation/
+        ├── finplan-backend-review/
+        ├── finplan-feature-implementation/
+        ├── finplan-frontend-review/
+        └── finplan-issue-creation/
 ```
 
 ---
@@ -63,7 +66,7 @@ fin-plan/
 - **npm**: Versão `>= 9.0.0`
 - **Docker & Docker Compose**: Recomendado para rodar a API Go localmente sem precisar instalar Go
 - **Go**: Versão `>= 1.24` (opcional, apenas se quiser compilar a API Go nativamente fora do Docker)
-- **MongoDB Atlas**: Cluster configurado com string de conexão válida
+- **PostgreSQL**: Versão `>= 14` (local ou hospedado)
 
 ---
 
@@ -91,8 +94,7 @@ cp .env.example .env
 Edite as credenciais:
 ```ini
 # Backend Go
-MONGODB_URI=mongodb+srv://<usuario>:<senha>@cluster-01.kpiykbg.mongodb.net/?appName=cluster-01
-MONGODB_DB_NAME=finplan
+DATABASE_URL=postgres://user:password@host:5432/finplan?sslmode=disable
 PORT=8080
 API_SECRET_KEY=sua-chave-secreta-aqui
 
@@ -165,7 +167,7 @@ npm run test:e2e
 - **Render / Fly.io / Google Cloud Run / Railway / VPS**:
   - Compile a imagem a partir de `apps/api/Dockerfile`.
   - Imagem baseada em `gcr.io/distroless/static:nonroot`, segura, sem binários shell e pesando ~20 MB.
-  - Configure as variáveis `MONGODB_URI`, `MONGODB_DB_NAME`, `PORT` e `API_SECRET_KEY`.
+  - Configure as variáveis `DATABASE_URL`, `PORT` e `API_SECRET_KEY`.
 
 ---
 

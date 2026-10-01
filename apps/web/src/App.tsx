@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Header } from './components/layout/Header';
 import { NavMenu, type TabId } from './components/layout/NavMenu';
 import { StatusBar } from './components/layout/StatusBar';
@@ -42,7 +43,7 @@ export const BudgetAppContent = () => {
 
         {isLoading && (
           <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex items-center gap-3 animate-pulse shadow-xs">
-            <span className="text-xl">⏳</span>
+            <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
             <div>
               <p className="font-semibold text-xs text-slate-900 dark:text-slate-100">Carregando dados do banco...</p>
               <p className="text-[11px] text-slate-400">
@@ -55,20 +56,20 @@ export const BudgetAppContent = () => {
         {loadError && (
           <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">⚠️</span>
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
               <div>
                 <p className="font-semibold text-xs text-rose-900 dark:text-rose-100">Não foi possível carregar os dados do servidor</p>
                 <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
-                  O backend demorou a responder (comum no plano gratuito ao iniciar a máquina). <strong>Seus dados no MongoDB estão intactos</strong> e o salvamento automático está desativado para proteger suas informações.
+                  O backend demorou a responder (comum no plano gratuito ao iniciar a máquina). <strong>Seus dados no banco de dados estão intactos</strong>.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => refreshFromDb()}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors shrink-0 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-semibold flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors shrink-0 cursor-pointer"
             >
-              🔄 Reconectar e Carregar
+              <RefreshCw className="w-3.5 h-3.5" /> Reconectar e Carregar
             </button>
           </div>
         )}
@@ -117,7 +118,7 @@ export const BudgetAppContent = () => {
         )}
 
         <footer className="pt-4 pb-6 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          FinPlan — Planejador Financeiro Pessoal • Conectado ao MongoDB Atlas
+          FinPlan — Planejador Financeiro Pessoal
         </footer>
 
         <BudgetManagementModal

@@ -15,10 +15,10 @@ export const IncomeSection = () => {
   } = useBudget();
 
   const { months } = state;
-  const incomes = state.incomes || [];
+  const incomes = state.items.filter((i: any) => i.type === 'renda');
 
   const monthTotals = months.map((m) =>
-    incomes.reduce((acc, item) => acc + (item.values?.[m.id] ?? 0), 0)
+    incomes.reduce((acc: number, item: any) => acc + (item.values?.[m.id] ?? 0), 0)
   );
   const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
 
@@ -57,7 +57,7 @@ export const IncomeSection = () => {
           </thead>
 
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-            {incomes.map((item) => {
+            {incomes.map((item: any) => {
               const rowTotal = months.reduce((acc, m) => acc + (item.values?.[m.id] ?? 0), 0);
               return (
                 <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
@@ -141,3 +141,4 @@ export const IncomeSection = () => {
     </section>
   );
 };
+

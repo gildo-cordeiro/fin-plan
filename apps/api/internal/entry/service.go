@@ -26,3 +26,4 @@ func (s *Service) Update(ctx context.Context, id string, req *PatchEntryRequest)
 	}
 	return s.repo.Update(ctx, id, req)
 }
+

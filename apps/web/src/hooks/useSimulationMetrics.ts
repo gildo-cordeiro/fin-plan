@@ -30,11 +30,7 @@ export function useSimulationMetrics() {
       }))
     );
 
-    const activeLegacyCosts = (state.oneTimeCosts || [])
-      .filter((i) => !i.off)
-      .map((i) => ({ value: i.value, month: null, targetMonthId: i.targetMonthId }));
-
-    const activeOneTime = activeProjectCostItems.length > 0 ? activeProjectCostItems : activeLegacyCosts;
+    const activeOneTime = activeProjectCostItems;
 
     const totalRawVarsAllMonths = months.reduce((acc, m) => {
       return acc + activeVars.reduce((sum, i) => sum + (i.values?.[m.id] ?? 0), 0);

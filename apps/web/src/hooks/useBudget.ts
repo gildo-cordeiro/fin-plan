@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useBudgetStore } from '../store/useBudgetStore';
-import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation } from '../queries/budget';
+import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation, useBudgetListQuery } from '../queries/budget';
 import { calculateBudget } from '../services/budgetCalculator';
 import { type BudgetCategoryKey, normalizeBudgetItemType } from '../constants/enums';
 import { generateMonthSequence } from '../lib/format';
@@ -31,6 +31,7 @@ export const useBudget = () => {
 
   const { data: yearVm, isLoading: isYearLoading, error: yearError } = useBudgetYearQuery(currentYear);
   const { data: summaryData, isLoading: isSummaryLoading, error: summaryError } = useBudgetSummaryQuery(currentYear);
+  const { data: budgetList } = useBudgetListQuery();
 
   // Mutações
   const updateBudgetMut = useUpdateBudgetMutation(currentYear);
@@ -93,16 +94,9 @@ export const useBudget = () => {
     saveError: null,
     
     // Stubs para funções não mais aplicáveis no novo modelo
-    retrySave: async () => ({ success: true, message: '' }),
-    refreshFromDb: async () => { queryClient.invalidateQueries({ queryKey: ['budgets'] }); return { success: true, message: '' }; },
-    isCloudLoading: false,
-    isCloudSyncing: false,
-    lastCloudSync: new Date(),
-    cloudSyncError: null,
-    fetchFromCloud: async () => ({ success: true, message: '' }),
-    saveToCloud: async () => ({ success: true, message: '' }),
+    refreshFromDb: async () => { queryClient.invalidateQueries({ queryKey: ['budgets'] }); },
 
-    availableYears: [] as any[], // Temporariamente vazio, podemos adicionar useQuery para fetchBudgets
+    availableYears: (budgetList || []).map(b => ({ year: b.year, id: b.id })),
     selectYear: async (year: number) => setCurrentYear(year),
     createYear: async (year: number) => { await createYearMut.mutateAsync(year); setCurrentYear(year); },
 
@@ -120,7 +114,6 @@ export const useBudget = () => {
       await createItemMut.mutateAsync({ budgetId: String(currentYear), type: normalizeBudgetItemType(category), name });
     },
     removeItem: (_category: BudgetCategoryKey, itemId: string) => { const item = items.find(i => i.id === itemId); deleteItemMut.mutate(itemId); return item; },
-    restoreItem: async (_c?: any, _i?: any) => {},
     updateItemName: (_category: BudgetCategoryKey, itemId: string, name: string) => { updateItemMut.mutate({ id: itemId, patch: { name } }); },
     toggleItemActive: (_category: BudgetCategoryKey, itemId: string) => { 
       const item = items.find(i => i.id === itemId);
@@ -153,12 +146,5 @@ export const useBudget = () => {
     createReserveMovement: async (month: number, amount: number, reason?: string) => {
       await createReserveMut.mutateAsync({ budgetId: String(currentYear), month, amount, reason });
     },
-
-    // Funções de mes falso do HorizonView
-    addNextMonth: () => {},
-    addPrevMonth: () => {},
-    removeMonth: (_m?: string) => {},
-    setHorizonCount: (_c?: number) => {},
-    setCustomHorizon: (_y?: number, _m?: number, _c?: number) => {},
   };
 };

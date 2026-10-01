@@ -33,7 +33,6 @@ export const MonthBudgetView = ({
     state,
     monthlySummaries,
     removeItem,
-    restoreItem,
     updateItemName,
     toggleItemActive,
     updateItemValue,
@@ -136,9 +135,7 @@ export const MonthBudgetView = ({
       }))
   );
 
-  const legacyCostItems = (state.oneTimeCosts || [])
-    .filter((item) => !item.off && item.targetMonthId === monthId)
-    .map((i) => ({ id: i.id, name: i.name, value: i.value }));
+  const legacyCostItems: any[] = [];
 
   const monthOneTimeItems = projectCostItems.length > 0 ? projectCostItems : legacyCostItems;
 
@@ -280,10 +277,7 @@ export const MonthBudgetView = ({
                         return next;
                       });
                       showToast(`Item "${removed.name}" removido`, {
-                        action: {
-                          label: 'Desfazer',
-                          onClick: () => restoreItem(category, removed),
-                        },
+                        
                       });
                     }
                   }}
@@ -441,7 +435,7 @@ export const MonthBudgetView = ({
                 )}
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {monthOneTimeItems.map((item) => (
+                {monthOneTimeItems.map((item: any) => (
                   <div key={item.id} className="flex items-center justify-between py-2 px-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-lg">
                     <span className="text-slate-800 dark:text-slate-200 font-medium">
                       {item.name}
@@ -473,3 +467,4 @@ export const MonthBudgetView = ({
     </div>
   );
 };
+

@@ -11,73 +11,43 @@ api/
 │       └── main.go              # Entrypoint enxuto (signal.NotifyContext + app.Run)
 ├── internal/
 │   ├── app/
-│   │   ├── app.go               # Application bootstrap (centraliza banco, DI, auto-indexing, rotas, shutdown)
+│   │   ├── app.go               # Application bootstrap (centraliza banco, DI, rotas, shutdown)
 │   │   └── app_test.go          # Testes unitários do ciclo de vida da aplicação
-│   ├── budget/                  # Anos orçamentários, meses e agregação YearViewModel
-│   ├── cost/                    # Custos pontuais com targetMonthId
-│   ├── goal/                    # Metas financeiras e aportes atômicos ($push/$pull)
-│   ├── item/                    # Itens orçamentários trans-anuais (CRUD atômico)
+│   ├── budget/                  # Orçamentos
+│   ├── config/                  # Leitura de env vars (12-factor)
+│   ├── cost/                    # Custos
+│   ├── costitem/                # Itens de custos
+│   ├── entry/                   # Entradas
+│   ├── goal/                    # Metas financeiras e contribuições
 │   ├── httputil/                # Respostas padronizadas (WriteJSON/WriteError) e UUIDv4
+│   ├── item/                    # Itens orçamentários
 │   ├── middleware/
 │   │   ├── auth.go              # API key (x-api-key / Authorization: Bearer)
-│   │   └── cors.go              # Headers CORS idênticos ao contrato atual
-│   └── config/
-│       └── config.go            # Leitura de env vars (12-factor)
-├── Dockerfile                   # Multi-stage build (golang:1.23-alpine → distroless)
+│   │   └── cors.go              # Headers CORS
+│   └── reserve/                 # Movimentações de reserva
+├── migrations/                  # Migrações Goose (PostgreSQL)
+├── Dockerfile                   # Multi-stage build (golang:1.27-alpine → distroless)
 ├── go.mod / go.sum
 └── README.md                    # Este arquivo
 ```
 
 ## Endpoints
 
-### Anos Orçamentários (`BudgetYear`)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/v1/budget-years` | Lista todos os anos orçamentários cadastrados |
-| `POST` | `/api/v1/budget-years` | Cria um novo ano orçamentário (auto-semeia 12 meses) |
-| `GET` | `/api/v1/budget-years/{year}` | Retorna visão agregada do ano (`YearViewModel`) |
-| `PATCH` | `/api/v1/budget-years/{year}` | Atualiza parâmetros de simulação daquele ano |
-| `POST` | `/api/v1/budget-years/{year}/months` | Adiciona um mês específico ao ano orçamentário |
+Os endpoints REST da API estão documentados em [`docs/API.md`](../../docs/API.md) e incluem:
+- `/api/v1/budgets`
+- `/api/v1/items`
+- `/api/v1/entries`
+- `/api/v1/costs`
+- `/api/v1/goals`
+- `/api/v1/reserve-movements`
 
-### Itens de Orçamento (`BudgetItem` — Trans-anuais)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/v1/budget-items` | Lista todos os itens orçamentários (filtro opcional `?type=`) |
-| `POST` | `/api/v1/budget-items` | Cria um novo item orçamentário com ID UUIDv4 |
-| `PATCH` | `/api/v1/budget-items/{id}` | Atualização atômica de campos ou valores mensais |
-| `DELETE` | `/api/v1/budget-items/{id}` | Exclui um item orçamentário |
-
-### Custos Pontuais (`OneTimeCost`)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/v1/one-time-costs` | Lista todos os custos pontuais |
-| `POST` | `/api/v1/one-time-costs` | Cria um custo pontual |
-| `PATCH` | `/api/v1/one-time-costs/{id}` | Atualiza nome, valor, mês alvo ou ativação |
-| `DELETE` | `/api/v1/one-time-costs/{id}` | Remove um custo pontual |
-
-### Metas Financeiras (`Goal`)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/v1/goals` | Lista todas as metas financeiras |
-| `POST` | `/api/v1/goals` | Cria uma nova meta |
-| `PATCH` | `/api/v1/goals/{id}` | Atualiza dados da meta (nome, valor alvo, status) |
-| `DELETE` | `/api/v1/goals/{id}` | Remove uma meta |
-| `POST` | `/api/v1/goals/{id}/contributions` | Registra aporte atômico na meta (MongoDB `$push`) |
-| `DELETE` | `/api/v1/goals/{id}/contributions/{contribId}` | Estorna aporte atômico da meta (MongoDB `$pull`) |
-
-### Sistema
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/v1/health` | Health check (`{ "status": "ok" }`) |
-
-O contrato de request/response (campos, status codes, mensagens de erro) é **idêntico** ao documentado em [`docs/API.md`](../docs/API.md), com o prefixo `/api/v1/` adicionado para versionamento.
+O contrato de request/response (campos, status codes, mensagens de erro) é idêntico ao documentado em `docs/API.md`.
 
 ## Variáveis de Ambiente
 
 | Variável | Obrigatória | Default | Descrição |
 |----------|-------------|---------|-----------|
-| `MONGODB_URI` | Sim | — | Connection string do MongoDB Atlas |
-| `MONGODB_DB_NAME` | Não | `finplan` | Nome do banco de dados |
+| `DATABASE_URL` | Sim | — | Connection string do PostgreSQL |
 | `API_SECRET_KEY` | Não | *(vazio = modo aberto)* | Chave de autenticação da API |
 | `PORT` | Não | `8080` | Porta do servidor HTTP |
 
@@ -88,10 +58,7 @@ O contrato de request/response (campos, status codes, mensagens de erro) é **id
 Na **raiz do monorepo** (`fin-plan/`):
 
 ```bash
-# Crie um .env na raiz com suas variáveis
-echo "MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/" > .env
-
-# Build e inicia
+# Build e inicia (o db PostgreSQL sobe junto)
 docker compose up --build
 
 # Em background
@@ -103,20 +70,22 @@ docker compose down
 
 ### Opção 2: `go run` (desenvolvimento local)
 
-Requer Go 1.23+ instalado:
+Requer Go 1.27 instalado:
 
 ```bash
 cd apps/api
 
 # Crie um .env dentro de apps/api/ com suas variáveis
 cat > .env <<EOF
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/
-MONGODB_DB_NAME=finplan
+DATABASE_URL=postgres://finplan:finplan@localhost:5432/finplan?sslmode=disable
 # API_SECRET_KEY=  (deixe vazio para modo aberto)
 PORT=8080
 EOF
 
-# Rodar
+# Rodar as migrações Goose
+goose -dir migrations postgres "postgres://finplan:finplan@localhost:5432/finplan?sslmode=disable" up
+
+# Rodar o servidor
 go run ./cmd/api
 ```
 
@@ -130,51 +99,6 @@ docker build -t finplan-api .
 
 # Rodar
 docker run -p 8080:8080 \
-  -e MONGODB_URI="mongodb+srv://..." \
-  -e MONGODB_DB_NAME="finplan" \
+  -e DATABASE_URL="postgres://..." \
   finplan-api
 ```
-
-## Testando os Endpoints
-
-```bash
-# Health check
-curl http://localhost:8080/api/v1/health
-
-# GET Budget Years (lista anos disponíveis)
-curl http://localhost:8080/api/v1/budget-years
-
-# GET Year View Model (visão anual agregada)
-curl http://localhost:8080/api/v1/budget-years/2026
-
-# POST Budget Item (cria item atômico)
-curl -X POST http://localhost:8080/api/v1/budget-items \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Aluguel","type":"fixa","values":{"2026-10":2500}}'
-```
-
-## Changelog
-
-### ✅ Implementado (v2 — Domínio Normalizado & Escrita Atômica)
-
-- [x] **Domínio Otimizado**: coleções `budgets`, `items`, `costs`, `goals`. Os meses (`months`) vivem embutidos em `budgets` para inicialização atômica em 1 única operação de escrita
-- [x] **Auto-indexing Inicial**: verificação e criação de índices únicos e de chave estrangeira na inicialização do servidor, descartando coleções legadas
-- [x] **Agregação Anual**: `GET /api/v1/budget-years/{year}` com join server-side em Go gerando `YearViewModel`
-- [x] **CRUD Atômico**: endpoints REST com UUIDv4 para itens, custos pontuais e metas
-- [x] **Aportes Atômicos**: `$push` e `$pull` em `goals` sem reescrever o orçamento
-- [x] **Simulação por Ano**: `PATCH /api/v1/budget-years/{year}` com premissas anuais
-- [x] **Testes Automatizados em Go**: cobertura de handlers, services e mocks de repositório em todas as entidades
-- [x] **Eliminação de Legado**: remoção completa de endpoints monolíticos legados (`/api/v1/budget`)
-
-### ✅ Implementado (v1 — Fundação Go)
-
-- [x] `GET /api/v1/budget` — leitura do documento único `default_budget`
-- [x] `POST /api/v1/budget` — upsert atômico com `updateOne + upsert: true`
-- [x] `GET /api/v1/health` — health check
-- [x] Autenticação por API key (header `x-api-key` ou `Authorization: Bearer`)
-- [x] CORS com headers idênticos ao contrato existente (`GET, OPTIONS, POST, PATCH, DELETE`)
-- [x] Graceful shutdown (SIGTERM/SIGINT)
-- [x] Timeouts explícitos no MongoDB (8s) e no servidor HTTP (15s)
-- [x] Dockerfile multi-stage (golang:1.23-alpine → distroless/static)
-- [x] docker-compose.yml na raiz do monorepo
-- [x] Configuração 12-factor via env vars + `.env` para dev

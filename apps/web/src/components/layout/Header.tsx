@@ -4,7 +4,7 @@ import { useBudgetStore } from '../../store/useBudgetStore';
 
 
 export const Header = () => {
-  const theme = useBudgetStore(s => s.theme); const toggleTheme = useBudgetStore(s => s.toggleTheme); const isOnline = useBudgetStore(s => s.isOnline);
+  const theme = useBudgetStore(s => s.theme); const toggleTheme = useBudgetStore(s => s.toggleTheme);
   const {
     isLoading,
     isSaving,
@@ -19,12 +19,7 @@ export const Header = () => {
         <h1 className="text-base font-semibold text-foreground tracking-tight">FinPlan</h1>
         
         <div className="flex items-center gap-1.5">
-          {!isOnline ? (
-            <>
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-              <span className="text-xs text-muted-foreground">Offline</span>
-            </>
-          ) : isLoading || isSaving ? (
+          {isLoading || isSaving ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               <span className="text-xs text-muted-foreground">Sincronizando...</span>

@@ -35,49 +35,6 @@ function getStorage(): Storage | null {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Migração v4 → v5
-// ---------------------------------------------------------------------------
-
-function migrateFromPrevious(): LocalSettings {
-  const storage = getStorage();
-  if (!storage) return DEFAULT_LOCAL_SETTINGS;
-
-  const legacyKeys = ['finplan-app-data', 'finplan-app-data-v3', 'finplan-app-data-v4'];
-  let legacyData: any = null;
-
-  for (const key of legacyKeys) {
-    try {
-      const raw = storage.getItem(key);
-      if (raw) {
-        legacyData = JSON.parse(raw);
-        storage.removeItem(key);
-      }
-    } catch {
-      // Ignora erros de parsing
-    }
-  }
-
-  if (!legacyData) return DEFAULT_LOCAL_SETTINGS;
-
-  const simulation = legacyData.simulation || {};
-
-  return {
-    version: 5,
-    currentYear: legacyData.currentYear || DEFAULT_LOCAL_SETTINGS.currentYear,
-    simulation: {
-      varsPercent: simulation.varsPercent ?? 0,
-      rendaPercent: simulation.rendaPercent ?? 0,
-      oneTimeMarginPercent: simulation.oneTimeMarginPercent ?? 0,
-    },
-    theme: legacyData.theme || DEFAULT_LOCAL_SETTINGS.theme,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// CRUD de LocalSettings
-// ---------------------------------------------------------------------------
-
 export function loadLocalSettings(): LocalSettings {
   const storage = getStorage();
   if (!storage) return DEFAULT_LOCAL_SETTINGS;
@@ -92,9 +49,8 @@ export function loadLocalSettings(): LocalSettings {
     // Dados corrompidos
   }
 
-  const migrated = migrateFromPrevious();
-  saveLocalSettings(migrated);
-  return migrated;
+  saveLocalSettings(DEFAULT_LOCAL_SETTINGS);
+  return DEFAULT_LOCAL_SETTINGS;
 }
 
 export function saveLocalSettings(settings: LocalSettings): void {

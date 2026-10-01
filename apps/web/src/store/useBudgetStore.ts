@@ -6,12 +6,10 @@ export interface BudgetStoreState {
   theme: 'light' | 'dark';
   currentYear: number;
   simulation: SimulationSettings;
-  isOnline: boolean;
   
   toggleTheme: () => void;
   setCurrentYear: (year: number) => void;
   updateSimulation: (patch: Partial<SimulationSettings>) => void;
-  setIsOnline: (status: boolean) => void;
 }
 
 export const useBudgetStore = create<BudgetStoreState>()((set) => {
@@ -21,7 +19,6 @@ export const useBudgetStore = create<BudgetStoreState>()((set) => {
     theme: loadTheme(),
     currentYear: local.currentYear,
     simulation: local.simulation,
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
 
     toggleTheme: () => set((state) => {
       const nextTheme = state.theme === 'light' ? 'dark' : 'light';
@@ -38,7 +35,5 @@ export const useBudgetStore = create<BudgetStoreState>()((set) => {
       const newSim = updateSimulationSettings(patch);
       return { simulation: newSim };
     }),
-
-    setIsOnline: (status: boolean) => set({ isOnline: status }),
   };
 });

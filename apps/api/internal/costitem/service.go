@@ -51,3 +51,4 @@ func (s *Service) Update(ctx context.Context, costID, id string, req *PatchCostI
 func (s *Service) Delete(ctx context.Context, costID, id string) error {
 	return s.repo.Delete(ctx, costID, id)
 }
+

@@ -23,6 +23,13 @@ export function useBudgetSummaryQuery(year: number) {
   });
 }
 
+export function useBudgetListQuery() {
+  return useQuery({
+    queryKey: budgetKeys.all,
+    queryFn: () => budgetApiService.fetchBudgets(),
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Mutations: Budget
 // -----------------------------------------------------------------------------

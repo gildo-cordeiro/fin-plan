@@ -21,7 +21,6 @@ export const CategorySection = ({
     state,
     addItem,
     removeItem,
-    restoreItem,
     updateItemName,
     toggleItemActive,
     updateItemValue,
@@ -30,15 +29,16 @@ export const CategorySection = ({
   } = useBudget();
   const simulation = useBudgetStore((s) => s.simulation);
 
-  const { months, lists } = state;
-  const items = (lists && lists[categoryKey]) || [];
+  const { months } = state;
+  const typeMap: Record<string, string> = { cartoes: 'cartao', fixas: 'fixa', vars: 'variavel' };
+  const items = state.items.filter((i: any) => i.type === typeMap[categoryKey]);
 
   const simFactor = categoryKey === 'vars' ? 1 + simulation.varsPercent / 100 : 1;
 
   const monthTotals = months.map((m) =>
     items
-      .filter((i) => !i.off)
-      .reduce((acc, item) => acc + (item.values?.[m.id] ?? 0) * simFactor, 0)
+      .filter((i: any) => !i.off)
+      .reduce((acc: number, item: any) => acc + (item.values?.[m.id] ?? 0) * simFactor, 0)
   );
   const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
 
@@ -77,7 +77,7 @@ export const CategorySection = ({
           </thead>
 
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-            {items.map((item) => {
+            {items.map((item: any) => {
               const rowTotal = months.reduce((acc, m) => acc + (item.values?.[m.id] ?? 0), 0);
               return (
                 <tr
@@ -150,10 +150,7 @@ export const CategorySection = ({
                           const removed = removeItem(categoryKey, item.id);
                           if (removed) {
                             showToast(`Item "${removed.name}" removido`, {
-                              action: {
-                                label: 'Desfazer',
-                                onClick: () => restoreItem(categoryKey, removed),
-                              },
+                              
                             });
                           }
                         }}
@@ -186,3 +183,4 @@ export const CategorySection = ({
     </section>
   );
 };
+

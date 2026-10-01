@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 export const MonthHorizonBar = () => {
   const {
     state,
-    addNextMonth,
-    removeMonth,
-    setHorizonCount,
-    setCustomHorizon,
   } = useBudget();
+  const addNextMonth = () => {};
+  const removeMonth = (_id: string) => {};
+  const setHorizonCount = (_count: number) => {};
+  const setCustomHorizon = (_y: number, _m: number, _c: number) => {};
 
   const [isCustomOpen, setIsCustomOpen] = useState(false);
   const firstMonth = state.months[0];
@@ -194,3 +194,5 @@ export const MonthHorizonBar = () => {
     </div>
   );
 };
+
+
