@@ -65,11 +65,9 @@ export function useSimulationMetrics() {
     const willHaveDeficit = metrics.minAccumulatedBalance < 0;
 
     const willInvadeReserve =
-      isSimActive &&
-      !willHaveDeficit &&
       emergencyReserve > 0 &&
-      finalDiff < 0 &&
-      (initialBalance >= emergencyReserve || metrics.minAccumulatedBalance < emergencyReserve);
+      metrics.minAccumulatedBalance < emergencyReserve &&
+      !willHaveDeficit;
 
     return {
       isSimActive,
@@ -86,6 +84,6 @@ export function useSimulationMetrics() {
       willHaveDeficit,
       willInvadeReserve
     };
-  }, [state, metrics, simulation]);
+  }, [state.items, state.costs, state.months, state.budget, metrics, simulation]);
 }
 

@@ -1,7 +1,9 @@
-import { Circle, Wand2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Wand2 } from 'lucide-react';
 import { useBudget } from '../../hooks/useBudget';
 import { useBudgetStore } from '../../store/useBudgetStore';
 import { MoneyInput } from '../ui/MoneyInput';
+import { Slider } from '../ui/Slider';
+import { Alert, AlertDescription, AlertTitle } from '../ui/Alert';
 import { formatBRL } from '../../lib/format';
 import { useSimulationMetrics } from '../../hooks/useSimulationMetrics';
 
@@ -78,18 +80,18 @@ export const SimulationPanel = () => {
             </strong>
           </div>
 
-          <input
-            type="range"
-            min="-50"
-            max="100"
-            step="5"
-            value={simulation.varsPercent}
-            onChange={(e) =>
-              updateSimulation({ varsPercent: Number(e.target.value) })
-            }
-            aria-label="Porcentagem de variação dos gastos variáveis"
-            className="w-full accent-[#0e6b7a] cursor-pointer"
-          />
+          <div className="py-2">
+            <Slider
+              min={-50}
+              max={100}
+              step={5}
+              value={[simulation.varsPercent]}
+              onValueChange={(vals) =>
+                updateSimulation({ varsPercent: vals[0] })
+              }
+              aria-label="Porcentagem de variação dos gastos variáveis"
+            />
+          </div>
 
           <div className="flex justify-between text-[11px] text-slate-400">
             <span>-50% (Economia)</span>
@@ -138,18 +140,18 @@ export const SimulationPanel = () => {
             </strong>
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max="50"
-            step="5"
-            value={simulation.oneTimeMarginPercent}
-            onChange={(e) =>
-              updateSimulation({ oneTimeMarginPercent: Number(e.target.value) })
-            }
-            aria-label="Porcentagem de margem nos custos pontuais"
-            className="w-full accent-purple-600 cursor-pointer"
-          />
+          <div className="py-2">
+            <Slider
+              min={0}
+              max={50}
+              step={5}
+              value={[simulation.oneTimeMarginPercent]}
+              onValueChange={(vals) =>
+                updateSimulation({ oneTimeMarginPercent: vals[0] })
+              }
+              aria-label="Porcentagem de margem nos custos pontuais"
+            />
+          </div>
 
           <div className="flex justify-between text-[11px] text-slate-400">
             <span>0% (Sem margem)</span>
@@ -176,7 +178,7 @@ export const SimulationPanel = () => {
         </div>
       </div>
 
-      <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60">
+      <div className="p-1">
         <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-2">
           Impacto Geral no Fluxo de Caixa ({monthsCount} Meses)
         </span>
@@ -245,43 +247,46 @@ export const SimulationPanel = () => {
         <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
           {!isSimActive ? (
             metrics.minAccumulatedBalance < 0 ? (
-              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
-                <span><Circle className="w-4 h-4 inline-block" /></span>
-                <span>
-                  <strong>Atenção (Orçamento Base):</strong> Suas contas originais ficam negativas em{' '}
-                  <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
-                </span>
-              </div>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Atenção (Orçamento Base)</AlertTitle>
+                <AlertDescription>
+                  Suas contas originais ficam negativas em <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
+                </AlertDescription>
+              </Alert>
             ) : (
-              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
-                <span>🟢</span>
-                <span>
-                  <strong>Cenário Base Saudável:</strong> Suas contas fecham no positivo em todos os meses (menor saldo: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}).
-                </span>
-              </div>
+              <Alert variant="success">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>Cenário Base Saudável</AlertTitle>
+                <AlertDescription>
+                  Suas contas fecham no positivo em todos os meses (menor saldo: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}).
+                </AlertDescription>
+              </Alert>
             )
           ) : willHaveDeficit ? (
-            <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold">
-              <span><Circle className="w-4 h-4 inline-block" /></span>
-              <span>
-                <strong>Atenção:</strong> Neste cenário simulado, seu saldo ficará negativo em{' '}
-                <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
-              </span>
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Atenção</AlertTitle>
+              <AlertDescription>
+                Neste cenário simulado, seu saldo ficará negativo em <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong> em {metrics.minAccumulatedMonth}.
+              </AlertDescription>
+            </Alert>
           ) : willInvadeReserve ? (
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold">
-              <span>🟡</span>
-              <span>
-                <strong>Aviso:</strong> A simulação aumenta seus gastos e exigirá uso de parte da sua Reserva de Emergência (menor saldo previsto: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong>).
-              </span>
-            </div>
+            <Alert variant="warning">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Aviso</AlertTitle>
+              <AlertDescription>
+                A simulação aumenta seus gastos e exigirá uso de parte da sua Reserva de Emergência (menor saldo previsto: <strong>{formatBRL(metrics.minAccumulatedBalance)}</strong>).
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
-              <span>🟢</span>
-              <span>
-                <strong>Cenário Saudável:</strong> Suas contas continuam fechando com saldo positivo ao longo de todo o período, mesmo com esta simulação!
-              </span>
-            </div>
+            <Alert variant="success">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>Cenário Saudável</AlertTitle>
+              <AlertDescription>
+                Suas contas continuam fechando com saldo positivo ao longo de todo o período, mesmo com esta simulação!
+              </AlertDescription>
+            </Alert>
           )}
         </div>
       </div>
