@@ -11,7 +11,9 @@ import {
   useDeleteCostMutation,
   useCreateCostItemMutation,
   useUpdateCostItemMutation,
-  useDeleteCostItemMutation
+  useDeleteCostItemMutation,
+  useConfirmCostItemMutation,
+  useUnconfirmCostItemMutation
 } from '../../queries/costs';
 import { useUpdateGoalMutation } from '../../queries/goals';
 
@@ -28,6 +30,8 @@ export const OneTimeCostsSection = () => {
   const createCostItemMutation = useCreateCostItemMutation(currentYear);
   const updateCostItemMutation = useUpdateCostItemMutation(currentYear);
   const deleteCostItemMutation = useDeleteCostItemMutation(currentYear);
+  const confirmCostItemMutation = useConfirmCostItemMutation(currentYear);
+  const unconfirmCostItemMutation = useUnconfirmCostItemMutation(currentYear);
 
   const createCost = (name: string, defaultMonth?: number | null, marginPercent?: number, notes?: string) => createCostMutation.mutateAsync({ budgetId: String(currentYear), name, defaultMonth, marginPercent, notes });
   const updateCost = (id: string, patch: any) => updateCostMutation.mutate({ id, patch });
@@ -35,8 +39,8 @@ export const OneTimeCostsSection = () => {
   const addCostItem = (costId: string, name: string, plannedAmount: number, month?: number | null) => createCostItemMutation.mutate({ costId, data: { name, plannedAmount, month } });
   const updateCostItem = (costId: string, id: string, patch: any) => updateCostItemMutation.mutate({ costId, id, patch });
   const removeCostItem = (costId: string, id: string) => deleteCostItemMutation.mutate({ costId, id });
-  const confirmCostItem = (costId: string, id: string, amount: number) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: amount, paidDate: new Date().toISOString().split('T')[0] } });
-  const unconfirmCostItem = (costId: string, id: string) => updateCostItemMutation.mutate({ costId, id, patch: { actualAmount: -1, paidDate: '' } });
+  const confirmCostItem = (costId: string, id: string, amount: number) => confirmCostItemMutation.mutate({ costId, id, data: { actualAmount: amount, paidDate: new Date().toISOString().split('T')[0] } });
+  const unconfirmCostItem = (costId: string, id: string) => unconfirmCostItemMutation.mutate({ costId, id });
 
   const { goals, months } = state;
 

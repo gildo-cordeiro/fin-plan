@@ -12,7 +12,10 @@ type Entry struct {
 
 type PatchEntryRequest struct {
 	PlannedAmount *float64 `json:"plannedAmount,omitempty"`
-	ActualAmount  *float64 `json:"actualAmount,omitempty"`
 	DueDate       *string  `json:"dueDate,omitempty"`
-	PaidDate      *string  `json:"paidDate,omitempty"`
+}
+
+type ConfirmEntryRequest struct {
+	ActualAmount *float64 `json:"actualAmount,omitempty"`
+	PaidDate     *string  `json:"paidDate,omitempty"`
 }

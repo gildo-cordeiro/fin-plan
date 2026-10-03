@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/httputil"
 )
 
 type Service struct {
@@ -46,6 +48,20 @@ func (s *Service) Update(ctx context.Context, costID, id string, req *PatchCostI
 		return nil, fmt.Errorf("mês deve ser entre 1 e 12")
 	}
 	return s.repo.Update(ctx, costID, id, req)
+}
+
+func (s *Service) Confirm(ctx context.Context, costID, id string, req *ConfirmCostItemRequest) (*CostItem, error) {
+	if req.ActualAmount != nil && *req.ActualAmount < 0 {
+		return nil, fmt.Errorf("o valor realizado não pode ser negativo")
+	}
+	if req.PaidDate != nil && !httputil.IsValidDate(*req.PaidDate) {
+		return nil, fmt.Errorf("paidDate deve estar no formato YYYY-MM-DD")
+	}
+	return s.repo.Confirm(ctx, costID, id, req)
+}
+
+func (s *Service) Unconfirm(ctx context.Context, costID, id string) (*CostItem, error) {
+	return s.repo.Unconfirm(ctx, costID, id)
 }
 
 func (s *Service) Delete(ctx context.Context, costID, id string) error {

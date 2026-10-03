@@ -16,6 +16,8 @@ type Repository interface {
 	GetByID(ctx context.Context, id string) (*Entry, error)
 	GetByItemID(ctx context.Context, itemID string) ([]Entry, error)
 	Update(ctx context.Context, id string, req *PatchEntryRequest) (*Entry, error)
+	Confirm(ctx context.Context, id string, req *ConfirmEntryRequest) (*Entry, error)
+	Unconfirm(ctx context.Context, id string) (*Entry, error)
 	CreateBatch(ctx context.Context, entries []Entry) error
 }
 
@@ -88,30 +90,12 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, req *PatchEn
 		args = append(args, *req.PlannedAmount)
 		argIdx++
 	}
-	if req.ActualAmount != nil {
-		if *req.ActualAmount < 0 {
-			setClauses = append(setClauses, "actual_amount = NULL")
-		} else {
-			setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
-			args = append(args, *req.ActualAmount)
-			argIdx++
-		}
-	}
 	if req.DueDate != nil {
 		if *req.DueDate == "" {
 			setClauses = append(setClauses, "due_date = NULL")
 		} else {
 			setClauses = append(setClauses, fmt.Sprintf("due_date = $%d::date", argIdx))
 			args = append(args, *req.DueDate)
-			argIdx++
-		}
-	}
-	if req.PaidDate != nil {
-		if *req.PaidDate == "" {
-			setClauses = append(setClauses, "paid_date = NULL")
-		} else {
-			setClauses = append(setClauses, fmt.Sprintf("paid_date = $%d::date", argIdx))
-			args = append(args, *req.PaidDate)
 			argIdx++
 		}
 	}
@@ -130,6 +114,38 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, req *PatchEn
 		          to_char(paid_date, 'YYYY-MM-DD')
 	`, strings.Join(setClauses, ", "), argIdx)
 
+	return r.scanOne(ctx, "falha ao atualizar entry", query, args...)
+}
+
+// Confirm marca a entry como paga. Valores ausentes usam planned_amount e a data atual.
+func (r *PostgresRepository) Confirm(ctx context.Context, id string, req *ConfirmEntryRequest) (*Entry, error) {
+	query := `
+		UPDATE entry
+		SET actual_amount = COALESCE($1, planned_amount),
+		    paid_date     = COALESCE($2::date, CURRENT_DATE)
+		WHERE id = $3
+		RETURNING id, item_id, month, planned_amount, actual_amount,
+		          to_char(due_date, 'YYYY-MM-DD'),
+		          to_char(paid_date, 'YYYY-MM-DD')
+	`
+	return r.scanOne(ctx, "falha ao confirmar entry", query, req.ActualAmount, req.PaidDate, id)
+}
+
+// Unconfirm desfaz a confirmação, limpando valor realizado e data de pagamento.
+func (r *PostgresRepository) Unconfirm(ctx context.Context, id string) (*Entry, error) {
+	query := `
+		UPDATE entry
+		SET actual_amount = NULL,
+		    paid_date     = NULL
+		WHERE id = $1
+		RETURNING id, item_id, month, planned_amount, actual_amount,
+		          to_char(due_date, 'YYYY-MM-DD'),
+		          to_char(paid_date, 'YYYY-MM-DD')
+	`
+	return r.scanOne(ctx, "falha ao desconfirmar entry", query, id)
+}
+
+func (r *PostgresRepository) scanOne(ctx context.Context, errMsg, query string, args ...any) (*Entry, error) {
 	var e Entry
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&e.ID, &e.ItemID, &e.Month, &e.PlannedAmount, &e.ActualAmount,
@@ -139,7 +155,7 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, req *PatchEn
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrEntryNotFound
 		}
-		return nil, fmt.Errorf("falha ao atualizar entry: %w", err)
+		return nil, fmt.Errorf("%s: %w", errMsg, err)
 	}
 	return &e, nil
 }

@@ -17,6 +17,8 @@ type Repository interface {
 	GetByID(ctx context.Context, id string) (*CostItem, error)
 	GetByCostID(ctx context.Context, costID string) ([]CostItem, error)
 	Update(ctx context.Context, costID, id string, req *PatchCostItemRequest) (*CostItem, error)
+	Confirm(ctx context.Context, costID, id string, req *ConfirmCostItemRequest) (*CostItem, error)
+	Unconfirm(ctx context.Context, costID, id string) (*CostItem, error)
 	Delete(ctx context.Context, costID, id string) error
 }
 
@@ -113,15 +115,6 @@ func (r *PostgresRepository) Update(ctx context.Context, costID, id string, req 
 		args = append(args, *req.PlannedAmount)
 		argIdx++
 	}
-	if req.ActualAmount != nil {
-		if *req.ActualAmount < 0 {
-			setClauses = append(setClauses, "actual_amount = NULL")
-		} else {
-			setClauses = append(setClauses, fmt.Sprintf("actual_amount = $%d", argIdx))
-			args = append(args, *req.ActualAmount)
-			argIdx++
-		}
-	}
 	if req.Month != nil {
 		if *req.Month == 0 {
 			setClauses = append(setClauses, "month = NULL")
@@ -140,15 +133,6 @@ func (r *PostgresRepository) Update(ctx context.Context, costID, id string, req 
 			argIdx++
 		}
 	}
-	if req.PaidDate != nil {
-		if *req.PaidDate == "" {
-			setClauses = append(setClauses, "paid_date = NULL")
-		} else {
-			setClauses = append(setClauses, fmt.Sprintf("paid_date = $%d::date", argIdx))
-			args = append(args, *req.PaidDate)
-			argIdx++
-		}
-	}
 
 	if len(setClauses) == 0 {
 		return r.GetByID(ctx, id)
@@ -164,6 +148,38 @@ func (r *PostgresRepository) Update(ctx context.Context, costID, id string, req 
 		          to_char(paid_date, 'YYYY-MM-DD')
 	`, strings.Join(setClauses, ", "), argIdx, argIdx+1)
 
+	return r.scanOne(ctx, "falha ao atualizar cost_item", query, args...)
+}
+
+// Confirm marca o item como pago. Valores ausentes usam planned_amount e a data atual.
+func (r *PostgresRepository) Confirm(ctx context.Context, costID, id string, req *ConfirmCostItemRequest) (*CostItem, error) {
+	query := `
+		UPDATE cost_item
+		SET actual_amount = COALESCE($1, planned_amount),
+		    paid_date     = COALESCE($2::date, CURRENT_DATE)
+		WHERE cost_id = $3 AND id = $4
+		RETURNING id, cost_id, name, planned_amount, actual_amount, month,
+		          to_char(due_date, 'YYYY-MM-DD'),
+		          to_char(paid_date, 'YYYY-MM-DD')
+	`
+	return r.scanOne(ctx, "falha ao confirmar cost_item", query, req.ActualAmount, req.PaidDate, costID, id)
+}
+
+// Unconfirm desfaz a confirmação, limpando valor realizado e data de pagamento.
+func (r *PostgresRepository) Unconfirm(ctx context.Context, costID, id string) (*CostItem, error) {
+	query := `
+		UPDATE cost_item
+		SET actual_amount = NULL,
+		    paid_date     = NULL
+		WHERE cost_id = $1 AND id = $2
+		RETURNING id, cost_id, name, planned_amount, actual_amount, month,
+		          to_char(due_date, 'YYYY-MM-DD'),
+		          to_char(paid_date, 'YYYY-MM-DD')
+	`
+	return r.scanOne(ctx, "falha ao desconfirmar cost_item", query, costID, id)
+}
+
+func (r *PostgresRepository) scanOne(ctx context.Context, errMsg, query string, args ...any) (*CostItem, error) {
 	var item CostItem
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&item.ID, &item.CostID, &item.Name, &item.PlannedAmount, &item.ActualAmount, &item.Month,
@@ -173,7 +189,7 @@ func (r *PostgresRepository) Update(ctx context.Context, costID, id string, req 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrCostItemNotFound
 		}
-		return nil, fmt.Errorf("falha ao atualizar cost_item: %w", err)
+		return nil, fmt.Errorf("%s: %w", errMsg, err)
 	}
 	return &item, nil
 }

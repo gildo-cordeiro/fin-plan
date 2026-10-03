@@ -94,6 +94,35 @@ export function useUpdateCostItemMutation(year: number) {
   });
 }
 
+export function useConfirmCostItemMutation(year: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      costId,
+      id,
+      data,
+    }: {
+      costId: string;
+      id: string;
+      data: { actualAmount: number; paidDate: string };
+    }) => budgetApiService.confirmCostItem(costId, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });
+    },
+  });
+}
+
+export function useUnconfirmCostItemMutation(year: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ costId, id }: { costId: string; id: string }) => 
+      budgetApiService.unconfirmCostItem(costId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });
+    },
+  });
+}
+
 export function useDeleteCostItemMutation(year: number) {
   const queryClient = useQueryClient();
   return useMutation({

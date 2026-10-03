@@ -3,6 +3,7 @@ package costitem
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/httputil"
@@ -21,6 +22,52 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/costs/{costId}/items", h.handleList)
 	mux.HandleFunc("PATCH /api/v1/costs/{costId}/items/{id}", h.handlePatch)
 	mux.HandleFunc("DELETE /api/v1/costs/{costId}/items/{id}", h.handleDelete)
+	mux.HandleFunc("POST /api/v1/costs/{costId}/items/{id}/confirm", h.handleConfirm)
+	mux.HandleFunc("DELETE /api/v1/costs/{costId}/items/{id}/confirm", h.handleUnconfirm)
+}
+
+// handleConfirm marca o item como pago. O corpo é opcional.
+func (h *Handler) handleConfirm(w http.ResponseWriter, r *http.Request) {
+	costID := r.PathValue("costId")
+	id := r.PathValue("id")
+	if costID == "" || id == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "costId e id do item são obrigatórios")
+		return
+	}
+
+	var req ConfirmCostItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+		httputil.WriteError(w, http.StatusBadRequest, "corpo da requisição inválido")
+		return
+	}
+
+	updated, err := h.svc.Confirm(r.Context(), costID, id, &req)
+	writeItemResult(w, updated, err)
+}
+
+// handleUnconfirm desfaz a confirmação de pagamento do item.
+func (h *Handler) handleUnconfirm(w http.ResponseWriter, r *http.Request) {
+	costID := r.PathValue("costId")
+	id := r.PathValue("id")
+	if costID == "" || id == "" {
+		httputil.WriteError(w, http.StatusBadRequest, "costId e id do item são obrigatórios")
+		return
+	}
+
+	updated, err := h.svc.Unconfirm(r.Context(), costID, id)
+	writeItemResult(w, updated, err)
+}
+
+func writeItemResult(w http.ResponseWriter, item *CostItem, err error) {
+	if err != nil {
+		if errors.Is(err, ErrCostItemNotFound) {
+			httputil.WriteError(w, http.StatusNotFound, "item de custo não encontrado")
+			return
+		}
+		httputil.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, item)
 }
 
 func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {

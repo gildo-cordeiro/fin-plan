@@ -161,6 +161,19 @@ export const budgetApiService = {
     });
   },
 
+  async confirmEntry(id: string, data: { actualAmount: number; paidDate: string }): Promise<Entry> {
+    return request<Entry>(`/api/v1/entries/${id}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async unconfirmEntry(id: string): Promise<Entry> {
+    return request<Entry>(`/api/v1/entries/${id}/confirm`, {
+      method: 'DELETE',
+    });
+  },
+
   // === Costs ===
 
   /** Cria um projeto de custo pontual. */
@@ -241,6 +254,19 @@ export const budgetApiService = {
     return request<CostItem>(`/api/v1/costs/${costId}/items/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
+    });
+  },
+
+  async confirmCostItem(costId: string, id: string, data: { actualAmount: number; paidDate: string }): Promise<CostItem> {
+    return request<CostItem>(`/api/v1/costs/${costId}/items/${id}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async unconfirmCostItem(costId: string, id: string): Promise<CostItem> {
+    return request<CostItem>(`/api/v1/costs/${costId}/items/${id}/confirm`, {
+      method: 'DELETE',
     });
   },
 

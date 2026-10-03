@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useBudgetStore } from '../store/useBudgetStore';
-import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation, useBudgetListQuery } from '../queries/budget';
+import { useBudgetYearQuery, useBudgetSummaryQuery, useUpdateBudgetMutation, useCreateItemMutation, useUpdateItemMutation, useDeleteItemMutation, useUpdateEntryMutation, useCreateReserveMovementMutation, useBudgetListQuery, useConfirmEntryMutation, useUnconfirmEntryMutation } from '../queries/budget';
 import { calculateBudget } from '../services/budgetCalculator';
 import { type BudgetCategoryKey, normalizeBudgetItemType } from '../constants/enums';
 import { generateMonthSequence } from '../lib/format';
@@ -39,6 +39,8 @@ export const useBudget = () => {
   const updateItemMut = useUpdateItemMutation(currentYear);
   const deleteItemMut = useDeleteItemMutation(currentYear);
   const updateEntryMut = useUpdateEntryMutation(currentYear);
+  const confirmEntryMut = useConfirmEntryMutation(currentYear);
+  const unconfirmEntryMut = useUnconfirmEntryMutation(currentYear);
   const createReserveMut = useCreateReserveMovementMutation(currentYear);
 
   const createYearMut = useMutation({
@@ -88,7 +90,7 @@ export const useBudget = () => {
     metrics: calculations.metrics,
 
     isLoading: isYearLoading || isSummaryLoading,
-    isSaving: updateEntryMut.isPending || updateItemMut.isPending || updateBudgetMut.isPending,
+    isSaving: updateEntryMut.isPending || updateItemMut.isPending || updateBudgetMut.isPending || confirmEntryMut.isPending || unconfirmEntryMut.isPending,
     lastSaved: new Date(),
     loadError: yearError?.message || summaryError?.message || null,
     saveError: null,
@@ -102,8 +104,8 @@ export const useBudget = () => {
 
     updateBudgetBalances: async (patch: any) => { await updateBudgetMut.mutateAsync(patch); },
 
-    confirmEntry: async (entryId: string, actualAmount?: number) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount, paidDate: new Date().toISOString().split('T')[0] } }); },
-    unconfirmEntry: async (entryId: string) => { updateEntryMut.mutate({ id: entryId, patch: { actualAmount: -1, paidDate: '' as any } }); },
+    confirmEntry: async (entryId: string, actualAmount?: number) => { confirmEntryMut.mutate({ id: entryId, data: { actualAmount: actualAmount ?? 0, paidDate: new Date().toISOString().split('T')[0] } }); },
+    unconfirmEntry: async (entryId: string) => { unconfirmEntryMut.mutate(entryId); },
     updatePlannedAmount,
 
     addItem: async (category: BudgetCategoryKey, customName?: string) => { 

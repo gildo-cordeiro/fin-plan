@@ -120,6 +120,78 @@ export function useUpdateEntryMutation(year: number) {
   });
 }
 
+export function useConfirmEntryMutation(year: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string, data: { actualAmount: number, paidDate: string } }) => 
+      budgetApiService.confirmEntry(id, data),
+    // Optimistic update
+    onMutate: async ({ id, data }: { id: string; data: { actualAmount: number, paidDate: string } }) => {
+      await queryClient.cancelQueries({ queryKey: budgetKeys.year(year) });
+      const previousData = queryClient.getQueryData<YearViewModel>(budgetKeys.year(year));
+
+      if (previousData) {
+        queryClient.setQueryData<YearViewModel>(budgetKeys.year(year), {
+          ...previousData,
+          items: previousData.items.map(item => {
+            if (!item.entries?.some(e => e.id === id)) return item;
+            return {
+              ...item,
+              entries: item.entries.map(e => e.id === id ? { ...e, ...data } : e)
+            };
+          })
+        });
+      }
+      return { previousData };
+    },
+    onError: (_err, _newVal, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(budgetKeys.year(year), context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.summary(year) });
+    }
+  });
+}
+
+export function useUnconfirmEntryMutation(year: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => 
+      budgetApiService.unconfirmEntry(id),
+    // Optimistic update
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: budgetKeys.year(year) });
+      const previousData = queryClient.getQueryData<YearViewModel>(budgetKeys.year(year));
+
+      if (previousData) {
+        queryClient.setQueryData<YearViewModel>(budgetKeys.year(year), {
+          ...previousData,
+          items: previousData.items.map(item => {
+            if (!item.entries?.some(e => e.id === id)) return item;
+            return {
+              ...item,
+              entries: item.entries.map(e => e.id === id ? { ...e, actualAmount: null, paidDate: null } : e)
+            };
+          })
+        });
+      }
+      return { previousData };
+    },
+    onError: (_err, _newVal, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(budgetKeys.year(year), context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.summary(year) });
+    }
+  });
+}
+
 // -----------------------------------------------------------------------------
 // Mutations: Reserve Movements
 // -----------------------------------------------------------------------------
