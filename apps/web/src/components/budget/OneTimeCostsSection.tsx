@@ -213,9 +213,9 @@ export const OneTimeCostsSection = () => {
                     </div>
 
                     {/* Controles de Mês Padrão e Margem */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <label className="text-slate-500 dark:text-slate-400 font-medium">
+                    <div className="flex flex-col gap-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-slate-500 dark:text-slate-400 font-medium shrink-0">
                           Mês Padrão:
                         </label>
                         <select
@@ -225,9 +225,9 @@ export const OneTimeCostsSection = () => {
                               defaultMonth: e.target.value ? parseInt(e.target.value, 10) : 0,
                             })
                           }
-                          className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 font-semibold cursor-pointer outline-none"
+                          className="flex-1 min-w-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-800 dark:text-slate-200 font-semibold cursor-pointer outline-none truncate"
                         >
-                          <option value="">Sem mês fixo (deduz no saldo final)</option>
+                          <option value="">Saldo final do ano</option>
                           {months.map((m) => (
                             <option key={m.id} value={m.monthIndex + 1}>
                               {m.name}
@@ -236,8 +236,8 @@ export const OneTimeCostsSection = () => {
                         </select>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <label className="text-slate-500 dark:text-slate-400 font-medium">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-slate-500 dark:text-slate-400 font-medium shrink-0">
                           Margem de Imprevistos:
                         </label>
                         <div className="flex items-center gap-1">
@@ -323,24 +323,34 @@ export const OneTimeCostsSection = () => {
                           return (
                             <div
                               key={item.id}
-                              className={`flex flex-wrap sm:flex-nowrap items-center gap-2 py-2 px-1 rounded-xl transition-all ${
+                              className={`flex flex-col gap-1.5 py-2 px-2 rounded-xl transition-all ${
                                 isConfirmed
                                   ? 'bg-emerald-50/30 dark:bg-emerald-950/10'
                                   : 'hover:bg-white dark:hover:bg-slate-800/40'
                               }`}
                             >
-                              <input
-                                type="text"
-                                value={item.name}
-                                onChange={(e) =>
-                                  updateCostItem(cost.id, item.id, { name: e.target.value })
-                                }
-                                placeholder="Nome do item (ex: Pintura, Caminhão)"
-                                className="flex-1 min-w-[150px] text-xs font-medium text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-0.5 px-1 truncate"
-                              />
+                              <div className="flex items-center gap-2 justify-between">
+                                <input
+                                  type="text"
+                                  value={item.name}
+                                  onChange={(e) =>
+                                    updateCostItem(cost.id, item.id, { name: e.target.value })
+                                  }
+                                  placeholder="Nome do item (ex: Pintura, Caminhão)"
+                                  className="flex-1 min-w-0 text-xs font-medium text-slate-800 dark:text-slate-200 bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-[#0e6b7a] outline-none py-0.5 px-1 truncate"
+                                />
+                                
+                                {/* Remover Item */}
+                                <button
+                                  type="button"
+                                  onClick={() => removeCostItem(cost.id, item.id)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
+                                  title="Remover item"
+                                ><X className="w-4 h-4 inline-block" /></button>
+                              </div>
 
-                              {/* Mês Individual do Item */}
-                              <div className="shrink-0">
+                              <div className="flex items-center gap-2">
+                                {/* Mês Individual do Item */}
                                 <select
                                   value={item.month ?? ''}
                                   onChange={(e) =>
@@ -348,7 +358,7 @@ export const OneTimeCostsSection = () => {
                                       month: e.target.value ? parseInt(e.target.value, 10) : 0,
                                     })
                                   }
-                                  className="text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-300 cursor-pointer outline-none"
+                                  className="flex-1 min-w-0 text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-slate-700 dark:text-slate-300 cursor-pointer outline-none truncate"
                                   title="Mês específico de pagamento deste item"
                                 >
                                   <option value="">
@@ -360,48 +370,40 @@ export const OneTimeCostsSection = () => {
                                     </option>
                                   ))}
                                 </select>
-                              </div>
 
-                              {/* Valor Planejado */}
-                              <div className="w-28 sm:w-32 shrink-0">
-                                <MoneyInput
-                                  value={item.plannedAmount}
-                                  onChange={(v) =>
-                                    updateCostItem(cost.id, item.id, { plannedAmount: v })
+                                {/* Valor Planejado */}
+                                <div className="w-[85px] sm:w-[90px] shrink-0">
+                                  <MoneyInput
+                                    value={item.plannedAmount}
+                                    onChange={(v) =>
+                                      updateCostItem(cost.id, item.id, { plannedAmount: v })
+                                    }
+                                    ariaLabel={`Valor de ${item.name}`}
+                                  />
+                                </div>
+
+                                {/* Confirmação de Pagamento */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isConfirmed) {
+                                      unconfirmCostItem(cost.id, item.id);
+                                    } else {
+                                      confirmCostItem(cost.id, item.id, item.plannedAmount);
+                                    }
+                                  }}
+                                  className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs shrink-0 transition-all cursor-pointer ${
+                                    isConfirmed
+                                      ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700'
+                                      : 'text-slate-300 hover:text-emerald-600 dark:text-slate-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                  }`}
+                                  title={
+                                    isConfirmed
+                                      ? `Pago em ${item.paidDate}. Clique para desconfirmar.`
+                                      : 'Marcar como pago'
                                   }
-                                  ariaLabel={`Valor de ${item.name}`}
-                                />
+                                ><Check className="w-4 h-4 inline-block" /></button>
                               </div>
-
-                              {/* Confirmação de Pagamento */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isConfirmed) {
-                                    unconfirmCostItem(cost.id, item.id);
-                                  } else {
-                                    confirmCostItem(cost.id, item.id, item.plannedAmount);
-                                  }
-                                }}
-                                className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs shrink-0 transition-all cursor-pointer ${
-                                  isConfirmed
-                                    ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700'
-                                    : 'text-slate-300 hover:text-emerald-600 dark:text-slate-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
-                                }`}
-                                title={
-                                  isConfirmed
-                                    ? `Pago em ${item.paidDate}. Clique para desconfirmar.`
-                                    : 'Marcar como pago'
-                                }
-                              ><Check className="w-4 h-4 inline-block" /></button>
-
-                              {/* Remover Item */}
-                              <button
-                                type="button"
-                                onClick={() => removeCostItem(cost.id, item.id)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs shrink-0 transition-colors cursor-pointer"
-                                title="Remover item"
-                              ><X className="w-4 h-4 inline-block" /></button>
                             </div>
                           );
                         })}
