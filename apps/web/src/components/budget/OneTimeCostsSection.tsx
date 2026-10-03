@@ -172,7 +172,7 @@ export const OneTimeCostsSection = () => {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {costs.map((cost) => {
               const items = cost.items || [];
               const rawTotal = items.reduce((acc, i) => acc + (i.plannedAmount || 0), 0);
