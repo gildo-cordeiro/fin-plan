@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/entry"
+	entry "github.com/gildo-cordeiro/fin-plan/apps/api/internal/entry"
 )
 
 type mockRepo struct {

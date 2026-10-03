@@ -10,8 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrEntryNotFound = errors.New("lançamento não encontrado")
-
 type Repository interface {
 	GetByID(ctx context.Context, id string) (*Entry, error)
 	GetByItemID(ctx context.Context, itemID string) ([]Entry, error)
@@ -20,6 +18,8 @@ type Repository interface {
 	Unconfirm(ctx context.Context, id string) (*Entry, error)
 	CreateBatch(ctx context.Context, entries []Entry) error
 }
+
+var ErrEntryNotFound = errors.New("lançamento orçamentário não encontrado")
 
 type PostgresRepository struct {
 	pool *pgxpool.Pool
@@ -184,5 +184,3 @@ func (r *PostgresRepository) CreateBatch(ctx context.Context, entries []Entry) e
 	}
 	return nil
 }
-
-

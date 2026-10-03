@@ -29,14 +29,9 @@ func (s *Service) GetByBudgetID(ctx context.Context, budgetID string) ([]Cost, e
 }
 
 func (s *Service) Create(ctx context.Context, req CreateCostRequest) (*Cost, error) {
-	if strings.TrimSpace(req.Name) == "" {
-		return nil, errors.New("nome do custo é obrigatório")
-	}
-	if strings.TrimSpace(req.BudgetID) == "" {
-		return nil, errors.New("budgetId é obrigatório")
-	}
-	if req.DefaultMonth != nil && (*req.DefaultMonth < 1 || *req.DefaultMonth > 12) {
-		return nil, errors.New("defaultMonth deve estar entre 1 e 12")
+	_, err := NewCost(req.BudgetID, req.Name, req.DefaultMonth, req.MarginPercent, req.Notes)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.Create(ctx, req)
 }
@@ -45,9 +40,13 @@ func (s *Service) Patch(ctx context.Context, id string, req PatchCostRequest) (*
 	if strings.TrimSpace(id) == "" {
 		return nil, errors.New("id é obrigatório")
 	}
-	if req.DefaultMonth != nil && (*req.DefaultMonth < 1 || *req.DefaultMonth > 12) {
-		return nil, errors.New("defaultMonth deve estar entre 1 e 12")
+
+	tempCost := &Cost{}
+	err := tempCost.Update(req.Name, req.DefaultMonth, req.MarginPercent, req.Notes)
+	if err != nil {
+		return nil, err
 	}
+
 	return s.repo.Patch(ctx, id, req)
 }
 
@@ -57,4 +56,3 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	}
 	return s.repo.Delete(ctx, id)
 }
-

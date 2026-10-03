@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	costitem "github.com/gildo-cordeiro/fin-plan/apps/api/internal/costitem"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/costitem"
 )
 
 var (
@@ -35,12 +34,9 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Cost, error) {
 	queryCost := `
-		SELECT c.id, c.budget_id, c.name, c.default_month, c.margin_percent, c.notes,
-		       COALESCE(SUM(ci.planned_amount), 0) AS total_planned
-		FROM cost c
-		LEFT JOIN cost_item ci ON ci.cost_id = c.id
-		WHERE c.id = $1
-		GROUP BY c.id, c.budget_id, c.name, c.default_month, c.margin_percent, c.notes
+		SELECT id, budget_id, name, default_month, margin_percent, notes
+		FROM cost
+		WHERE id = $1
 	`
 
 	var c Cost
@@ -51,7 +47,6 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Cost, err
 		&c.DefaultMonth,
 		&c.MarginPercent,
 		&c.Notes,
-		&c.TotalPlanned,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -59,8 +54,6 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Cost, err
 		}
 		return nil, fmt.Errorf("erro ao buscar custo: %w", err)
 	}
-
-	c.TotalWithMargin = c.TotalPlanned * (1.0 + (c.MarginPercent / 100.0))
 
 	// Buscar itens
 	queryItems := `
@@ -94,18 +87,17 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Cost, err
 		c.Items = append(c.Items, it)
 	}
 
+	c.CalculateTotals()
+
 	return &c, nil
 }
 
 func (r *PostgresRepository) GetByBudgetID(ctx context.Context, budgetID string) ([]Cost, error) {
 	queryCosts := `
-		SELECT c.id, c.budget_id, c.name, c.default_month, c.margin_percent, c.notes,
-		       COALESCE(SUM(ci.planned_amount), 0) AS total_planned
-		FROM cost c
-		LEFT JOIN cost_item ci ON ci.cost_id = c.id
-		WHERE c.budget_id = $1
-		GROUP BY c.id, c.budget_id, c.name, c.default_month, c.margin_percent, c.notes
-		ORDER BY c.default_month NULLS LAST, c.name
+		SELECT id, budget_id, name, default_month, margin_percent, notes
+		FROM cost
+		WHERE budget_id = $1
+		ORDER BY default_month NULLS LAST, name
 	`
 
 	rows, err := r.pool.Query(ctx, queryCosts, budgetID)
@@ -115,7 +107,6 @@ func (r *PostgresRepository) GetByBudgetID(ctx context.Context, budgetID string)
 	defer rows.Close()
 
 	costs := make([]Cost, 0)
-	costIDs := make([]string, 0)
 	costMap := make(map[string]*Cost)
 
 	for rows.Next() {
@@ -127,14 +118,11 @@ func (r *PostgresRepository) GetByBudgetID(ctx context.Context, budgetID string)
 			&c.DefaultMonth,
 			&c.MarginPercent,
 			&c.Notes,
-			&c.TotalPlanned,
 		); err != nil {
 			return nil, fmt.Errorf("erro ao escanear custo: %w", err)
 		}
-		c.TotalWithMargin = c.TotalPlanned * (1.0 + (c.MarginPercent / 100.0))
 		c.Items = make([]costitem.CostItem, 0)
 		costs = append(costs, c)
-		costIDs = append(costIDs, c.ID)
 	}
 
 	if len(costs) == 0 {

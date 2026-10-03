@@ -20,7 +20,6 @@ type Repository interface {
 	GetByYear(ctx context.Context, year int) (*Budget, error)
 	Create(ctx context.Context, req CreateBudgetRequest) (*Budget, error)
 	Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error)
-	GetSummary(ctx context.Context, year int) (*BudgetSummary, error)
 }
 
 type PostgresRepository struct {
@@ -149,111 +148,4 @@ func (r *PostgresRepository) Patch(ctx context.Context, year int, req PatchBudge
 	}
 
 	return r.GetByYear(ctx, year)
-}
-
-func (r *PostgresRepository) GetSummary(ctx context.Context, year int) (*BudgetSummary, error) {
-	b, err := r.GetByYear(ctx, year)
-	if err != nil {
-		return nil, err
-	}
-
-	budgetID := strconv.Itoa(year)
-
-	// Query mensal agregando entries por tipo e cost_items com mês definido/herdado
-	queryMonthly := `
-		WITH months AS (
-			SELECT generate_series(1, 12) AS month
-		),
-		entries_by_type AS (
-			SELECT
-				e.month,
-				COALESCE(SUM(CASE WHEN i.type = 'renda' THEN e.planned_amount ELSE 0 END), 0) AS income,
-				COALESCE(SUM(CASE WHEN i.type = 'cartao' THEN e.planned_amount ELSE 0 END), 0) AS cards,
-				COALESCE(SUM(CASE WHEN i.type = 'fixa' THEN e.planned_amount ELSE 0 END), 0) AS fixed,
-				COALESCE(SUM(CASE WHEN i.type = 'variavel' THEN e.planned_amount ELSE 0 END), 0) AS variable
-			FROM entry e
-			JOIN item i ON e.item_id = i.id
-			WHERE i.budget_id = $1
-			GROUP BY e.month
-		),
-		cost_items_by_month AS (
-			SELECT
-				COALESCE(ci.month, c.default_month) AS month,
-				COALESCE(SUM(ci.planned_amount), 0) AS one_time_costs
-			FROM cost_item ci
-			JOIN cost c ON ci.cost_id = c.id
-			WHERE c.budget_id = $1
-			GROUP BY COALESCE(ci.month, c.default_month)
-		)
-		SELECT
-			m.month,
-			COALESCE(ebt.income, 0) AS income,
-			COALESCE(ebt.cards, 0) AS cards,
-			COALESCE(ebt.fixed, 0) AS fixed,
-			COALESCE(ebt.variable, 0) AS variable,
-			COALESCE(cibm.one_time_costs, 0) AS one_time_costs
-		FROM months m
-		LEFT JOIN entries_by_type ebt ON ebt.month = m.month
-		LEFT JOIN cost_items_by_month cibm ON cibm.month = m.month
-		ORDER BY m.month ASC;
-	`
-
-	rows, err := r.pool.Query(ctx, queryMonthly, budgetID)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao calcular sumário mensal: %w", err)
-	}
-	defer rows.Close()
-
-	summary := &BudgetSummary{
-		Year:                   year,
-		InitialBalance:         b.InitialBalance,
-		EmergencyReserveTarget: b.EmergencyReserveTarget,
-		Months:                 make([]BudgetSummaryMonth, 0, 12),
-	}
-
-	runningAccumulated := b.InitialBalance
-
-	for rows.Next() {
-		var m BudgetSummaryMonth
-		if err := rows.Scan(
-			&m.Month,
-			&m.Income,
-			&m.Cards,
-			&m.Fixed,
-			&m.Variable,
-			&m.OneTimeCosts,
-		); err != nil {
-			return nil, fmt.Errorf("erro ao escanear mês do sumário: %w", err)
-		}
-
-		m.TotalExpenses = m.Cards + m.Fixed + m.Variable + m.OneTimeCosts
-		m.MonthBalance = m.Income - m.TotalExpenses
-		runningAccumulated += m.MonthBalance
-		m.AccumulatedBalance = runningAccumulated
-
-		summary.Months = append(summary.Months, m)
-
-		summary.Totals.Income += m.Income
-		summary.Totals.Cards += m.Cards
-		summary.Totals.Fixed += m.Fixed
-		summary.Totals.Variable += m.Variable
-	}
-
-	// Total geral de custos pontuais (incluindo itens sem mês em nenhum nível)
-	queryTotalOneTime := `
-		SELECT COALESCE(SUM(ci.planned_amount), 0)
-		FROM cost_item ci
-		JOIN cost c ON ci.cost_id = c.id
-		WHERE c.budget_id = $1
-	`
-	err = r.pool.QueryRow(ctx, queryTotalOneTime, budgetID).Scan(&summary.Totals.OneTimeCosts)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao calcular total de custos pontuais: %w", err)
-	}
-
-	summary.Totals.TotalExpenses = summary.Totals.Cards + summary.Totals.Fixed + summary.Totals.Variable + summary.Totals.OneTimeCosts
-	summary.Totals.NetBalance = summary.Totals.Income - summary.Totals.TotalExpenses
-	summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance
-
-	return summary, nil
 }

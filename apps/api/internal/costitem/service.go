@@ -67,4 +67,3 @@ func (s *Service) Unconfirm(ctx context.Context, costID, id string) (*CostItem, 
 func (s *Service) Delete(ctx context.Context, costID, id string) error {
 	return s.repo.Delete(ctx, costID, id)
 }
-

@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	entry "github.com/gildo-cordeiro/fin-plan/apps/api/internal/entry"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/entry"
 )
 
 var (

@@ -10,8 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrCostItemNotFound = errors.New("item de custo não encontrado")
-
 type Repository interface {
 	Create(ctx context.Context, costID string, req *CreateCostItemRequest) (*CostItem, error)
 	GetByID(ctx context.Context, id string) (*CostItem, error)
@@ -21,6 +19,8 @@ type Repository interface {
 	Unconfirm(ctx context.Context, costID, id string) (*CostItem, error)
 	Delete(ctx context.Context, costID, id string) error
 }
+
+var ErrCostItemNotFound = errors.New("item de custo não encontrado")
 
 type PostgresRepository struct {
 	pool *pgxpool.Pool

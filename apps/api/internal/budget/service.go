@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
-	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
+	cost "github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
+	goal "github.com/gildo-cordeiro/fin-plan/apps/api/internal/goal"
+	item "github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
+	reserve "github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
 )
 
 type Service struct {
@@ -48,16 +48,26 @@ func (s *Service) GetByYear(ctx context.Context, year int) (*Budget, error) {
 }
 
 func (s *Service) Create(ctx context.Context, req CreateBudgetRequest) (*Budget, error) {
-	if req.Year < 2000 || req.Year > 2100 {
-		return nil, errors.New("ano deve ser entre 2000 e 2100")
+	initBalance := 0.0
+	if req.InitialBalance != nil {
+		initBalance = *req.InitialBalance
+	}
+	reserveTarget := 0.0
+	if req.EmergencyReserveTarget != nil {
+		reserveTarget = *req.EmergencyReserveTarget
+	}
+
+	_, err := NewBudget(req.Year, initBalance, reserveTarget)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.Create(ctx, req)
 }
 
 func (s *Service) Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error) {
-	if year < 2000 || year > 2100 {
-		return nil, errors.New("ano do orçamento inválido")
-	}
+	tempBudget := &Budget{}
+	tempBudget.Update(req.InitialBalance, req.EmergencyReserveTarget)
+
 	return s.repo.Patch(ctx, year, req)
 }
 
@@ -65,7 +75,30 @@ func (s *Service) GetSummary(ctx context.Context, year int) (*BudgetSummary, err
 	if year < 2000 || year > 2100 {
 		return nil, errors.New("ano do orçamento inválido")
 	}
-	return s.repo.GetSummary(ctx, year)
+	b, err := s.repo.GetByYear(ctx, year)
+	if err != nil {
+		return nil, err
+	}
+
+	budgetID := strconv.Itoa(year)
+	var items []item.Item
+	if s.itemRepo != nil {
+		items, err = s.itemRepo.GetByBudgetID(ctx, budgetID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar itens: %w", err)
+		}
+	}
+
+	var costs []cost.Cost
+	if s.costRepo != nil {
+		costs, err = s.costRepo.GetByBudgetID(ctx, budgetID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar custos: %w", err)
+		}
+	}
+
+	summary := b.CalculateSummary(items, costs)
+	return &summary, nil
 }
 
 func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewModel, error) {
@@ -128,4 +161,3 @@ func (s *Service) GetYearViewModel(ctx context.Context, year int) (*YearViewMode
 		ReserveMovements: movements,
 	}, nil
 }
-
