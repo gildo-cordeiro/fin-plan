@@ -1,4 +1,5 @@
 import { X, Target, Pencil, Wallet, Shield, Package, Plane, Car, Book, LucideIcon } from 'lucide-react';
+import { EmptyState } from '../ui/EmptyState';
 import { useState } from 'react';
 
 import { useToast } from '../../context/ToastContext';
@@ -436,22 +437,20 @@ export const GoalsSection = () => {
       )}
 
       {goals.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
-          <span className="text-3xl mb-2"><Target className="w-4 h-4 inline-block" /></span>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-            Nenhuma meta cadastrada ainda
-          </p>
-          <p className="text-xs mt-1 max-w-sm">
-            Crie sua primeira meta (ex: Mudança de Apartamento, Reserva de Emergência ou Viagem) para acompanhar seus aportes.
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsNewGoalOpen(true)}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#0e6b7a] hover:bg-[#09525e] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            + Criar Primeira Meta
-          </button>
-        </div>
+        <EmptyState
+          icon={Target}
+          title="Nenhuma meta cadastrada ainda"
+          description="Crie sua primeira meta (ex: Mudança de Apartamento, Reserva de Emergência ou Viagem) para acompanhar seus aportes."
+          action={
+            <button
+              type="button"
+              onClick={() => setIsNewGoalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-[#0e6b7a] hover:bg-[#09525e] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              + Criar Primeira Meta
+            </button>
+          }
+        />
       )}
 
       <NewGoalModal

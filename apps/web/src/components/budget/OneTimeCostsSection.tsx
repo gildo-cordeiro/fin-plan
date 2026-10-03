@@ -1,4 +1,6 @@
 import { X, Check, Package, Truck, Folder, Shield } from 'lucide-react';
+import { EmptyState } from '../ui/EmptyState';
+import { Badge } from '../ui/Badge';
 import { useState } from 'react';
 import { useBudget } from '../../hooks/useBudget';
 import { useToast } from '../../context/ToastContext';
@@ -154,25 +156,29 @@ export const OneTimeCostsSection = () => {
 
         {/* Lista de Projetos (Cost) */}
         {costs.length === 0 && !isCreatingProject ? (
-          <div className="text-center py-8 text-slate-400 dark:text-slate-500 space-y-2">
-            <span className="text-3xl block"><Package className="w-4 h-4 inline-block" /></span>
-            <p className="text-xs font-medium">Nenhum projeto de custo pontual cadastrado.</p>
-            <button
-              type="button"
-              onClick={() => {
-                createCost('Mudança de Residência', 12, 10, 'Custos pontuais da transição de apartamento');
-              }}
-              className="px-3 py-1.5 text-xs font-bold bg-[#0e6b7a] hover:bg-[#09525e] text-white rounded-xl shadow-xs cursor-pointer"
-            >
-              + Criar Projeto Inicial: Mudança
-            </button>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="Nenhum projeto de custo pontual cadastrado."
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  createCost('Mudança de Residência', 12, 10, 'Custos pontuais da transição de apartamento');
+                }}
+                className="px-3 py-1.5 text-xs font-bold bg-[#0e6b7a] hover:bg-[#09525e] text-white rounded-xl shadow-xs cursor-pointer"
+              >
+                + Criar Projeto Inicial: Mudança
+              </button>
+            }
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {costs.map((cost) => {
               const items = cost.items || [];
               const rawTotal = items.reduce((acc, i) => acc + (i.plannedAmount || 0), 0);
               const totalWithMargin = rawTotal * (1 + cost.marginPercent / 100);
+              const confirmedTotal = items.reduce((acc, i) => acc + (i.paidDate ? (i.actualAmount ?? i.plannedAmount) : 0), 0);
+              const progressPct = totalWithMargin > 0 ? Math.min(100, (confirmedTotal / totalWithMargin) * 100) : 0;
 
               const defaultMonthName = cost.defaultMonth
                 ? months.find((m) => m.monthIndex + 1 === cost.defaultMonth)?.name || `Mês ${cost.defaultMonth}`
@@ -282,6 +288,22 @@ export const OneTimeCostsSection = () => {
                           >
                             Sincronizar Meta
                           </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Barra de Progresso do Projeto */}
+                    <div className="space-y-1">
+                      <div className="w-full h-2 bg-slate-200/60 dark:bg-slate-700/60 rounded-full overflow-hidden relative">
+                        <div
+                          className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>{progressPct.toFixed(0)}% pago</span>
+                        {totalWithMargin - confirmedTotal > 0 && (
+                          <span>Restam {formatBRL(totalWithMargin - confirmedTotal)}</span>
                         )}
                       </div>
                     </div>
@@ -437,7 +459,7 @@ export const OneTimeCostsSection = () => {
         {/* Formulário para novo movimento */}
         <form
           onSubmit={handleAddReserveMovement}
-          className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 space-y-2.5 text-xs"
+          className="p-3 bg-transparent rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs"
         >
           <span className="font-semibold text-slate-700 dark:text-slate-300 block">
             Registrar Movimentação na Reserva
@@ -518,10 +540,13 @@ export const OneTimeCostsSection = () => {
                 const monthName = months.find((mo) => mo.monthIndex + 1 === m.month)?.shortName || `Mês ${m.month}`;
 
                 return (
-                  <div key={m.id} className="flex items-center justify-between py-1.5 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-slate-400 text-[11px]">{monthName}</span>
-                      <span className="text-slate-700 dark:text-slate-300 font-medium">
+                  <div key={m.id} className="flex items-center justify-between py-2 px-1">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-slate-400 text-[11px] w-12">{monthName}</span>
+                      <Badge variant={isPositive ? 'success' : 'danger'} className="text-[10px] px-1.5 py-0">
+                        {isPositive ? 'Aporte' : 'Retirada'}
+                      </Badge>
+                      <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[150px] sm:max-w-[300px]">
                         {m.reason || (isPositive ? 'Aporte na Reserva' : 'Retirada da Reserva')}
                       </span>
                     </div>
