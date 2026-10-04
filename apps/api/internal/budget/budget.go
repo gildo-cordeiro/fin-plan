@@ -2,6 +2,7 @@ package budget
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	cost "github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
@@ -67,14 +68,14 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 			for _, entry := range it.Entries {
 				if entry.Month == month {
 					val := getEffectiveAmount(entry.PlannedAmount, entry.ActualAmount, entry.PaidDate)
-					switch it.Type {
+					switch strings.ToLower(it.Type) {
 					case "renda":
 						income += val
-					case "cartao":
+					case "cartao", "cartoes":
 						cards += val
-					case "fixa":
+					case "fixa", "fixas":
 						fixed += val
-					case "variavel":
+					case "variavel", "var", "vars":
 						variable += val
 					}
 				}
