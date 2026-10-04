@@ -14,10 +14,14 @@ Convenções de nome e de commit estão no `AGENTS.md` da raiz. Esta skill é o 
 
 ## 1. Branch (no início da tarefa)
 
+**REGRA DE OURO:** NUNCA crie uma branch a partir da branch atual se ela não for a `main`. SEMPRE atualize a `main` primeiro.
+
 ```bash
 git fetch origin
+git checkout main
+git pull origin main
 git status --short                 # working tree precisa estar limpa ou ser da própria tarefa
-git switch -c <tipo>/<descricao-curta> origin/main
+git switch -c <tipo>/<descricao-curta>
 ```
 
 - `<tipo>` acompanha o tipo da issue: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
