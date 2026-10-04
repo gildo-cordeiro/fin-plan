@@ -49,6 +49,16 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 
 	runningAccumulated := b.InitialBalance
 
+	getEffectiveAmount := func(planned float64, actual *float64, paidDate *string) float64 {
+		if paidDate != nil && actual != nil {
+			return *actual
+		}
+		if actual != nil && *actual > 0 {
+			return *actual
+		}
+		return planned
+	}
+
 	for monthIndex := 0; monthIndex < 12; monthIndex++ {
 		month := monthIndex + 1
 		var income, cards, fixed, variable, oneTimeCosts float64
@@ -56,15 +66,16 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 		for _, it := range items {
 			for _, entry := range it.Entries {
 				if entry.Month == month {
+					val := getEffectiveAmount(entry.PlannedAmount, entry.ActualAmount, entry.PaidDate)
 					switch it.Type {
 					case "renda":
-						income += entry.PlannedAmount
+						income += val
 					case "cartao":
-						cards += entry.PlannedAmount
+						cards += val
 					case "fixa":
-						fixed += entry.PlannedAmount
+						fixed += val
 					case "variavel":
-						variable += entry.PlannedAmount
+						variable += val
 					}
 				}
 			}
@@ -77,7 +88,8 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 					itemMonth = ci.Month
 				}
 				if itemMonth != nil && *itemMonth == month {
-					oneTimeCosts += ci.PlannedAmount
+					val := getEffectiveAmount(ci.PlannedAmount, ci.ActualAmount, ci.PaidDate)
+					oneTimeCosts += val
 				}
 			}
 		}
@@ -119,7 +131,8 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 	for _, c := range costs {
 		for _, ci := range c.Items {
 			if ci.Month == nil && c.DefaultMonth == nil {
-				summary.Totals.OneTimeCosts += ci.PlannedAmount
+				val := getEffectiveAmount(ci.PlannedAmount, ci.ActualAmount, ci.PaidDate)
+				summary.Totals.OneTimeCosts += val
 			}
 		}
 	}

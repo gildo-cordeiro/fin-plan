@@ -14,7 +14,13 @@ function enrichItemWithValues(item: Item, year: number): Item {
   if (item.entries && item.entries.length > 0) {
     for (const entry of item.entries) {
       const monthPad = String(entry.month).padStart(2, '0');
-      values[`${year}-${monthPad}`] = entry.plannedAmount;
+      let val = entry.plannedAmount;
+      if (entry.paidDate && entry.actualAmount !== null) {
+        val = entry.actualAmount;
+      } else if (entry.actualAmount !== null && entry.actualAmount > 0) {
+        val = entry.actualAmount;
+      }
+      values[`${year}-${monthPad}`] = val;
     }
   }
   return {
