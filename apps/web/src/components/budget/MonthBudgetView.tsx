@@ -382,7 +382,10 @@ export const MonthBudgetView = ({
         </div>
 
         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
-          <div className={`h-full transition-all ${totalExpenses > income ? 'bg-rose-500' : (totalExpenses / income > 0.8 ? 'bg-amber-500' : 'bg-emerald-500')}`} style={{ width: `${Math.min(income > 0 ? (totalExpenses / income) * 100 : (totalExpenses > 0 ? 100 : 0), 100)}%` }} />
+          <div className={`h-full transition-all ${totalExpenses > income ? 'bg-rose-500' : (totalExpenses / income > 0.8 ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600')}`} style={{ width: `${Math.min(income > 0 ? (totalExpenses / income) * 100 : (totalExpenses > 0 ? 100 : 0), 100)}%` }} />
+          {income > totalExpenses && (
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${income > 0 ? (monthBalance / income) * 100 : 0}%` }} />
+          )}
         </div>
 
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
