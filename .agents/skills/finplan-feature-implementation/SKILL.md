@@ -19,7 +19,7 @@ As convenções de código já são carregadas pelos `AGENTS.md` (raiz,
 
 1. Se houver issue, leia a issue inteira: critérios de aceite, escopo e "não inclui".
 2. Leia as seções relevantes de `docs/ARCHITECTURE.md` e, se a feature tocar a
-   API, `docs/API.md`. Leia os ADRs de `docs/adrs/` ligados à área.
+   API, `docs/openapi.yaml`. Leia os ADRs de `docs/adrs/` ligados à área.
 3. Crie a branch seguindo `finplan-pr-workflow` (passo 1).
 4. Classifique a mudança e pule as etapas que não se aplicam:
    - **Schema** (tabela/coluna nova) → siga [references/schema-change.md](references/schema-change.md).
@@ -38,7 +38,7 @@ As convenções de código já são carregadas pelos `AGENTS.md` (raiz,
 
 ## 2. Contrato
 
-1. Atualize `docs/API.md` com o payload de exemplo e os códigos de erro.
+1. Atualize `docs/openapi.yaml` com o payload de exemplo e os códigos de erro.
 2. Espelhe o contrato em `apps/web/src/types/budget.ts` e
    `apps/web/src/services/budgetApiService.ts`, e atualize
    `src/__tests__/budgetApiService.test.ts`.
@@ -61,7 +61,7 @@ As convenções de código já são carregadas pelos `AGENTS.md` (raiz,
 ## 5. Documentação e validação
 
 1. **Auto-atualização do Agente (Manutenção Viva)**:
-   - Endpoint novo/alterado? Atualize `docs/API.md`.
+   - Endpoint novo/alterado? Atualize `docs/openapi.yaml`.
    - Estrutura de pastas ou tecnologia? Atualize `README.md` e `docs/ARCHITECTURE.md`.
    - Instruções defasadas? Atualize os arquivos `AGENTS.md` e as suas próprias skills em `.agents/skills/`.
    - **Mudança Arquitetural (ADR)**: Se você fez uma mudança que quebra ou altera uma decisão arquitetural existente, **pause e pergunte ao usuário** se deve criar um novo ADR (em `docs/adrs/`). Lembre-se: ADRs antigos são registros históricos imutáveis; nunca apague ou altere a decisão de um ADR passado, sempre crie um novo.
@@ -79,7 +79,7 @@ compra), selecionável na criação."
 1. Migração Goose `0000N_add_goal_category.sql` (`ALTER TABLE goal ADD COLUMN category TEXT`).
 2. `internal/goal/goal.go` com o campo novo, `requests.go` validando os valores
    aceitos e `repository.go` com a coluna nos `SELECT`/`INSERT`/`UPDATE`; teste em `service_test.go`.
-3. `docs/API.md` e o diagrama ER em `docs/ARCHITECTURE.md`.
+3. `docs/openapi.yaml` e o diagrama ER em `docs/ARCHITECTURE.md`.
 4. `FinancialGoal.category` em `src/types/budget.ts` e o seletor em
    `components/modals/NewGoalModal.tsx`, usando `ui/Select`.
 5. `validate.sh` e depois o PR com `Closes #N`.

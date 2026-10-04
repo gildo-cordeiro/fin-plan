@@ -42,7 +42,7 @@
 
 ## Tipos
 
-- Tipos de domínio em `src/types/budget.ts`, alinhados com `docs/API.md` e os
+- Tipos de domínio em `src/types/budget.ts`, alinhados com `docs/openapi.yaml` e os
   DTOs Go. Sem `any`; `as` só com justificativa.
 - `null` vs `undefined` segue o contrato da API (ex.: `actualAmount: number | null`).
 

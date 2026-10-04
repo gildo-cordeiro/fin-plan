@@ -44,7 +44,7 @@ Cada entidade é um pacote em `internal/<feature>/` (`budget`, `item`, `entry`,
 - IDs são UUIDv4 gerados no servidor (`httputil.GenerateUUID`, ADR-0009).
 - `reserve` é livro-razão imutável, sem PATCH/DELETE (ADR-0006).
 - Auth opcional por `API_SECRET_KEY` (`internal/middleware/auth.go`); não removê-la.
-- Endpoint novo ou alterado → atualizar `docs/API.md`.
+- Endpoint novo ou alterado → atualizar `docs/openapi.yaml`.
 
 ## Erros e testes
 
