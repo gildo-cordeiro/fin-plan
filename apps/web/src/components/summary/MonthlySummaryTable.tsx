@@ -10,6 +10,7 @@ export const MonthlySummaryTable = () => {
   const totalCards    = monthlySummaries.reduce((acc, m) => acc + m.cards, 0);
   const totalFixed    = monthlySummaries.reduce((acc, m) => acc + m.fixed, 0);
   const totalVars     = monthlySummaries.reduce((acc, m) => acc + m.variable, 0);
+  const totalOneTime  = monthlySummaries.reduce((acc, m) => acc + m.oneTime, 0);
   const totalBalance  = monthlySummaries.reduce((acc, m) => acc + m.monthBalance, 0);
 
   const handleExportCSV = () => {
@@ -19,6 +20,7 @@ export const MonthlySummaryTable = () => {
       ['Cartões',         ...monthlySummaries.map((m) => m.cards.toFixed(2)),            totalCards.toFixed(2)],
       ['Fixas',           ...monthlySummaries.map((m) => m.fixed.toFixed(2)),            totalFixed.toFixed(2)],
       ['Variáveis',       ...monthlySummaries.map((m) => m.variable.toFixed(2)),         totalVars.toFixed(2)],
+      ['Pontuais',        ...monthlySummaries.map((m) => m.oneTime.toFixed(2)),          totalOneTime.toFixed(2)],
       ['Sobra do mês',    ...monthlySummaries.map((m) => m.monthBalance.toFixed(2)),     totalBalance.toFixed(2)],
       ['Saldo acumulado', ...monthlySummaries.map((m) => m.accumulatedBalance.toFixed(2)), ''],
     ];
@@ -32,7 +34,7 @@ export const MonthlySummaryTable = () => {
     link.click();
   };
 
-  type FieldKey = 'income' | 'cards' | 'fixed' | 'variable' | 'monthBalance';
+  type FieldKey = 'income' | 'cards' | 'fixed' | 'variable' | 'oneTime' | 'monthBalance';
 
   const renderRow = (label: string, field: FieldKey, total: number) => (
     <tr className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
@@ -82,7 +84,7 @@ export const MonthlySummaryTable = () => {
         </button>
       </div>
       <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
-        Sobra do mês = renda − cartões − fixas − variáveis.
+        Sobra do mês = renda − cartões − fixas − variáveis − pontuais.
       </p>
 
       <div className="overflow-x-auto pb-1">
@@ -107,6 +109,7 @@ export const MonthlySummaryTable = () => {
             {renderRow('Cartões',      'cards',        totalCards)}
             {renderRow('Fixas',        'fixed',        totalFixed)}
             {renderRow('Variáveis',    'variable',     totalVars)}
+            {renderRow('Pontuais',     'oneTime',      totalOneTime)}
             {renderRow('Sobra do mês', 'monthBalance', totalBalance)}
 
             <tr className="bg-[#e5f2f4]/60 dark:bg-[#102a33]/60 font-bold border-t-2 border-[#0e6b7a]/30 text-xs">
