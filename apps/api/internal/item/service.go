@@ -42,7 +42,7 @@ func (s *Service) Patch(ctx context.Context, id string, req PatchItemRequest) (*
 	}
 
 	tempItem := &Item{}
-	err := tempItem.Update(req.Name, req.Type)
+	err := tempItem.Update(req.Name, req.Type, req.Off)
 	if err != nil {
 		return nil, err
 	}

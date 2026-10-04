@@ -1,0 +1,5 @@
+-- +goose Up
+ALTER TABLE item ADD COLUMN off BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- +goose Down
+ALTER TABLE item DROP COLUMN off;

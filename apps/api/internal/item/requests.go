@@ -9,4 +9,5 @@ type CreateItemRequest struct {
 type PatchItemRequest struct {
 	Name *string `json:"name,omitempty"`
 	Type *string `json:"type,omitempty"`
+	Off  *bool   `json:"off,omitempty"`
 }
