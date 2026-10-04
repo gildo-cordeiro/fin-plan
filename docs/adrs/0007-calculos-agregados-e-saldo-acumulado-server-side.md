@@ -1,6 +1,6 @@
 # ADR-0007: Consolidação Contábil Server-Side com Window Functions SQL (`/summary`)
 
-- **Status**: Aceito
+- **Status**: Substituído pelo [ADR-0013](./0013-consolidacao-contabil-em-memoria-go.md)
 - **Data**: 2026-09-25
 - **Decisores**: Equipe FinPlan
 

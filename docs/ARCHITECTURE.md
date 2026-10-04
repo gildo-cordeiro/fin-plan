@@ -42,8 +42,8 @@ flowchart TD
 
     %% Fluxo de Leitura / Resumo
     Browser -.->|GET /api/v1/budgets/{year} + GET /summary| GoServer
-    Postgres -.->|Window functions para saldo acumulado| GoServer
-    GoServer -.->|BudgetSummary consolidado| Context
+    Postgres -.->|Dados brutos (items, costs, movements)| GoServer
+    GoServer -.->|Cálculo de consolidação e BudgetSummary| Context
 ```
 
 ---
@@ -73,9 +73,9 @@ flowchart TD
 - **Decisão**: A entidade `reserve_movement` só aceita `POST` (inserção) e `GET` (listagem). Não existem rotas de `PATCH` ou `DELETE`.
 - **Por quê**: Uma reserva de emergência requer integridade contábil estrita. Corrigir um valor exige registrar uma nova movimentação compensatória de sinal inverso, mantendo a trilha de auditoria completa.
 
-### 3.6. Resumo Mensal Server-side via Window Functions
-- **Decisão**: `GET /api/v1/budgets/{year}/summary` calcula receitas, cartões, fixas, variáveis, custos pontuais e saldo acumulado (`SUM(...) OVER (ORDER BY month) + initial_balance`) diretamente no banco de dados.
-- **Por quê**: Garante precisão decimal (NUMERIC 12,2) em conformidade contábil, sem divergências de arredondamento de ponto flutuante no JavaScript do navegador.
+### 3.6. Resumo Mensal Server-side em Memória (Go)
+- **Decisão**: `GET /api/v1/budgets/{year}/summary` calcula receitas, cartões, fixas, variáveis, custos pontuais, transferências de reserva e saldo acumulado diretamente na camada de domínio (`budget.go`).
+- **Por quê**: Garante precisão decimal (float64 e conversão correta), resolve cálculos interdependentes de reserva sem poluir as queries SQL e mantêm a camada de persistência com CRUD puro (ADR-0013).
 
 ---
 
@@ -118,9 +118,10 @@ Para um histórico detalhado, contexto de decisão e trade-offs formais de engen
 - [ADR-0004: Modelo Planejado vs. Realizado em Entries Mensais](./adrs/0004-modelo-planejado-vs-realizado-em-entries-mensais.md)
 - [ADR-0005: Projetos Hierárquicos de Custos Pontuais com Margem](./adrs/0005-projetos-hierarquicos-de-custos-pontuais-com-margem.md)
 - [ADR-0006: Reserva de Emergência como Livro-Razão Imutável](./adrs/0006-reserva-de-emergencia-como-livro-razao-imutavel.md)
-- [ADR-0007: Cálculos Agregados e Saldo Acumulado Server-Side](./adrs/0007-calculos-agregados-e-saldo-acumulado-server-side.md)
+- [ADR-0007: Cálculos Agregados e Saldo Acumulado Server-Side](./adrs/0007-calculos-agregados-e-saldo-acumulado-server-side.md) *(Substituído)*
 - [ADR-0008: Semântica de PATCH Parcial Estrita](./adrs/0008-semantica-de-patch-parcial-estrita.md)
 - [ADR-0009: Estratégia de Identificadores (UUIDv4 vs Chave Natural)](./adrs/0009-estrategia-de-identificadores-uuidv4-e-chaves-naturais.md)
 - [ADR-0010: Gerenciamento e Versionamento de Migrações com Goose](./adrs/0010-gerenciamento-e-versionamento-de-migracoes-com-goose.md)
 - [ADR-0012: Adoção de Spec-Driven Development via OpenAPI](./adrs/0012-adocao-spec-driven-development-openapi.md)
+- [ADR-0013: Consolidação Contábil em Memória (Go) e Integração de Reserva](./adrs/0013-consolidacao-contabil-em-memoria-go.md)
 
