@@ -45,6 +45,7 @@ Sempre que uma implementação alterar a arquitetura, as tecnologias ou o compor
 
 ## Git
 
+- **SEMPRE** atualize a `main` antes de criar um novo branch (`git checkout main && git pull origin main`).
 - Branches curtas a partir de `main`: `feat/…`, `fix/…`, `refactor/…`, `test/…`,
   `docs/…`, `chore/…`.
 - Commits no padrão Conventional Commits, com escopo:
