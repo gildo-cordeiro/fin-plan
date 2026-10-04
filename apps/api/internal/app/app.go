@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/api"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/budget"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/config"
 	"github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
@@ -111,22 +112,19 @@ func (a *App) routes() *http.ServeMux {
 		goalSvc := goal.NewService(goalRepo)
 		reserveSvc := reserve.NewService(reserveRepo)
 
-		// Handlers
-		budgetH := budget.NewHandler(budgetSvc)
-		itemH := item.NewHandler(itemSvc)
-		entryH := entry.NewHandler(entrySvc)
-		costH := cost.NewHandler(costSvc)
-		costItemH := costitem.NewHandler(costItemSvc)
-		goalH := goal.NewHandler(goalSvc)
-		reserveH := reserve.NewHandler(reserveSvc)
-
-		budgetH.RegisterRoutes(mux)
-		itemH.RegisterRoutes(mux)
-		entryH.RegisterRoutes(mux)
-		costH.RegisterRoutes(mux)
-		costItemH.RegisterRoutes(mux)
-		goalH.RegisterRoutes(mux)
-		reserveH.RegisterRoutes(mux)
+		// API Server
+		server := &api.Server{
+			BudgetSvc:   budgetSvc,
+			CostSvc:     costSvc,
+			CostItemSvc: costItemSvc,
+			EntrySvc:    entrySvc,
+			GoalSvc:     goalSvc,
+			ItemSvc:     itemSvc,
+			ReserveSvc:  reserveSvc,
+		}
+		
+		strictHandler := api.NewStrictHandler(server, nil)
+		api.HandlerFromMux(strictHandler, mux)
 	} else {
 		unavailableHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")

@@ -1,171 +1,79 @@
+import type { components } from './api';
 import type { ItemType, GoalStatus } from '../constants/enums';
 export * from '../constants/enums';
 
-// ---------------------------------------------------------------------------
-// MonthItem — derivado localmente, NÃO persistido no backend.
-// O backend usa `month: INT` (1–12); o frontend gera nome/shortName via
-// createMonthItem(year, monthIndex).
-// ---------------------------------------------------------------------------
-export interface MonthItem {
-  id: string;          // ex: '2026-10'
-  name: string;        // ex: 'Outubro 2026'
-  shortName: string;   // ex: 'Out/26'
-  year: number;
-  monthIndex: number;  // 0-based (compatível com Date.getMonth)
-}
-
-// ---------------------------------------------------------------------------
-// Budget (tabela `budget`)
-// ---------------------------------------------------------------------------
-export interface Budget {
-  id: string;                     // ex: '2026'
-  year: number;
-  initialBalance: number;
-  emergencyReserveTarget: number;
+// API Types
+export type Budget = Omit<components["schemas"]["Budget"], "createdAt" | "updatedAt"> & {
   createdAt?: string;
   updatedAt?: string;
+};
+
+// Frontend only MonthItem
+export interface MonthItem {
+  id: string;
+  name: string;
+  shortName: string;
+  year: number;
+  monthIndex: number;
 }
 
-// ---------------------------------------------------------------------------
-// Item (tabela `item`)
-// ---------------------------------------------------------------------------
-export interface Item {
-  id: string;
-  budgetId: string;
-  name: string;
-  type: ItemType;                // 'renda' | 'fixa' | 'variavel' | 'cartao'
-  createdAt?: string;
-  entries?: Entry[];             // populado no GET /budgets/{year}
-  values?: Record<string, number>; // Mapa monthId -> plannedAmount derivado para conveniência
+export type Item = Omit<components["schemas"]["Item"], "type" | "entries"> & {
+  type: ItemType;
+  entries?: Entry[];
+  values?: Record<string, number>;
   off?: boolean;
-}
+};
 
-// ---------------------------------------------------------------------------
-// Entry (tabela `entry`)
-// ---------------------------------------------------------------------------
-export interface Entry {
-  id: string;
-  itemId: string;
-  month: number;                 // 1–12 (INT, não monthId string)
-  plannedAmount: number;
-  actualAmount: number | null;   // null = ainda não confirmado
-  dueDate: string | null;        // ISO date
-  paidDate: string | null;       // preenchido = "confirmado" (sem coluna status)
-}
-
-// ---------------------------------------------------------------------------
-// Cost (tabela `cost`) — projeto de custo pontual
-// ---------------------------------------------------------------------------
-export interface Cost {
-  id: string;
-  budgetId: string;
-  name: string;
-  defaultMonth: number | null;   // null = "sem mês fixo, deduz no saldo final"
-  marginPercent: number;         // "Margem de Imprevistos" vive AQUI
-  notes?: string;
-  items?: CostItem[];            // populado no GET
-  totalPlanned?: number;         // calculado no backend (SUM cost_item.planned_amount)
-  totalWithMargin?: number;      // calculado no backend (totalPlanned * (1 + marginPercent/100))
-}
-
-// ---------------------------------------------------------------------------
-// CostItem (tabela `cost_item`) — item individual dentro do projeto
-// ---------------------------------------------------------------------------
-export interface CostItem {
-  id: string;
-  costId: string;
-  name: string;
-  plannedAmount: number;
+export type Entry = Omit<components["schemas"]["Entry"], "actualAmount" | "dueDate" | "paidDate"> & {
   actualAmount: number | null;
-  month: number | null;          // null = herda cost.defaultMonth; ambos null = saldo final
   dueDate: string | null;
   paidDate: string | null;
-}
+};
 
-// ---------------------------------------------------------------------------
-// Goal & GoalContribution (tabelas `goal`, `goal_contribution`)
-// ---------------------------------------------------------------------------
-export interface GoalContribution {
-  id: string;
-  goalId?: string;
-  date: string;
-  amount: number;
+export type Cost = Omit<components["schemas"]["Cost"], "defaultMonth" | "items"> & {
+  defaultMonth: number | null;
+  items?: CostItem[];
+  totalPlanned?: number;
+  totalWithMargin?: number;
+};
+
+export type CostItem = Omit<components["schemas"]["CostItem"], "actualAmount" | "month" | "dueDate" | "paidDate"> & {
+  actualAmount: number | null;
+  month: number | null;
+  dueDate: string | null;
+  paidDate: string | null;
+};
+
+export type GoalContribution = Omit<components["schemas"]["GoalContribution"], "note" | "goalId"> & {
   note?: string;
-}
+  goalId?: string;
+};
 
-export interface FinancialGoal {
-  id: string;
-  name: string;
+export type FinancialGoal = Omit<components["schemas"]["Goal"], "description" | "icon" | "color" | "status" | "contributions"> & {
   description?: string;
-  targetAmount: number;
+  icon?: string;
   color?: string;
   status: GoalStatus;
   contributions: GoalContribution[];
-}
+};
 
-// ---------------------------------------------------------------------------
-// ReserveMovement (tabela `reserve_movement`) — livro-razão imutável
-// Só Create + List; corrigir lançamento errado é um novo movement de sinal oposto.
-// ---------------------------------------------------------------------------
-export interface ReserveMovement {
-  id: string;
-  budgetId: string;
-  month: number;       // 1–12
-  amount: number;      // positivo = aporte, negativo = retirada
+export type ReserveMovement = Omit<components["schemas"]["ReserveMovement"], "reason"> & {
   reason?: string;
-}
+};
 
-// ---------------------------------------------------------------------------
-// BudgetSummary — resposta de GET /budgets/{year}/summary
-// Fonte de verdade para totais mensais; substitui budgetCalculator.ts
-// ---------------------------------------------------------------------------
-export interface BudgetSummaryMonth {
-  month: number;                 // 1–12
-  income: number;
-  cards: number;
-  fixed: number;
-  variable: number;
-  oneTimeCosts: number;
-  totalExpenses: number;
-  monthBalance: number;
-  accumulatedBalance: number;
-}
+export type BudgetSummaryMonth = components["schemas"]["MonthSummary"];
+export type BudgetSummaryTotals = components["schemas"]["YearTotals"];
+export type BudgetSummary = components["schemas"]["BudgetSummary"];
 
-export interface BudgetSummaryTotals {
-  income: number;
-  cards: number;
-  fixed: number;
-  variable: number;
-  oneTimeCosts: number;
-  totalExpenses: number;
-  netBalance: number;
-  finalAccumulated: number;
-}
-
-export interface BudgetSummary {
-  year: number;
-  initialBalance: number;
-  emergencyReserveTarget: number;
-  months: BudgetSummaryMonth[];
-  totals: BudgetSummaryTotals;
-}
-
-// ---------------------------------------------------------------------------
-// YearViewModel — resposta de GET /budgets/{year} (visão completa do ano)
-// ---------------------------------------------------------------------------
-export interface YearViewModel {
+export type YearViewModel = Omit<components["schemas"]["BudgetView"], "budget" | "items" | "costs" | "goals" | "reserveMovements"> & {
   budget: Budget;
-  items: Item[];                 // com entries[] populadas
-  costs: Cost[];                 // com items[] populadas
+  items: Item[];
+  costs: Cost[];
   goals: FinancialGoal[];
   reserveMovements?: ReserveMovement[];
-}
+};
 
-// ---------------------------------------------------------------------------
-// SimulationSettings — NÃO existe no PostgreSQL.
-// Percentuais ficam APENAS em localStorage; initialBalance e
-// emergencyReserveTarget ficam na tabela budget.
-// ---------------------------------------------------------------------------
+// Simulation settings
 export interface SimulationSettings {
   varsPercent: number;
   rendaPercent: number;
@@ -175,10 +83,6 @@ export interface SimulationSettings {
   emergencyReserve?: number;
 }
 
-// ---------------------------------------------------------------------------
-// MonthSummary — formato interno usado pelos componentes de UI.
-// Mapeado a partir de BudgetSummaryMonth + MonthItem derivado.
-// ---------------------------------------------------------------------------
 export interface MonthSummary {
   month: MonthItem;
   income: number;
@@ -192,9 +96,6 @@ export interface MonthSummary {
   availableAfterReserve: number;
 }
 
-// ---------------------------------------------------------------------------
-// OverallMetrics — métricas derivadas do BudgetSummary
-// ---------------------------------------------------------------------------
 export interface OverallMetrics {
   finalAccumulated: number;
   totalAvailableAfterReserve: number;
@@ -208,26 +109,15 @@ export interface OverallMetrics {
   averageMonthlyBalance: number;
 }
 
-// ---------------------------------------------------------------------------
-// BudgetState — estado central do BudgetContext
-// ---------------------------------------------------------------------------
 export interface BudgetState {
   version: number;
   currentYear: number;
-
-  // Dados vindos do backend
   budget: Budget | null;
   items: Item[];
   costs: Cost[];
   goals: FinancialGoal[];
   reserveMovements: ReserveMovement[];
   summary: BudgetSummary | null;
-
-  // Derivado localmente (12 meses do ano corrente)
   months: MonthItem[];
-
-  // Simulação (localStorage apenas — NÃO persistido no backend)
   simulation: SimulationSettings;
-
-  // Compatibilidade transitória com componentes existentes
 }

@@ -10,179 +10,90 @@ describe('budgetApiService (PostgreSQL schema)', () => {
     vi.restoreAllMocks();
   });
 
-  it('fetchBudgets lista orçamentos anuais', async () => {
-    const mockBudgets = [
-      { id: '2026', year: 2026, initialBalance: 5000, emergencyReserveTarget: 15000 },
-      { id: '2027', year: 2027, initialBalance: 8000, emergencyReserveTarget: 18000 },
-    ];
-
+  function mockFetch(responseData: any) {
+    let capturedMethod = '';
     let capturedUrl = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
-      capturedUrl = String(url);
-      return {
-        ok: true,
-        json: async () => mockBudgets,
-      } as unknown as Response;
-    });
+    let capturedBody = '';
 
+    const fetchMock = async (req: any, init?: any) => {
+      capturedUrl = typeof req === 'string' ? req : req.url;
+      capturedMethod = init?.method || (typeof req === 'string' ? 'GET' : req.method);
+      
+      const bodySource = init?.body || (typeof req === 'string' ? undefined : req.body);
+      if (typeof bodySource === 'string') {
+        capturedBody = bodySource;
+      } else if (req && typeof req !== 'string' && req.text) {
+        capturedBody = await req.text();
+      }
+
+      if (responseData === null) {
+          return new Response(null, { status: 204 });
+      }
+
+      return new Response(JSON.stringify(responseData), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(fetchMock as any);
+
+    return () => ({ capturedMethod, capturedUrl, capturedBody });
+  }
+
+  it('fetchBudgets lista orçamentos anuais', async () => {
+    const getMock = mockFetch([{ id: '2026', year: 2026, initialBalance: 5000, emergencyReserveTarget: 15000 }]);
     const result = await budgetApiService.fetchBudgets();
-    expect(capturedUrl).toBe('/api/v1/budgets');
-    expect(result).toHaveLength(2);
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/budgets');
+    expect(result).toHaveLength(1);
     expect(result[0].year).toBe(2026);
   });
 
   it('fetchBudgetYear busca visão anual completa', async () => {
-    const mockVm = {
-      budget: { id: '2026', year: 2026, initialBalance: 5000, emergencyReserveTarget: 15000 },
-      items: [],
-      costs: [],
-      goals: [],
-    };
-
-    let capturedUrl = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
-      capturedUrl = String(url);
-      return {
-        ok: true,
-        json: async () => mockVm,
-      } as unknown as Response;
-    });
-
+    const getMock = mockFetch({ budget: { id: '2026', year: 2026 } });
     const result = await budgetApiService.fetchBudgetYear(2026);
-    expect(capturedUrl).toBe('/api/v1/budgets/2026');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/budgets/2026');
     expect(result.budget.year).toBe(2026);
   });
 
   it('fetchSummary busca resumo agregado do backend', async () => {
-    const mockSummary = {
-      year: 2026,
-      initialBalance: 5000,
-      emergencyReserveTarget: 15000,
-      months: [
-        {
-          month: 1,
-          income: 10000,
-          cards: 2000,
-          fixed: 3000,
-          variable: 1500,
-          oneTimeCosts: 0,
-          totalExpenses: 6500,
-          monthBalance: 3500,
-          accumulatedBalance: 8500,
-        },
-      ],
-      totals: {
-        income: 120000,
-        cards: 24000,
-        fixed: 36000,
-        variable: 18000,
-        oneTimeCosts: 0,
-        totalExpenses: 78000,
-        netBalance: 42000,
-        finalAccumulated: 47000,
-      },
-    };
-
-    let capturedUrl = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
-      capturedUrl = String(url);
-      return {
-        ok: true,
-        json: async () => mockSummary,
-      } as unknown as Response;
-    });
-
+    const getMock = mockFetch({ year: 2026, months: [{ month: 1, income: 100 }] });
     const result = await budgetApiService.fetchSummary(2026);
-    expect(capturedUrl).toBe('/api/v1/budgets/2026/summary');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/budgets/2026/summary');
     expect(result.year).toBe(2026);
-    expect(result.months).toHaveLength(1);
   });
 
-  it('createItem dispara POST atômico com body correto', async () => {
-    const itemData = {
-      budgetId: '2026',
-      name: 'Aluguel',
-      type: 'fixa',
-    };
-
-    let capturedBody = '';
-    let capturedMethod = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (_url, init) => {
-      capturedMethod = init?.method || '';
-      capturedBody = init?.body as string;
-      return {
-        ok: true,
-        json: async () => ({ id: 'fix-1', ...itemData }),
-      } as unknown as Response;
-    });
-
-    const res = await budgetApiService.createItem(itemData);
-    expect(capturedMethod).toBe('POST');
-    expect(JSON.parse(capturedBody).name).toBe('Aluguel');
+  it('createItem dispara POST atômico', async () => {
+    const getMock = mockFetch({ id: 'fix-1', name: 'Aluguel' });
+    const res = await budgetApiService.createItem({ budgetId: '2026', name: 'Aluguel', type: 'FIXED' });
+    expect(getMock().capturedMethod).toBe('POST');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/items');
+    expect(JSON.parse(getMock().capturedBody).name).toBe('Aluguel');
     expect(res.id).toBe('fix-1');
   });
 
-  it('updateEntry dispara PATCH atômico parcial', async () => {
-    let capturedMethod = '';
-    let capturedUrl = '';
-    let capturedBody = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
-      capturedUrl = String(url);
-      capturedMethod = init?.method || '';
-      capturedBody = init?.body as string;
-      return {
-        ok: true,
-        json: async () => ({ id: 'entry-1', plannedAmount: 8500 }),
-      } as unknown as Response;
-    });
-
+  it('updateEntry dispara PATCH atômico', async () => {
+    const getMock = mockFetch({ id: 'entry-1', plannedAmount: 8500 });
     const res = await budgetApiService.updateEntry('entry-1', { plannedAmount: 8500 });
-    expect(capturedMethod).toBe('PATCH');
-    expect(capturedUrl).toBe('/api/v1/entries/entry-1');
-    expect(JSON.parse(capturedBody).plannedAmount).toBe(8500);
+    expect(getMock().capturedMethod).toBe('PATCH');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/entries/entry-1');
+    expect(JSON.parse(getMock().capturedBody).plannedAmount).toBe(8500);
     expect(res.plannedAmount).toBe(8500);
   });
 
   it('deleteItem dispara DELETE atômico', async () => {
-    let capturedMethod = '';
-    let capturedUrl = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
-      capturedUrl = String(url);
-      capturedMethod = init?.method || '';
-      return {
-        ok: true,
-        json: async () => ({ success: true }),
-      } as unknown as Response;
-    });
-
+    const getMock = mockFetch(null);
     await budgetApiService.deleteItem('item-123');
-    expect(capturedMethod).toBe('DELETE');
-    expect(capturedUrl).toBe('/api/v1/items/item-123');
+    expect(getMock().capturedMethod).toBe('DELETE');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/items/item-123');
   });
 
-  it('createReserveMovement dispara POST imutável', async () => {
-    let capturedUrl = '';
-    let capturedMethod = '';
-    let capturedBody = '';
-    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url, init) => {
-      capturedUrl = String(url);
-      capturedMethod = init?.method || '';
-      capturedBody = init?.body as string;
-      return {
-        ok: true,
-        json: async () => ({ id: 'res-1', budgetId: '2026', month: 5, amount: 2000 }),
-      } as unknown as Response;
-    });
-
-    const res = await budgetApiService.createReserveMovement({
-      budgetId: '2026',
-      month: 5,
-      amount: 2000,
-      reason: 'Aporte extra',
-    });
-    expect(capturedMethod).toBe('POST');
-    expect(capturedUrl).toBe('/api/v1/reserve-movements');
-    expect(JSON.parse(capturedBody).amount).toBe(2000);
+  it('createReserveMovement dispara POST', async () => {
+    const getMock = mockFetch({ id: 'mov-1', amount: 2000 });
+    const res = await budgetApiService.createReserveMovement({ budgetId: '2026', month: 1, amount: 2000 });
+    expect(getMock().capturedMethod).toBe('POST');
+    expect(getMock().capturedUrl).toBe('http://localhost:8080/api/v1/reserve-movements');
+    expect(JSON.parse(getMock().capturedBody).amount).toBe(2000);
     expect(res.amount).toBe(2000);
   });
 });

@@ -1,0 +1,1088 @@
+openapi: 3.1.0
+info:
+  title: FinPlan API
+  version: 1.0.0
+  description: "Especifica\xE7\xE3o OpenAPI do FinPlan.\nBaseada em PostgreSQL com\
+    \ gera\xE7\xE3o de stubs/tipos para backend/frontend.\n"
+servers:
+- url: http://localhost:8080
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+      required:
+      - status
+    Budget:
+      type: object
+      properties:
+        id:
+          type: string
+        year:
+          type: integer
+        initialBalance:
+          type: number
+        emergencyReserveTarget:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - year
+      - initialBalance
+      - emergencyReserveTarget
+      - createdAt
+      - updatedAt
+    CreateBudgetRequest:
+      type: object
+      properties:
+        year:
+          type: integer
+        initialBalance:
+          type: number
+        emergencyReserveTarget:
+          type: number
+      required:
+      - year
+      - initialBalance
+      - emergencyReserveTarget
+    UpdateBudgetRequest:
+      type: object
+      properties:
+        initialBalance:
+          type: number
+        emergencyReserveTarget:
+          type: number
+    Entry:
+      type: object
+      properties:
+        id:
+          type: string
+        itemId:
+          type: string
+        month:
+          type: integer
+        plannedAmount:
+          type: number
+        actualAmount:
+          type: number
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+          nullable: true
+        paidDate:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - id
+      - itemId
+      - month
+      - plannedAmount
+      - actualAmount
+      - dueDate
+      - paidDate
+    Item:
+      type: object
+      properties:
+        id:
+          type: string
+        budgetId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - renda
+          - fixa
+          - variavel
+          - cartao
+      required:
+      - id
+      - budgetId
+      - name
+      - type
+    ItemWithEntries:
+      allOf:
+      - $ref: '#/components/schemas/Item'
+      - type: object
+        properties:
+          entries:
+            type: array
+            items:
+              $ref: '#/components/schemas/Entry'
+        required:
+        - entries
+    CreateItemRequest:
+      type: object
+      properties:
+        budgetId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+          - renda
+          - fixa
+          - variavel
+          - cartao
+      required:
+      - budgetId
+      - name
+      - type
+    UpdateItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+    UpdateEntryRequest:
+      type: object
+      properties:
+        plannedAmount:
+          type: number
+        actualAmount:
+          type: number
+          nullable: true
+        paidDate:
+          type: string
+          format: date
+          nullable: true
+    ConfirmEntryRequest:
+      type: object
+      properties:
+        actualAmount:
+          type: number
+        paidDate:
+          type: string
+          format: date
+      required:
+      - actualAmount
+      - paidDate
+    CostItem:
+      type: object
+      properties:
+        id:
+          type: string
+        costId:
+          type: string
+        name:
+          type: string
+        plannedAmount:
+          type: number
+        actualAmount:
+          type: number
+          nullable: true
+        month:
+          type: integer
+          nullable: true
+        paidDate:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - id
+      - costId
+      - name
+      - plannedAmount
+      - actualAmount
+      - month
+      - paidDate
+    Cost:
+      type: object
+      properties:
+        id:
+          type: string
+        budgetId:
+          type: string
+        name:
+          type: string
+        defaultMonth:
+          type: integer
+          nullable: true
+        marginPercent:
+          type: number
+        notes:
+          type: string
+          nullable: true
+      required:
+      - id
+      - budgetId
+      - name
+      - marginPercent
+      - defaultMonth
+      - notes
+    CostWithItems:
+      allOf:
+      - $ref: '#/components/schemas/Cost'
+      - type: object
+        properties:
+          totalPlanned:
+            type: number
+          totalWithMargin:
+            type: number
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/CostItem'
+        required:
+        - totalPlanned
+        - totalWithMargin
+        - items
+    CreateCostRequest:
+      type: object
+      properties:
+        budgetId:
+          type: string
+        name:
+          type: string
+        defaultMonth:
+          type: integer
+          nullable: true
+        marginPercent:
+          type: number
+        notes:
+          type: string
+          nullable: true
+      required:
+      - budgetId
+      - name
+      - marginPercent
+    UpdateCostRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        defaultMonth:
+          type: integer
+          nullable: true
+        marginPercent:
+          type: number
+        notes:
+          type: string
+          nullable: true
+    CreateCostItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        plannedAmount:
+          type: number
+        month:
+          type: integer
+          nullable: true
+      required:
+      - name
+      - plannedAmount
+    UpdateCostItemRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        plannedAmount:
+          type: number
+        actualAmount:
+          type: number
+          nullable: true
+        month:
+          type: integer
+          nullable: true
+        paidDate:
+          type: string
+          format: date
+          nullable: true
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetAmount:
+          type: number
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - ativa
+          - concluida
+          - pausada
+        contributions:
+          type: array
+          items:
+            $ref: '#/components/schemas/GoalContribution'
+      required:
+      - id
+      - name
+      - targetAmount
+      - status
+      - description
+      - icon
+      - color
+      - contributions
+    CreateGoalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetAmount:
+          type: number
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - ativa
+          - concluida
+          - pausada
+      required:
+      - name
+      - targetAmount
+      - status
+    UpdateGoalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        targetAmount:
+          type: number
+        icon:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - ativa
+          - concluida
+          - pausada
+    GoalContribution:
+      type: object
+      properties:
+        id:
+          type: string
+        goalId:
+          type: string
+        date:
+          type: string
+          format: date
+        amount:
+          type: number
+        note:
+          type: string
+          nullable: true
+      required:
+      - id
+      - goalId
+      - date
+      - amount
+    CreateGoalContributionRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        note:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date
+      required:
+      - amount
+      - date
+    ReserveMovement:
+      type: object
+      properties:
+        id:
+          type: string
+        budgetId:
+          type: string
+        month:
+          type: integer
+        amount:
+          type: number
+        reason:
+          type: string
+          nullable: true
+      required:
+      - id
+      - budgetId
+      - month
+      - amount
+    CreateReserveMovementRequest:
+      type: object
+      properties:
+        budgetId:
+          type: string
+        month:
+          type: integer
+        amount:
+          type: number
+        reason:
+          type: string
+          nullable: true
+      required:
+      - budgetId
+      - month
+      - amount
+    BudgetView:
+      type: object
+      properties:
+        budget:
+          $ref: '#/components/schemas/Budget'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemWithEntries'
+        costs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostWithItems'
+        goals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Goal'
+        reserveMovements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReserveMovement'
+      required:
+      - budget
+      - items
+      - costs
+      - goals
+      - reserveMovements
+    MonthSummary:
+      type: object
+      properties:
+        month:
+          type: integer
+        income:
+          type: number
+        cards:
+          type: number
+        fixed:
+          type: number
+        variable:
+          type: number
+        oneTimeCosts:
+          type: number
+        totalExpenses:
+          type: number
+        monthBalance:
+          type: number
+        accumulatedBalance:
+          type: number
+      required:
+      - month
+      - income
+      - cards
+      - fixed
+      - variable
+      - oneTimeCosts
+      - totalExpenses
+      - monthBalance
+      - accumulatedBalance
+    YearTotals:
+      type: object
+      properties:
+        income:
+          type: number
+        cards:
+          type: number
+        fixed:
+          type: number
+        variable:
+          type: number
+        oneTimeCosts:
+          type: number
+        totalExpenses:
+          type: number
+        netBalance:
+          type: number
+        finalAccumulated:
+          type: number
+      required:
+      - income
+      - cards
+      - fixed
+      - variable
+      - oneTimeCosts
+      - totalExpenses
+      - netBalance
+      - finalAccumulated
+    BudgetSummary:
+      type: object
+      properties:
+        year:
+          type: integer
+        initialBalance:
+          type: number
+        emergencyReserveTarget:
+          type: number
+        months:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthSummary'
+        totals:
+          $ref: '#/components/schemas/YearTotals'
+      required:
+      - year
+      - initialBalance
+      - emergencyReserveTarget
+      - months
+      - totals
+security:
+- ApiKeyAuth: []
+- BearerAuth: []
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Status ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+  /api/v1/budgets:
+    get:
+      summary: "Lista todos os or\xE7amentos"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Budget'
+    post:
+      summary: "Cria um novo or\xE7amento"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBudgetRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+  /api/v1/budgets/{year}:
+    get:
+      summary: "Retorna a vis\xE3o anual completa"
+      parameters:
+      - in: path
+        name: year
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetView'
+    patch:
+      summary: "Atualiza balance/target do or\xE7amento"
+      parameters:
+      - in: path
+        name: year
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBudgetRequest'
+      responses:
+        '200':
+          description: OK
+  /api/v1/budgets/{year}/summary:
+    get:
+      summary: Retorna o resumo consolidado mensal
+      parameters:
+      - in: path
+        name: year
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSummary'
+  /api/v1/items:
+    post:
+      summary: "Cria um item no or\xE7amento (gera 12 entries)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemWithEntries'
+  /api/v1/items/{id}:
+    patch:
+      summary: Atualiza atributos do item
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Exclui o item
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/entries/{id}:
+    patch:
+      summary: "Atualiza\xE7\xE3o parcial de lan\xE7amento"
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEntryRequest'
+      responses:
+        '200':
+          description: OK
+  /api/v1/entries/{id}/confirm:
+    post:
+      summary: Confirm entry payment
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmEntryRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+    delete:
+      summary: Unconfirm entry payment
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+  /api/v1/costs:
+    post:
+      summary: Cria um projeto de custo pontual
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCostRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cost'
+  /api/v1/costs/{id}:
+    get:
+      summary: Retorna o projeto e seus items
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostWithItems'
+    patch:
+      summary: Atualiza atributos do custo
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCostRequest'
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Exclui projeto
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/costs/{costId}/items:
+    get:
+      summary: Lista itens
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CostItem'
+    post:
+      summary: Adiciona um item no projeto
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCostItemRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostItem'
+  /api/v1/costs/{costId}/items/{id}:
+    patch:
+      summary: Atualiza item de custo
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCostItemRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostItem'
+    delete:
+      summary: Exclui item de custo
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/costs/{costId}/items/{id}/confirm:
+    post:
+      summary: Confirm cost item
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmEntryRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostItem'
+    delete:
+      summary: Unconfirm cost item
+      parameters:
+      - in: path
+        name: costId
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostItem'
+  /api/v1/goals:
+    get:
+      summary: Lista metas
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Goal'
+    post:
+      summary: Cria uma meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoalRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+  /api/v1/goals/{id}:
+    patch:
+      summary: Atualiza meta
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGoalRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+    delete:
+      summary: Exclui meta
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+  /api/v1/goals/{id}/contributions:
+    post:
+      summary: Registra aporte na meta
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoalContributionRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+  /api/v1/goals/{id}/contributions/{contributionId}:
+    delete:
+      summary: Remove aporte
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: contributionId
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: No Content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+  /api/v1/reserve-movements:
+    post:
+      summary: "Registra movimenta\xE7\xE3o da reserva"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReserveMovementRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReserveMovement'
+  /api/v1/budgets/{year}/reserve-movements:
+    get:
+      summary: "Retorna movimenta\xE7\xF5es da reserva no ano"
+      parameters:
+      - in: path
+        name: year
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReserveMovement'
