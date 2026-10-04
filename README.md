@@ -47,7 +47,7 @@ fin-plan/
 ├── docs/                      # 📚 Documentação Técnica Compartilhada
 │   ├── adrs/                  # 📜 Registros de Decisões Arquiteturais (ADRs)
 │   ├── ARCHITECTURE.md        # Arquitetura do sistema, diagramas e modelo de dados normalizado
-│   └── API.md                 # Contrato formal da API REST (/api/v1/*)
+│   └── openapi.yaml           # Especificação OpenAPI 3.1 (Spec-Driven Development)
 │
 └── .agents/                   # 🤖 Diretrizes e Skills operacionais para agentes IA
     └── skills/
@@ -190,5 +190,5 @@ O repositório possui workflows com gatilho manual (`workflow_dispatch`), permit
 ## 📚 Documentação Complementar
 
 - 🏛️ **[Arquitetura do Sistema](docs/ARCHITECTURE.md)**: Detalhamento de arquitetura, diagrama Mermaid de fluxo, modelo de dados e decisões de engenharia.
-- 🔌 **[Especificação da API](docs/API.md)**: Contratos de endpoints `/api/v1/*`, payloads, cabeçalhos de autenticação e códigos de resposta.
+- 🔌 **[Especificação OpenAPI](docs/openapi.yaml)**: Contratos de endpoints `/api/v1/*`, tipagem estrita e validações (Spec-Driven Development).
 - 📜 **[Registros de Decisões Arquiteturais (ADRs)](docs/adrs/README.md)**: Catálogo com justificativas, alternativas e trade-offs das decisões técnicas tomadas.

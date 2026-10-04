@@ -31,8 +31,8 @@ flowchart TD
     end
 
     subgraph BackendAPI["Backend REST Go (apps/api)"]
-        Sync -->|5. PATCH/POST/DELETE /api/v1/*| GoServer["cmd/api/main.go (HTTP Mux)"]
-        GoServer -->|6. Middleware CORS + Auth (x-api-key)| AuthCheck{"Validação de Acesso"}
+        Sync -->|5. PATCH/POST/DELETE /api/v1/*| GoServer["StrictServerInterface (oapi-codegen)"]
+        GoServer -->|6. Middleware CORS + Auth| AuthCheck{"Validação de Acesso"}
         AuthCheck -->|7. Handlers & Services Granulares| PgxPool["Conexão PostgreSQL (pgx / database/sql)"]
     end
 
@@ -103,7 +103,7 @@ fin-plan/
 │
 └── docs/
     ├── adrs/                    # 📜 Registros de Decisões Arquiteturais (ADRs)
-    ├── API.md                   # Contratos de rotas e especificações JSON da API
+    ├── openapi.yaml             # Contratos de rotas OpenAPI 3.1 e tipagem estrita
     └── ARCHITECTURE.md          # Este documento
 ```
 
@@ -122,4 +122,5 @@ Para um histórico detalhado, contexto de decisão e trade-offs formais de engen
 - [ADR-0008: Semântica de PATCH Parcial Estrita](./adrs/0008-semantica-de-patch-parcial-estrita.md)
 - [ADR-0009: Estratégia de Identificadores (UUIDv4 vs Chave Natural)](./adrs/0009-estrategia-de-identificadores-uuidv4-e-chaves-naturais.md)
 - [ADR-0010: Gerenciamento e Versionamento de Migrações com Goose](./adrs/0010-gerenciamento-e-versionamento-de-migracoes-com-goose.md)
+- [ADR-0012: Adoção de Spec-Driven Development via OpenAPI](./adrs/0012-adocao-spec-driven-development-openapi.md)
 
