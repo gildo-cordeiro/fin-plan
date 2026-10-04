@@ -1,6 +1,13 @@
 ---
 name: finplan-issue-creation
-description: Use this skill when asked to open, write, draft, or refine a GitHub issue for the FinPlan repository (gildo-cordeiro/fin-plan) — features, bugs, refactors, or tech debt. Produces a detailed, implementation-ready issue from templates/issue-template.md, grounded in the real codebase and docs, and creates it through the GitHub MCP after user confirmation.
+description: >-
+  Use when asked to open, write, draft or refine a GitHub issue for the FinPlan
+  repository (gildo-cordeiro/fin-plan): features, bugs, refactors or tech
+  debt. Also triggers on "criar issue", "abrir issue", "escrever issue",
+  "reportar bug". Produces an implementation-ready issue from
+  templates/issue-template.md, grounded in the real code and docs, and creates
+  it through the GitHub MCP after user confirmation. Not for implementing the
+  issue (use finplan-feature-implementation).
 ---
 
 # FinPlan — Issue Creation Skill
@@ -28,23 +35,23 @@ issue pronto para colar manualmente e avisar o motivo.
    escolha ao usuário no resumo final — não bloquear com pergunta.
 
 2. **Ler o contexto real antes de escrever**
-   - `docs/ARCHITECTURE.md` e `docs/API.md` para entender a camada afetada.
-   - O código citado ou relacionado ao pedido (arquivos em `apps/api` e
-     `src/`). Toda referência a arquivo, endpoint, tabela ou componente na
-     issue deve existir de fato — conferir antes de citar.
-   - Para bug: tentar localizar o ponto provável da falha no código e citá-lo
-     como hipótese, marcada como hipótese.
+   - `docs/ARCHITECTURE.md`, `docs/API.md` e os ADRs relevantes em `docs/adrs/`.
+   - O código citado ou relacionado ao pedido (`apps/api/internal/` e
+     `apps/web/src/`). Toda referência a arquivo, endpoint, tabela ou componente na
+     issue deve existir de fato; confira antes de citar.
+   - Para bug: tente localizar o ponto provável da falha e cite-o como
+     hipótese, marcado como hipótese.
 
 3. **Checar duplicidade**
-   Buscar issues abertas e recentes com termos parecidos pelo MCP do GitHub.
-   Se existir issue equivalente, não criar outra: informar o usuário e
-   propor comentar ou complementar a existente.
+   Busque issues abertas e recentes com termos parecidos (MCP do GitHub:
+   `search_issues` com `repo:gildo-cordeiro/fin-plan is:issue <termos>`).
+   Se existir issue equivalente, não crie outra: informe o usuário e
+   proponha comentar ou complementar a existente.
 
 4. **Descobrir a convenção do repositório**
-   Listar as issues recentes para copiar o padrão de título e os labels já
-   em uso. Não inventar labels que não existem no repositório; usar apenas os
-   existentes e citar no resumo qualquer label que faria sentido mas não
-   existe.
+   Liste as issues recentes (`list_issues`, `state: all`, ordenadas por data)
+   para copiar o padrão de título e os labels em uso. Não invente labels:
+   use só os existentes e cite no resumo qualquer label que faria sentido mas não existe.
 
 5. **Preencher o template**
    Usar `templates/issue-template.md`. Regras de preenchimento:
@@ -66,7 +73,7 @@ issue pronto para colar manualmente e avisar o motivo.
    o usuário já tenha dito na mesma mensagem para criar direto.
 
 7. **Criar e reportar**
-   Criar via MCP do GitHub. Ao final, devolver o link da issue criada, o tipo
+   Criar via MCP do GitHub (`create_issue`). Ao final, devolver o link da issue criada, o tipo
    escolhido e uma linha para cada decisão tomada por conta própria (tipo,
    labels, itens deixados em "Dúvidas em aberto").
 
@@ -76,7 +83,7 @@ issue pronto para colar manualmente e avisar o motivo.
   caracteres.
 - Seguir o padrão observado nas issues recentes do repositório (passo 4). Se
   não houver padrão claro, usar Conventional Commits, alinhado com
-  `.agents/skills/git-workflow.md`: `feat(api): ...`, `fix(web): ...`,
+  `AGENTS.md` da raiz: `feat(api): ...`, `fix(web): ...`,
   `refactor(api): ...`.
 
 ## Divisão de issues grandes

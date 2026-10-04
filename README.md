@@ -14,7 +14,7 @@ O repositório adota arquitetura de **Monorepo** com deploys completamente desac
 | **Frontend Web** | React 18.3.1, TypeScript 5.6.3, Vite 5.4.11, Tailwind CSS 3.4.15, Lucide React | [`apps/web/`](apps/web/) |
 | **Backend REST** | Go 1.27, `net/http` nativo, pgx/v5, Goose v3, Docker Distroless | [`apps/api/`](apps/api/) |
 | **Banco de Dados & Cache** | PostgreSQL (modelo relacional normalizado: budget, item, entry, cost, cost_item, goal, goal_contribution, reserve_movement) | Nuvem |
-| **Testes** | Vitest 2.1.9 (Unitários), Playwright 1.63.0 (E2E), Go testing (`go test ./...`) | [`apps/web/`](apps/web/), [`apps/api/`](apps/api/) |
+| **Testes** | Vitest 2.1.9 (Unitários), Go testing (`go test ./...`) | [`apps/web/`](apps/web/), [`apps/api/`](apps/api/) |
 | **Deploy Frontend** | Vercel (SPA estática) | Independente |
 | **Deploy Backend** | Container Docker Distroless (`apps/api/Dockerfile`) | Independente (Cloud Run, Fly.io, Railway, etc.) |
 
@@ -35,8 +35,7 @@ fin-plan/
 │   │   ├── package.json       # Dependências específicas do frontend
 │   │   ├── vite.config.ts     # Proxy de dev para http://localhost:8080
 │   │   ├── tsconfig.json      # Configuração TypeScript estrita
-│   │   ├── src/               # Código-fonte React (componentes, hooks, context)
-│   │   └── e2e/               # Testes ponta a ponta herméticos (Playwright)
+│   │   ├── src/               # Código-fonte React (componentes, hooks, queries)
 │   │
 │   └── api/                   # 📦 Backend Go API REST
 │       ├── Dockerfile         # Multi-stage distroless ultraleve (~20MB)
@@ -139,8 +138,6 @@ npm test
 # Executar verificação de tipos e compilação de produção
 npm run build
 
-# Executar testes ponta a ponta (Playwright)
-npm run test:e2e
 ```
 
 ---
@@ -152,7 +149,6 @@ npm run test:e2e
 | `npm run dev` | Inicia o servidor Vite de desenvolvimento com HMR |
 | `npm run build` | Executa typecheck estrito (`tsc`) e build de produção (`vite build`) |
 | `npm test` | Roda todos os testes unitários com Vitest |
-| `npm run test:e2e` | Roda os testes end-to-end com Playwright |
 | `npm run preview` | Visualiza o build de produção localmente |
 
 ---

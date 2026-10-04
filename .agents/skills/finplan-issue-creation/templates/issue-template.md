@@ -57,9 +57,9 @@ começar a investigar.
 - [ ] Backend (`apps/api`)
 - [ ] Banco de dados / migration
 - [ ] Contrato de API (`docs/API.md`)
-- [ ] Frontend (`src/`)
-- [ ] Documentação (`docs/ARCHITECTURE.md`, `README.md`)
-- [ ] Skills (`.agents/skills/`)
+- [ ] Frontend (`apps/web`)
+- [ ] Documentação (`docs/ARCHITECTURE.md`, `docs/adrs/`, `README.md`)
+- [ ] Regras e skills de agente (`AGENTS.md`, `.agents/skills/`)
 - [ ] Infra / Docker / CI
 
 ## Mudanças de contrato e dados
