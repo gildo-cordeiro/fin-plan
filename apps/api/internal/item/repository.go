@@ -41,15 +41,16 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateItemRequest) 
 
 	var it Item
 	queryItem := `
-		INSERT INTO item (budget_id, name, type)
-		VALUES ($1, $2, $3)
-		RETURNING id, budget_id, name, type, created_at
+		INSERT INTO item (budget_id, name, type, off)
+		VALUES ($1, $2, $3, false)
+		RETURNING id, budget_id, name, type, off, created_at
 	`
 	err = tx.QueryRow(ctx, queryItem, req.BudgetID, req.Name, req.Type).Scan(
 		&it.ID,
 		&it.BudgetID,
 		&it.Name,
 		&it.Type,
+		&it.Off,
 		&it.CreatedAt,
 	)
 	if err != nil {
@@ -91,7 +92,7 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateItemRequest) 
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Item, error) {
 	queryItem := `
-		SELECT id, budget_id, name, type, created_at
+		SELECT id, budget_id, name, type, off, created_at
 		FROM item
 		WHERE id = $1
 	`
@@ -101,6 +102,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Item, err
 		&it.BudgetID,
 		&it.Name,
 		&it.Type,
+		&it.Off,
 		&it.CreatedAt,
 	)
 	if err != nil {
@@ -145,7 +147,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*Item, err
 
 func (r *PostgresRepository) GetByBudgetID(ctx context.Context, budgetID string) ([]Item, error) {
 	queryItems := `
-		SELECT id, budget_id, name, type, created_at
+		SELECT id, budget_id, name, type, off, created_at
 		FROM item
 		WHERE budget_id = $1
 		ORDER BY created_at ASC, name ASC
@@ -166,6 +168,7 @@ func (r *PostgresRepository) GetByBudgetID(ctx context.Context, budgetID string)
 			&it.BudgetID,
 			&it.Name,
 			&it.Type,
+			&it.Off,
 			&it.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("erro ao escanear item: %w", err)
@@ -230,6 +233,11 @@ func (r *PostgresRepository) Patch(ctx context.Context, id string, req PatchItem
 	if req.Type != nil {
 		setClauses = append(setClauses, "type = $"+strconv.Itoa(argID))
 		args = append(args, *req.Type)
+		argID++
+	}
+	if req.Off != nil {
+		setClauses = append(setClauses, "off = $"+strconv.Itoa(argID))
+		args = append(args, *req.Off)
 		argID++
 	}
 

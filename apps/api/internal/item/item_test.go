@@ -31,7 +31,7 @@ func TestNewItem(t *testing.T) {
 func TestItemUpdate(t *testing.T) {
 	i, _ := item.NewItem("b-123", "Salário", "renda")
 	
-	err := i.Update(ptrStr("Salário Novo"), ptrStr("FIXA"))
+	err := i.Update(ptrStr("Salário Novo"), ptrStr("FIXA"), nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -43,12 +43,12 @@ func TestItemUpdate(t *testing.T) {
 		t.Errorf("Type not updated to lowercase")
 	}
 	
-	err = i.Update(ptrStr(""), nil)
+	err = i.Update(ptrStr(""), nil, nil)
 	if err == nil {
 		t.Errorf("Expected error for empty name")
 	}
 	
-	err = i.Update(nil, ptrStr("invalido"))
+	err = i.Update(nil, ptrStr("invalido"), nil)
 	if err == nil {
 		t.Errorf("Expected error for invalid type")
 	}

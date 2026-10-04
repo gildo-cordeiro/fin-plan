@@ -23,6 +23,7 @@ type Item struct {
 	BudgetID  string        `json:"budgetId"`
 	Name      string        `json:"name"`
 	Type      ItemType      `json:"type"`
+	Off       bool          `json:"off"`
 	CreatedAt time.Time     `json:"createdAt"`
 	Entries   []entry.Entry `json:"entries,omitempty"`
 }
@@ -50,7 +51,7 @@ func NewItem(budgetID, name string, itemType string) (*Item, error) {
 	}, nil
 }
 
-func (i *Item) Update(name *string, itemType *string) error {
+func (i *Item) Update(name *string, itemType *string, off *bool) error {
 	if name != nil {
 		if strings.TrimSpace(*name) == "" {
 			return errors.New("nome do item não pode ser vazio")
@@ -63,6 +64,9 @@ func (i *Item) Update(name *string, itemType *string) error {
 			return fmt.Errorf("tipo '%s' inválido; deve ser renda, fixa, variavel ou cartao", t)
 		}
 		i.Type = t
+	}
+	if off != nil {
+		i.Off = *off
 	}
 	return nil
 }

@@ -64,6 +64,9 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 		var income, cards, fixed, variable, oneTimeCosts float64
 
 		for _, it := range items {
+			if it.Off {
+				continue
+			}
 			for _, entry := range it.Entries {
 				if entry.Month == month {
 					val := getEffectiveAmount(entry.PlannedAmount, entry.ActualAmount, entry.PaidDate)

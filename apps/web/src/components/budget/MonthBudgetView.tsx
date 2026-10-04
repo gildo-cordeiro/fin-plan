@@ -398,7 +398,13 @@ export const MonthBudgetView = ({
 
       {/* ACCORDION ACCOUNTS */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-        <CollapsibleSection title="Rendas & Entradas" icon={<Wallet className="w-4 h-4 text-emerald-600" />} total={formatBRL(rawIncome)} defaultOpen={true}>
+        <CollapsibleSection title="Rendas & Entradas" icon={<Wallet className="w-4 h-4 text-emerald-600" />} total={simulation.rendaPercent !== 0 ? formatBRL(summary.income) : formatBRL(rawIncome)} defaultOpen={true}>
+          {simulation.rendaPercent !== 0 && (
+            <div className="p-2.5 mx-4 my-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
+              <span><Zap className="w-4 h-4 inline-block" /><strong>Simulação ativa ({simulation.rendaPercent > 0 ? '+' : ''}{simulation.rendaPercent}%):</strong> Os lançamentos abaixo somam {formatBRL(rawIncome)}, mas o simulador está calculando o impacto como <strong>{formatBRL(summary.income)}</strong> neste mês.
+              </span>
+            </div>
+          )}
           {renderItems(activeIncomeItems, 'renda', false)}
         </CollapsibleSection>
         
