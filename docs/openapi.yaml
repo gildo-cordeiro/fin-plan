@@ -508,6 +508,8 @@ components:
           type: number
         monthBalance:
           type: number
+        reserveTransfers:
+          type: number
         accumulatedBalance:
           type: number
       required:
@@ -536,6 +538,8 @@ components:
         totalExpenses:
           type: number
         netBalance:
+          type: number
+        reserveTransfers:
           type: number
         finalAccumulated:
           type: number

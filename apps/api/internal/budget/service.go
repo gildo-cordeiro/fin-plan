@@ -97,7 +97,15 @@ func (s *Service) GetSummary(ctx context.Context, year int) (*BudgetSummary, err
 		}
 	}
 
-	summary := b.CalculateSummary(items, costs)
+	var movements []reserve.ReserveMovement
+	if s.reserveRepo != nil {
+		movements, err = s.reserveRepo.GetByBudgetID(ctx, budgetID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao carregar movimentos: %w", err)
+		}
+	}
+
+	summary := b.CalculateSummary(items, costs, movements)
 	return &summary, nil
 }
 

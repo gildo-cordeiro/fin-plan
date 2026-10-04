@@ -21,6 +21,7 @@ function createMockSummary(): BudgetSummary {
         oneTimeCosts: 0,
         totalExpenses: 5000,
         monthBalance: 3000,
+        reserveTransfers: 0,
         accumulatedBalance: 13000,
       },
       {
@@ -32,6 +33,7 @@ function createMockSummary(): BudgetSummary {
         oneTimeCosts: 1200,
         totalExpenses: 6700,
         monthBalance: 1300,
+        reserveTransfers: 0,
         accumulatedBalance: 14300,
       },
       {
@@ -43,6 +45,7 @@ function createMockSummary(): BudgetSummary {
         oneTimeCosts: 0,
         totalExpenses: 6500,
         monthBalance: 3500,
+        reserveTransfers: 0,
         accumulatedBalance: 17800,
       },
     ],
@@ -54,6 +57,7 @@ function createMockSummary(): BudgetSummary {
       oneTimeCosts: 1200,
       totalExpenses: 18200,
       netBalance: 7800,
+      reserveTransfers: 0,
       finalAccumulated: 17800,
     },
   };
