@@ -1190,6 +1190,7 @@ export interface components {
             oneTimeCosts: number;
             totalExpenses: number;
             monthBalance: number;
+            reserveTransfers: number;
             accumulatedBalance: number;
         };
         YearTotals: {
@@ -1200,6 +1201,7 @@ export interface components {
             oneTimeCosts: number;
             totalExpenses: number;
             netBalance: number;
+            reserveTransfers: number;
             finalAccumulated: number;
         };
         BudgetSummary: {

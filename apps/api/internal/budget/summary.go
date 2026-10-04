@@ -9,6 +9,7 @@ type BudgetSummaryMonth struct {
 	OneTimeCosts       float64 `json:"oneTimeCosts"`
 	TotalExpenses      float64 `json:"totalExpenses"`
 	MonthBalance       float64 `json:"monthBalance"`
+	ReserveTransfers   float64 `json:"reserveTransfers"`
 	AccumulatedBalance float64 `json:"accumulatedBalance"`
 }
 
@@ -20,6 +21,7 @@ type BudgetSummaryTotals struct {
 	OneTimeCosts     float64 `json:"oneTimeCosts"`
 	TotalExpenses    float64 `json:"totalExpenses"`
 	NetBalance       float64 `json:"netBalance"`
+	ReserveTransfers float64 `json:"reserveTransfers"`
 	FinalAccumulated float64 `json:"finalAccumulated"`
 }
 

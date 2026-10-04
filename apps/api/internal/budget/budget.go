@@ -6,6 +6,7 @@ import (
 
 	cost "github.com/gildo-cordeiro/fin-plan/apps/api/internal/cost"
 	item "github.com/gildo-cordeiro/fin-plan/apps/api/internal/item"
+	reserve "github.com/gildo-cordeiro/fin-plan/apps/api/internal/reserve"
 )
 
 type Budget struct {
@@ -38,7 +39,7 @@ func (b *Budget) Update(initialBalance *float64, emergencyReserveTarget *float64
 	b.UpdatedAt = time.Now()
 }
 
-func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost) BudgetSummary {
+func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movements []reserve.ReserveMovement) BudgetSummary {
 	summary := BudgetSummary{
 		Year:                   b.Year,
 		InitialBalance:         b.InitialBalance,
@@ -81,9 +82,18 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost) BudgetSu
 			}
 		}
 
+		var reserveTransfers float64
+		for _, m := range movements {
+			if m.Month == month {
+				reserveTransfers += m.Amount
+			}
+		}
+
 		totalExpenses := cards + fixed + variable + oneTimeCosts
 		monthBalance := income - totalExpenses
-		runningAccumulated += monthBalance
+		// Retirada (-Amount) aumenta o saldo acumulado (entra no caixa)
+		// Aporte (+Amount) diminui o saldo acumulado (sai do caixa)
+		runningAccumulated += monthBalance - reserveTransfers
 
 		summary.Months[monthIndex] = BudgetSummaryMonth{
 			Month:              month,
@@ -94,6 +104,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost) BudgetSu
 			OneTimeCosts:       oneTimeCosts,
 			TotalExpenses:      totalExpenses,
 			MonthBalance:       monthBalance,
+			ReserveTransfers:   reserveTransfers,
 			AccumulatedBalance: runningAccumulated,
 		}
 
@@ -102,6 +113,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost) BudgetSu
 		summary.Totals.Fixed += fixed
 		summary.Totals.Variable += variable
 		summary.Totals.OneTimeCosts += oneTimeCosts
+		summary.Totals.ReserveTransfers += reserveTransfers
 	}
 
 	for _, c := range costs {
@@ -114,7 +126,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost) BudgetSu
 
 	summary.Totals.TotalExpenses = summary.Totals.Cards + summary.Totals.Fixed + summary.Totals.Variable + summary.Totals.OneTimeCosts
 	summary.Totals.NetBalance = summary.Totals.Income - summary.Totals.TotalExpenses
-	summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance
+	summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance - summary.Totals.ReserveTransfers
 
 	return summary
 }

@@ -72,7 +72,7 @@ func TestCalculateSummary(t *testing.T) {
 		},
 	}
 	
-	summary := b.CalculateSummary(items, costs)
+	summary := b.CalculateSummary(items, costs, nil)
 	
 	if summary.Totals.Income != 10000 {
 		t.Errorf("Expected income 10000, got %f", summary.Totals.Income)
