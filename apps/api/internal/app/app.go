@@ -87,12 +87,6 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 func (a *App) routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
-
 	if a.pool != nil {
 		// Repositories
 		budgetRepo := budget.NewPostgresRepository(a.pool)
@@ -133,6 +127,11 @@ func (a *App) routes() *http.ServeMux {
 				"error": "DATABASE_URL não configurada ou banco indisponível. O servidor está ativo mas sem conexão com o banco de dados.",
 			})
 		}
+		mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		})
 		mux.HandleFunc("/api/v1/budgets", unavailableHandler)
 		mux.HandleFunc("/api/v1/items", unavailableHandler)
 	}
