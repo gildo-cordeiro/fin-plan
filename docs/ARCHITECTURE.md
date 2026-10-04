@@ -20,13 +20,14 @@ O FinPlan opera com clara separação de responsabilidades:
 flowchart TD
     subgraph Browser["Cliente Web SPA (apps/web)"]
         User(["Usuário"]) -->|Edita planejado / Confirma realizado / Cria item| UI["Componentes React (Views & Modals)"]
-        UI -->|Dispara Ação| Context["BudgetContext (React Context & Hooks)"]
+        UI -->|Dispara Mutation| Query["TanStack Query (src/queries/)"]
+        UI -->|Muda visualização| Store["Zustand (Local State)"]
         
-        Context -->|1. Atualização Otimista (0ms)| LocalState["Estado em Memória (React State)"]
-        LocalState -->|2. Aplica Simulação Client-side| MathEngine["budgetCalculator.ts (calculateBudget)"]
+        Query -->|1. Atualização Otimista (0ms)| QueryCache["Cache do React Query"]
+        QueryCache -->|2. Aplica Simulação Client-side| MathEngine["budgetCalculator.ts (calculateBudget)"]
         MathEngine -->|3. UI Atualizada Imediatamente| UI
         
-        Context -->|4. Chamada HTTP Atômica (com Rollback)| Sync["budgetApiService.ts"]
+        Query -->|4. Chamada HTTP Atômica (com Rollback)| Sync["budgetApiService.ts"]
     end
 
     subgraph BackendAPI["Backend REST Go (apps/api)"]

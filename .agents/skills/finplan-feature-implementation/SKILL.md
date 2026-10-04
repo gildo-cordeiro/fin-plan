@@ -1,124 +1,85 @@
 ---
 name: finplan-feature-implementation
-description: Use this skill when implementing, extending, or modifying features in the FinPlan app (fin-plan repo) — new fields, entities, UI components, calculations, or API changes. Guides end-to-end feature development respecting FinPlan's PostgreSQL relational persistence, Goose-managed migrations, and the conventions documented in docs/ARCHITECTURE.md and docs/API.md.
+description: >-
+  Use when implementing, extending or changing a feature in the FinPlan repo
+  (fin-plan): new field, entity, endpoint, screen, component, calculation or
+  bug fix that touches apps/web and/or apps/api. Also triggers on Portuguese
+  requests like "implementar", "adicionar campo", "criar tela", "nova
+  funcionalidade", "corrigir bug". Not for read-only reviews (use
+  finplan-backend-review / finplan-frontend-review) nor for writing issues
+  (use finplan-issue-creation).
 ---
 
-# FinPlan — Feature Implementation Skill
+# FinPlan — Implementação de Feature
 
-## Objetivo
+As convenções de código já são carregadas pelos `AGENTS.md` (raiz,
+`apps/api/`, `apps/web/`). Esta skill define só o **procedimento**.
 
-Guiar a implementação completa (frontend + backend, quando aplicável) de uma nova
-funcionalidade no FinPlan, garantindo que a mudança respeite a arquitetura
-existente, o modelo de dados atual e os padrões já documentados no
-projeto — em vez de introduzir uma abordagem paralela ou inconsistente.
+## 0. Preparar
 
-## Estrutura do Monorepo
+1. Se houver issue, leia a issue inteira: critérios de aceite, escopo e "não inclui".
+2. Leia as seções relevantes de `docs/ARCHITECTURE.md` e, se a feature tocar a
+   API, `docs/API.md`. Leia os ADRs de `docs/adrs/` ligados à área.
+3. Crie a branch seguindo `finplan-pr-workflow` (passo 1).
+4. Classifique a mudança e pule as etapas que não se aplicam:
+   - **Schema** (tabela/coluna nova) → siga [references/schema-change.md](references/schema-change.md).
+   - **Só frontend** → etapas 3–5.
+   - **Só backend** → etapas 1–2 e 5.
 
-O projeto utiliza uma arquitetura monorepo com deploys separados:
+## 1. Backend (`apps/api`)
 
-```
-fin-plan/
-├── apps/
-│   ├── web/            # Frontend React (SPA)
-│   └── api/     # Backend Go (API REST)
-├── docs/               # Documentação compartilhada
-└── .agents/            # Skills para agentes de IA
-```
+1. Domínio: ajuste o modelo e as invariantes em `internal/<feature>/<feature>.go`
+   e escreva o teste primeiro em `service_test.go` ou `<feature>_test.go`.
+2. Entrada: DTO + validação em `requests.go` (PATCH com ponteiros).
+3. Persistência: queries em `repository.go`, recebendo o `ctx` e usando `pgx.Tx`
+   quando houver múltiplas escritas.
+4. Orquestração em `service.go`; HTTP em `handler.go`; rota e wiring em `internal/app/app.go`.
+5. Rode `go test ./...` em `apps/api` antes de seguir.
 
-## Antes de implementar (leitura obrigatória)
+## 2. Contrato
 
-1. Leia `docs/ARCHITECTURE.md` — em especial as seções "Decisões Arquiteturais
-   Relevantes" e "Modelo de Dados".
-2. Leia `docs/API.md` se a feature tocar na API ou exigir
-   um endpoint novo.
-3. Consulte as skills complementares deste repositório, se relevantes:
-   - `.agents/skills/finplan-backend-review/SKILL.md`
-   - `.agents/skills/finplan-frontend-review/SKILL.md`
-   - `.agents/skills/finplan-issue-creation/SKILL.md`
-4. Identifique se a feature exige alteração no schema do banco de dados. Se sim, trate como **mudança de schema** (ver
-   seção dedicada abaixo) — não é uma alteração trivial.
+1. Atualize `docs/API.md` com o payload de exemplo e os códigos de erro.
+2. Espelhe o contrato em `apps/web/src/types/budget.ts` e
+   `apps/web/src/services/budgetApiService.ts`, e atualize
+   `src/__tests__/budgetApiService.test.ts`.
 
-## Fluxo de implementação
+## 3. Lógica de frontend (TDD)
 
-1. **Modelo de dados**
-   Se necessário, atualize `apps/web/src/types/budget.ts`. Toda entidade nova precisa de um campo `id: string` gerado via
-   `generateId()` (`crypto.randomUUID()`, UUIDv4) — nunca slugs determinísticos.
+1. Se houver regra de cálculo: escreva o teste em
+   `src/__tests__/budgetCalculator.test.ts` **antes** de implementar em
+   `src/services/budgetCalculator.ts` (funções puras).
+2. Crie ou ajuste os hooks de query/mutation em `src/queries/<domínio>.ts`
+   (update otimista para edições frequentes; veja `queries/budget.ts`).
+3. `npm test` em `apps/web` deve passar antes de mexer na UI.
 
-2. **Motor de cálculo**
-   Se a feature afeta projeções, saldo ou métricas, atualize
-   `apps/web/src/services/budgetCalculator.ts`. Mantenha as funções puras (sem
-   efeitos colaterais, sem chamadas de rede).
+## 4. UI
 
-3. **Estado global**
-   O frontend utiliza TanStack Query para data fetching e mutations. O estado é gerenciado via uma store Zustand (para preferências locais como tema e simulação) e cache do React Query (para dados do servidor). As mutations usam hooks `useMutation` em `src/queries/` com optimistic updates e `invalidateQueries` no sucesso.
+1. Componente na pasta de domínio correta, reutilizando `components/ui/`.
+2. Estados de loading (`Skeleton`), vazio (`EmptyState`) e erro (`useToast`).
+3. Confira light e dark mode.
 
-4. **UI**
-   Crie ou edite o componente dentro da pasta de domínio correta em
-   `apps/web/src/components/` (`budget/`, `dashboard/`, `simulation/`, `goals/`,
-   `months/`, `modals/` ou `ui/` para primitivos reutilizáveis). Siga o design
-   system e as convenções descritas na documentação de frontend.
+## 5. Documentação e validação
 
-5. **Backend (somente se necessário)**
-   - Novos dados vão para tabelas existentes ou novas tabelas através de migrações Goose em `apps/api/migrations/`.
-   - Siga o padrão existente de handler → service → repository em `apps/api/internal/`.
-   - Utilize pgx/v5 para as queries no banco de dados.
-   - Mantenha os models Go em sincronia com os tipos TypeScript do frontend.
+1. **Auto-atualização do Agente (Manutenção Viva)**:
+   - Endpoint novo/alterado? Atualize `docs/API.md`.
+   - Estrutura de pastas ou tecnologia? Atualize `README.md` e `docs/ARCHITECTURE.md`.
+   - Instruções defasadas? Atualize os arquivos `AGENTS.md` e as suas próprias skills em `.agents/skills/`.
+   - **Mudança Arquitetural (ADR)**: Se você fez uma mudança que quebra ou altera uma decisão arquitetural existente, **pause e pergunte ao usuário** se deve criar um novo ADR (em `docs/adrs/`). Lembre-se: ADRs antigos são registros históricos imutáveis; nunca apague ou altere a decisão de um ADR passado, sempre crie um novo.
+2. Rode a validação e corrija até passar:
+   ```bash
+   .agents/skills/finplan-feature-implementation/scripts/validate.sh
+   ```
+3. Abra o PR seguindo `finplan-pr-workflow`.
 
-6. **Testes**
-   Adicione ou atualize testes Vitest em `apps/web/src/__tests__/` cobrindo a
-   lógica pura (calculator, storage, api service). Se a feature introduzir um
-   fluxo de UI crítico, adicione um teste Playwright em `apps/web/e2e/`.
+## Exemplo
 
-7. **Documentação**
-   - Alterou ou criou endpoint? Atualize `docs/API.md` (payload de exemplo,
-     códigos de erro).
-   - Alterou modelo de dados ou decisão arquitetural? Atualize
-     `docs/ARCHITECTURE.md`, incluindo o diagrama Mermaid ER quando a entidade
-     mudar.
-   - Alterou estrutura de pastas? Atualize a árvore em `README.md`.
+**Pedido:** "Adicione uma categoria à meta financeira (viagem, emergência,
+compra), selecionável na criação."
 
-## Mudanças de schema
-
-- As mudanças de schema usam migrações Goose (`apps/api/migrations/`). Crie um novo arquivo de migração com `goose create <name> sql`.
-- Os tipos do frontend em `src/types/budget.ts` devem ser atualizados para coincidir.
-- O localStorage guarda apenas preferências de simulação (schema v5) — nenhuma migração de dados no frontend é necessária.
-
-## Restrições (não fazer)
-
-- Use sempre ícones do pacote `lucide-react` em vez de emojis hardcoded (ex: 🚚, ⚠️) ou outras bibliotecas de ícones na UI.
-- Não inclua comentários no código gerado a menos que sejam estritamente
-  necessários para explicar decisões não-óbvias (workarounds, regras de
-  negócio contraintuitivas ou referências a limitações externas). Comentários
-  que apenas descrevem o que o código já deixa claro por si só (nomes de
-  função, tipos, fluxo óbvio) são proibidos.
-  - Proibido: `// incrementa o contador` acima de `count++`.
-  - Aceitável: `// Banco de dados trunca timestamps em ms; ver docs/API.md` acima de uma conversão de data específica.
-- Não viole as boas práticas idiomáticas da linguagem/stack utilizada (Go no
-  backend, React/TypeScript no frontend) — mantenha nomes descritivos, funções
-  pequenas e coesas, tratamento de erro explícito, sem duplicação desnecessária
-  e sem código morto.
-- Não introduza chamadas de rede síncronas/bloqueantes na UI — mutations devem passar pelos hooks do TanStack Query em `src/queries/`.
-- Não remova a checagem opcional de `API_SECRET_KEY` no backend Go.
-- Não gere IDs determinísticos ou slugs — use sempre `generateId()` (UUIDv4).
-- Sempre abra um Pull Request (utilizando o github MCP via create_branch e create_pull_request) para a implementação da feature e cite a issue correspondente (ex: `Closes #123` no corpo do PR).
-- Ao final, rode `npm test` e `npm run build` dentro de `apps/web/` e confirme
-  que passam antes de considerar a tarefa concluída.
-
-## Exemplo (few-shot)
-
-**Pedido do usuário**:
-"Adicione uma categoria à meta financeira (ex: viagem, emergência, compra),
-selecionável na criação da meta."
-
-**Ação esperada do agente**:
-1. Adicionar `goalCategory: string` à interface `FinancialGoal` em
-   `apps/web/src/types/budget.ts`.
-2. Criar migração Goose em `apps/api/migrations/` adicionando coluna `goal_category TEXT` à tabela `goal`.
-3. Atualizar o formulário de criação/edição de meta em
-   `apps/web/src/components/goals/` para incluir o seletor de categoria,
-   seguindo o design system.
-4. Atualizar o modelo Go correspondente em `apps/api/internal/goal/model.go` e `docs/API.md` (payload de exemplo do `POST /api/v1/budget` com o
-   novo campo), além de `docs/ARCHITECTURE.md` (entidade `FINANCIAL_GOAL` no diagrama
-   ER).
-5. Adicionar/atualizar testes cobrindo a migração e, se aplicável, qualquer
-   lógica de cálculo afetada.
+1. Migração Goose `0000N_add_goal_category.sql` (`ALTER TABLE goal ADD COLUMN category TEXT`).
+2. `internal/goal/goal.go` com o campo novo, `requests.go` validando os valores
+   aceitos e `repository.go` com a coluna nos `SELECT`/`INSERT`/`UPDATE`; teste em `service_test.go`.
+3. `docs/API.md` e o diagrama ER em `docs/ARCHITECTURE.md`.
+4. `FinancialGoal.category` em `src/types/budget.ts` e o seletor em
+   `components/modals/NewGoalModal.tsx`, usando `ui/Select`.
+5. `validate.sh` e depois o PR com `Closes #N`.
