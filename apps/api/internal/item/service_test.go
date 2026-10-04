@@ -21,7 +21,7 @@ func (m *mockRepo) Create(ctx context.Context, req CreateItemRequest) (*Item, er
 		ID:        "item-1",
 		BudgetID:  req.BudgetID,
 		Name:      req.Name,
-		Type:      req.Type,
+		Type:      ItemType(req.Type),
 		CreatedAt: time.Now(),
 		Entries:   make([]entry.Entry, 12),
 	}
@@ -64,7 +64,7 @@ func (m *mockRepo) Patch(ctx context.Context, id string, req PatchItemRequest) (
 		it.Name = *req.Name
 	}
 	if req.Type != nil {
-		it.Type = *req.Type
+		it.Type = ItemType(*req.Type)
 	}
 	return it, nil
 }

@@ -97,10 +97,10 @@ export const MonthBudgetView = ({
     );
   };
 
-  const incomeItems = state.items.filter((i) => i.type.toLowerCase() === 'renda');
-  const cardItems = state.items.filter((i) => ['cartao', 'cartoes'].includes(i.type.toLowerCase()));
-  const fixedItems = state.items.filter((i) => ['fixa', 'fixas'].includes(i.type.toLowerCase()));
-  const varItems = state.items.filter((i) => ['variavel', 'var', 'vars'].includes(i.type.toLowerCase()));
+  const incomeItems = state.items.filter((i) => i.type === 'renda');
+  const cardItems = state.items.filter((i) => i.type === 'cartao');
+  const fixedItems = state.items.filter((i) => i.type === 'fixa');
+  const varItems = state.items.filter((i) => i.type === 'variavel');
 
   const activeIncomeItems = incomeItems.filter(isItemActiveInMonth);
   const activeCardItems = cardItems.filter(isItemActiveInMonth);
