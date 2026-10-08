@@ -147,3 +147,74 @@ func mapReserveMovement(rm reserve.ReserveMovement) ReserveMovement {
 		Reason:   rm.Reason,
 	}
 }
+
+func mapMonthSummary(m budget.BudgetSummaryMonth) MonthSummary {
+	return MonthSummary{
+		Month:              m.Month,
+		Income:             float32(m.Income),
+		Cards:              float32(m.Cards),
+		Fixed:              float32(m.Fixed),
+		Variable:           float32(m.Variable),
+		OneTimeCosts:       float32(m.OneTimeCosts),
+		TotalExpenses:      float32(m.TotalExpenses),
+		MonthBalance:       float32(m.MonthBalance),
+		AccumulatedBalance: float32(m.AccumulatedBalance),
+	}
+}
+
+func mapYearTotals(t budget.BudgetSummaryTotals) YearTotals {
+	return YearTotals{
+		Income:           float32(t.Income),
+		Cards:            float32(t.Cards),
+		Fixed:            float32(t.Fixed),
+		Variable:         float32(t.Variable),
+		OneTimeCosts:     float32(t.OneTimeCosts),
+		TotalExpenses:    float32(t.TotalExpenses),
+		NetBalance:       float32(t.NetBalance),
+		FinalAccumulated: float32(t.FinalAccumulated),
+	}
+}
+
+// BudgetSummaryResponse representa a resposta HTTP consolidada do resumo orçamentário anual e mensal.
+type BudgetSummaryResponse = GetApiV1BudgetsYearSummary200JSONResponse
+
+func mapBudgetSummary(s budget.BudgetSummary) BudgetSummaryResponse {
+	months := make([]MonthSummary, len(s.Months))
+	for i, m := range s.Months {
+		months[i] = mapMonthSummary(m)
+	}
+	return BudgetSummaryResponse{
+		Year:                   s.Year,
+		InitialBalance:         float32(s.InitialBalance),
+		EmergencyReserveTarget: float32(s.EmergencyReserveTarget),
+		Months:                 months,
+		Totals:                 mapYearTotals(s.Totals),
+	}
+}
+
+// BudgetYearViewResponse representa a visão anual completa do orçamento com itens, custos e reservas.
+type BudgetYearViewResponse = GetApiV1BudgetsYear200JSONResponse
+
+func mapBudgetView(view budget.YearViewModel) BudgetYearViewResponse {
+	items := make([]ItemWithEntries, len(view.Items))
+	for i, it := range view.Items {
+		items[i] = mapItemWithEntries(it)
+	}
+
+	costs := make([]CostWithItems, len(view.Costs))
+	for i, c := range view.Costs {
+		costs[i] = mapCostWithItems(c)
+	}
+
+	reserves := make([]ReserveMovement, len(view.ReserveMovements))
+	for i, r := range view.ReserveMovements {
+		reserves[i] = mapReserveMovement(r)
+	}
+
+	return BudgetYearViewResponse{
+		Budget:           mapBudget(view.Budget),
+		Costs:            costs,
+		Items:            items,
+		ReserveMovements: reserves,
+	}
+}
