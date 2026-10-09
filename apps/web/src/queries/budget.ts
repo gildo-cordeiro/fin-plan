@@ -37,7 +37,7 @@ export function useBudgetListQuery() {
 export function useUpdateBudgetMutation(year: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { initialBalance?: number; emergencyReserveTarget?: number }) => 
+    mutationFn: (patch: { initialBalance?: number; emergencyReserveInitialBalance?: number; emergencyReserveTarget?: number }) => 
       budgetApiService.updateBudget(year, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.year(year) });

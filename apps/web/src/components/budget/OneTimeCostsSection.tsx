@@ -453,9 +453,14 @@ export const OneTimeCostsSection = () => {
             </p>
           </div>
 
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-teal-50 dark:bg-teal-950/60 text-[#0e6b7a] dark:text-[#4ec2d3] border border-teal-200 dark:border-teal-800">
-            Meta: {formatBRL(state.budget?.emergencyReserveTarget ?? 0)}
-          </span>
+          <div className="flex gap-2">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+              Meta: {formatBRL(state.budget?.emergencyReserveTarget ?? 0)}
+            </span>
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-teal-50 dark:bg-teal-950/60 text-[#0e6b7a] dark:text-[#4ec2d3] border border-teal-200 dark:border-teal-800">
+              Saldo Atual: {formatBRL(state.summary?.totals?.finalReserveBalance ?? 0)}
+            </span>
+          </div>
         </div>
 
         {/* Formulário para novo movimento */}

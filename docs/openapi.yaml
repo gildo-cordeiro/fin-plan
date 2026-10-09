@@ -35,6 +35,8 @@ components:
           type: number
         emergencyReserveTarget:
           type: number
+        emergencyReserveInitialBalance:
+          type: number
         createdAt:
           type: string
           format: date-time
@@ -46,6 +48,7 @@ components:
       - year
       - initialBalance
       - emergencyReserveTarget
+      - emergencyReserveInitialBalance
       - createdAt
       - updatedAt
     CreateBudgetRequest:
@@ -57,16 +60,21 @@ components:
           type: number
         emergencyReserveTarget:
           type: number
+        emergencyReserveInitialBalance:
+          type: number
       required:
       - year
       - initialBalance
       - emergencyReserveTarget
+      - emergencyReserveInitialBalance
     UpdateBudgetRequest:
       type: object
       properties:
         initialBalance:
           type: number
         emergencyReserveTarget:
+          type: number
+        emergencyReserveInitialBalance:
           type: number
     Entry:
       type: object
@@ -561,6 +569,8 @@ components:
           type: number
         emergencyReserveTarget:
           type: number
+        emergencyReserveInitialBalance:
+          type: number
         months:
           type: array
           items:
@@ -571,6 +581,7 @@ components:
       - year
       - initialBalance
       - emergencyReserveTarget
+      - emergencyReserveInitialBalance
       - months
       - totals
 security:

@@ -155,7 +155,8 @@ func (e UpdateGoalRequestStatus) Valid() bool {
 // Budget defines model for Budget.
 type Budget struct {
 	CreatedAt              time.Time `json:"createdAt"`
-	EmergencyReserveTarget float32   `json:"emergencyReserveTarget"`
+	EmergencyReserveInitialBalance float32   `json:"emergencyReserveInitialBalance"`
+	EmergencyReserveTarget         float32   `json:"emergencyReserveTarget"`
 	Id                     string    `json:"id"`
 	InitialBalance         float32   `json:"initialBalance"`
 	UpdatedAt              time.Time `json:"updatedAt"`
@@ -164,7 +165,8 @@ type Budget struct {
 
 // BudgetSummary defines model for BudgetSummary.
 type BudgetSummary struct {
-	EmergencyReserveTarget float32        `json:"emergencyReserveTarget"`
+	EmergencyReserveInitialBalance float32        `json:"emergencyReserveInitialBalance"`
+	EmergencyReserveTarget         float32        `json:"emergencyReserveTarget"`
 	InitialBalance         float32        `json:"initialBalance"`
 	Months                 []MonthSummary `json:"months"`
 	Totals                 YearTotals     `json:"totals"`
@@ -222,6 +224,7 @@ type CostWithItems struct {
 
 // CreateBudgetRequest defines model for CreateBudgetRequest.
 type CreateBudgetRequest struct {
+	EmergencyReserveInitialBalance float32 `json:"emergencyReserveInitialBalance"`
 	EmergencyReserveTarget float32 `json:"emergencyReserveTarget"`
 	InitialBalance         float32 `json:"initialBalance"`
 	Year                   int     `json:"year"`
@@ -352,6 +355,8 @@ type MonthSummary struct {
 	Month              int     `json:"month"`
 	MonthBalance       float32 `json:"monthBalance"`
 	OneTimeCosts       float32 `json:"oneTimeCosts"`
+	ReserveBalance     float32 `json:"reserveBalance"`
+	ReserveTransfers   float32 `json:"reserveTransfers"`
 	TotalExpenses      float32 `json:"totalExpenses"`
 	Variable           float32 `json:"variable"`
 }
@@ -367,6 +372,7 @@ type ReserveMovement struct {
 
 // UpdateBudgetRequest defines model for UpdateBudgetRequest.
 type UpdateBudgetRequest struct {
+	EmergencyReserveInitialBalance *float32 `json:"emergencyReserveInitialBalance,omitempty"`
 	EmergencyReserveTarget *float32 `json:"emergencyReserveTarget,omitempty"`
 	InitialBalance         *float32 `json:"initialBalance,omitempty"`
 }
@@ -417,6 +423,7 @@ type UpdateItemRequest struct {
 type YearTotals struct {
 	Cards            float32 `json:"cards"`
 	FinalAccumulated float32 `json:"finalAccumulated"`
+	FinalReserveBalance float32 `json:"finalReserveBalance"`
 	Fixed            float32 `json:"fixed"`
 	Income           float32 `json:"income"`
 	NetBalance       float32 `json:"netBalance"`

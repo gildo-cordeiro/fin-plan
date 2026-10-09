@@ -15,12 +15,13 @@ import (
 
 func mapBudget(b budget.Budget) Budget {
 	return Budget{
-		Id:                     b.ID,
-		Year:                   b.Year,
-		InitialBalance:         float32(b.InitialBalance),
-		EmergencyReserveTarget: float32(b.EmergencyReserveTarget),
-		CreatedAt:              b.CreatedAt,
-		UpdatedAt:              b.UpdatedAt,
+		Id:                             b.ID,
+		Year:                           b.Year,
+		InitialBalance:                 float32(b.InitialBalance),
+		EmergencyReserveTarget:         float32(b.EmergencyReserveTarget),
+		EmergencyReserveInitialBalance: float32(b.EmergencyReserveInitialBalance),
+		CreatedAt:                      b.CreatedAt,
+		UpdatedAt:                      b.UpdatedAt,
 	}
 }
 
@@ -158,7 +159,9 @@ func mapMonthSummary(m budget.BudgetSummaryMonth) MonthSummary {
 		OneTimeCosts:       float32(m.OneTimeCosts),
 		TotalExpenses:      float32(m.TotalExpenses),
 		MonthBalance:       float32(m.MonthBalance),
+		ReserveTransfers:   float32(m.ReserveTransfers),
 		AccumulatedBalance: float32(m.AccumulatedBalance),
+		ReserveBalance:     float32(m.ReserveBalance),
 	}
 }
 
@@ -184,11 +187,12 @@ func mapBudgetSummary(s budget.BudgetSummary) BudgetSummaryResponse {
 		months[i] = mapMonthSummary(m)
 	}
 	return BudgetSummaryResponse{
-		Year:                   s.Year,
-		InitialBalance:         float32(s.InitialBalance),
-		EmergencyReserveTarget: float32(s.EmergencyReserveTarget),
-		Months:                 months,
-		Totals:                 mapYearTotals(s.Totals),
+		Year:                           s.Year,
+		InitialBalance:                 float32(s.InitialBalance),
+		EmergencyReserveTarget:         float32(s.EmergencyReserveTarget),
+		EmergencyReserveInitialBalance: float32(s.EmergencyReserveInitialBalance),
+		Months:                         months,
+		Totals:                         mapYearTotals(s.Totals),
 	}
 }
 

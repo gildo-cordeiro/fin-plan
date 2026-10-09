@@ -1014,6 +1014,7 @@ export interface components {
             year: number;
             initialBalance: number;
             emergencyReserveTarget: number;
+            emergencyReserveInitialBalance: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1023,10 +1024,12 @@ export interface components {
             year: number;
             initialBalance: number;
             emergencyReserveTarget: number;
+            emergencyReserveInitialBalance: number;
         };
         UpdateBudgetRequest: {
             initialBalance?: number;
             emergencyReserveTarget?: number;
+            emergencyReserveInitialBalance?: number;
         };
         Entry: {
             id: string;
@@ -1190,8 +1193,9 @@ export interface components {
             oneTimeCosts: number;
             totalExpenses: number;
             monthBalance: number;
-            reserveTransfers: number;
+            reserveTransfers?: number;
             accumulatedBalance: number;
+            reserveBalance: number;
         };
         YearTotals: {
             income: number;
@@ -1201,13 +1205,15 @@ export interface components {
             oneTimeCosts: number;
             totalExpenses: number;
             netBalance: number;
-            reserveTransfers: number;
+            reserveTransfers?: number;
             finalAccumulated: number;
+            finalReserveBalance: number;
         };
         BudgetSummary: {
             year: number;
             initialBalance: number;
             emergencyReserveTarget: number;
+            emergencyReserveInitialBalance: number;
             months: components["schemas"]["MonthSummary"][];
             totals: components["schemas"]["YearTotals"];
         };
