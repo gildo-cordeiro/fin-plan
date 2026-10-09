@@ -19,7 +19,7 @@ func (s *Server) GetApiV1Budgets(ctx context.Context, request GetApiV1BudgetsReq
 	if err != nil {
 		return nil, err
 	}
-	var res []Budget
+	res := make([]Budget, 0, len(budgets))
 	for _, b := range budgets {
 		res = append(res, mapBudget(b))
 	}
@@ -85,7 +85,7 @@ func (s *Server) GetApiV1BudgetsYearReserveMovements(ctx context.Context, reques
 	if err != nil {
 		return nil, err
 	}
-	var res []ReserveMovement
+	res := make([]ReserveMovement, 0, len(movs))
 	for _, m := range movs {
 		res = append(res, mapReserveMovement(m))
 	}
@@ -152,7 +152,7 @@ func (s *Server) GetApiV1CostsCostIdItems(ctx context.Context, request GetApiV1C
 	if err != nil {
 		return nil, err
 	}
-	var res []CostItem
+	res := make([]CostItem, 0, len(items))
 	for _, i := range items {
 		res = append(res, mapCostItem(i))
 	}
@@ -251,7 +251,7 @@ func (s *Server) GetApiV1Goals(ctx context.Context, request GetApiV1GoalsRequest
 	if err != nil {
 		return nil, err
 	}
-	var res []Goal
+	res := make([]Goal, 0, len(goals))
 	for _, g := range goals {
 		res = append(res, mapGoal(g))
 	}
