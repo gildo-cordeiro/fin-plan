@@ -11,6 +11,7 @@ function createMockSummary(): BudgetSummary {
     year: 2026,
     initialBalance: 10000,
     emergencyReserveTarget: 5000,
+    emergencyReserveInitialBalance: 0,
     months: [
       {
         month: 10,
@@ -23,6 +24,7 @@ function createMockSummary(): BudgetSummary {
         monthBalance: 3000,
         reserveTransfers: 0,
         accumulatedBalance: 13000,
+      reserveBalance: 0,
       },
       {
         month: 11,
@@ -35,6 +37,7 @@ function createMockSummary(): BudgetSummary {
         monthBalance: 1300,
         reserveTransfers: 0,
         accumulatedBalance: 14300,
+      reserveBalance: 0,
       },
       {
         month: 12,
@@ -47,6 +50,7 @@ function createMockSummary(): BudgetSummary {
         monthBalance: 3500,
         reserveTransfers: 0,
         accumulatedBalance: 17800,
+      reserveBalance: 0,
       },
     ],
     totals: {
@@ -59,6 +63,7 @@ function createMockSummary(): BudgetSummary {
       netBalance: 7800,
       reserveTransfers: 0,
       finalAccumulated: 17800,
+    finalReserveBalance: 0,
     },
   };
 }
