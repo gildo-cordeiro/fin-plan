@@ -66,7 +66,7 @@ func (s *Service) Create(ctx context.Context, req CreateBudgetRequest) (*Budget,
 
 func (s *Service) Patch(ctx context.Context, year int, req PatchBudgetRequest) (*Budget, error) {
 	tempBudget := &Budget{}
-	tempBudget.Update(req.InitialBalance, req.EmergencyReserveTarget)
+	tempBudget.Update(req.InitialBalance, req.EmergencyReserveTarget, req.EmergencyReserveInitialBalance)
 
 	return s.repo.Patch(ctx, year, req)
 }

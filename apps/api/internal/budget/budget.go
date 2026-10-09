@@ -12,9 +12,10 @@ import (
 type Budget struct {
 	ID                     string    `json:"id"`
 	Year                   int       `json:"year"`
-	InitialBalance         float64   `json:"initialBalance"`
-	EmergencyReserveTarget float64   `json:"emergencyReserveTarget"`
-	CreatedAt              time.Time `json:"createdAt"`
+	InitialBalance                 float64   `json:"initialBalance"`
+	EmergencyReserveTarget         float64   `json:"emergencyReserveTarget"`
+	EmergencyReserveInitialBalance float64   `json:"emergencyReserveInitialBalance"`
+	CreatedAt                      time.Time `json:"createdAt"`
 	UpdatedAt              time.Time `json:"updatedAt"`
 }
 
@@ -23,31 +24,37 @@ func NewBudget(year int, initialBalance float64, emergencyReserveTarget float64)
 		return nil, errors.New("ano deve ser entre 2000 e 2100")
 	}
 	return &Budget{
-		Year:                   year,
-		InitialBalance:         initialBalance,
-		EmergencyReserveTarget: emergencyReserveTarget,
+		Year:                           year,
+		InitialBalance:                 initialBalance,
+		EmergencyReserveTarget:         emergencyReserveTarget,
+		EmergencyReserveInitialBalance: 0,
 	}, nil
 }
 
-func (b *Budget) Update(initialBalance *float64, emergencyReserveTarget *float64) {
+func (b *Budget) Update(initialBalance *float64, emergencyReserveTarget *float64, emergencyReserveInitialBalance *float64) {
 	if initialBalance != nil {
 		b.InitialBalance = *initialBalance
 	}
 	if emergencyReserveTarget != nil {
 		b.EmergencyReserveTarget = *emergencyReserveTarget
 	}
+	if emergencyReserveInitialBalance != nil {
+		b.EmergencyReserveInitialBalance = *emergencyReserveInitialBalance
+	}
 	b.UpdatedAt = time.Now()
 }
 
 func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movements []reserve.ReserveMovement) BudgetSummary {
 	summary := BudgetSummary{
-		Year:                   b.Year,
-		InitialBalance:         b.InitialBalance,
-		EmergencyReserveTarget: b.EmergencyReserveTarget,
-		Months:                 make([]BudgetSummaryMonth, 12),
+		Year:                           b.Year,
+		InitialBalance:                 b.InitialBalance,
+		EmergencyReserveTarget:         b.EmergencyReserveTarget,
+		EmergencyReserveInitialBalance: b.EmergencyReserveInitialBalance,
+		Months:                         make([]BudgetSummaryMonth, 12),
 	}
 
 	runningAccumulated := b.InitialBalance
+	runningReserve := b.EmergencyReserveInitialBalance
 
 	getEffectiveAmount := func(planned float64, actual *float64, paidDate *string) float64 {
 		if paidDate != nil && actual != nil {
@@ -109,6 +116,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 		// Retirada (-Amount) aumenta o saldo acumulado (entra no caixa)
 		// Aporte (+Amount) diminui o saldo acumulado (sai do caixa)
 		runningAccumulated += monthBalance - reserveTransfers
+		runningReserve += reserveTransfers
 
 		summary.Months[monthIndex] = BudgetSummaryMonth{
 			Month:              month,
@@ -121,6 +129,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 			MonthBalance:       monthBalance,
 			ReserveTransfers:   reserveTransfers,
 			AccumulatedBalance: runningAccumulated,
+			ReserveBalance:     runningReserve,
 		}
 
 		summary.Totals.Income += income
@@ -143,6 +152,7 @@ func (b *Budget) CalculateSummary(items []item.Item, costs []cost.Cost, movement
 	summary.Totals.TotalExpenses = summary.Totals.Cards + summary.Totals.Fixed + summary.Totals.Variable + summary.Totals.OneTimeCosts
 	summary.Totals.NetBalance = summary.Totals.Income - summary.Totals.TotalExpenses
 	summary.Totals.FinalAccumulated = b.InitialBalance + summary.Totals.NetBalance - summary.Totals.ReserveTransfers
+	summary.Totals.FinalReserveBalance = b.EmergencyReserveInitialBalance + summary.Totals.ReserveTransfers
 
 	return summary
 }

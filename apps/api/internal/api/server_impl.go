@@ -51,28 +51,8 @@ func (s *Server) GetApiV1BudgetsYear(ctx context.Context, request GetApiV1Budget
 	if err != nil {
 		return nil, err
 	}
-	
-	var items []ItemWithEntries
-	for _, i := range view.Items {
-		items = append(items, mapItemWithEntries(i))
-	}
-	
-	var costs []CostWithItems
-	for _, c := range view.Costs {
-		costs = append(costs, mapCostWithItems(c))
-	}
-	
-	var reserves []ReserveMovement
-	for _, r := range view.ReserveMovements {
-		reserves = append(reserves, mapReserveMovement(r))
-	}
 
-	return GetApiV1BudgetsYear200JSONResponse{
-		Budget:           mapBudget(view.Budget),
-		Costs:            costs,
-		Items:            items,
-		ReserveMovements: reserves,
-	}, nil
+	return mapBudgetView(*view), nil
 }
 
 func (s *Server) PatchApiV1BudgetsYear(ctx context.Context, request PatchApiV1BudgetsYearRequestObject) (PatchApiV1BudgetsYearResponseObject, error) {
@@ -121,21 +101,8 @@ func (s *Server) GetApiV1BudgetsYearSummary(ctx context.Context, request GetApiV
 	if err != nil {
 		return nil, err
 	}
-	
-	var months []MonthSummary
-	for _, m := range summary.Months {
-		months = append(months, MonthSummary{
-			Month:    m.Month,
-			Income:   float32(m.Income),
-			Fixed:    float32(m.Fixed),
-			Variable: float32(m.Variable),
-		})
-	}
-	
-	return GetApiV1BudgetsYearSummary200JSONResponse{
-		Year:   summary.Year,
-		Months: months,
-	}, nil
+
+	return mapBudgetSummary(*summary), nil
 }
 
 // 2. Costs

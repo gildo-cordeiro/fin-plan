@@ -32,7 +32,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 	query := `
-		SELECT id, year, initial_balance, emergency_reserve_target, created_at, updated_at
+		SELECT id, year, initial_balance, emergency_reserve_target, emergency_reserve_initial_balance, created_at, updated_at
 		FROM budget
 		ORDER BY year DESC
 	`
@@ -50,6 +50,7 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 			&b.Year,
 			&b.InitialBalance,
 			&b.EmergencyReserveTarget,
+			&b.EmergencyReserveInitialBalance,
 			&b.CreatedAt,
 			&b.UpdatedAt,
 		); err != nil {
@@ -63,7 +64,7 @@ func (r *PostgresRepository) GetAll(ctx context.Context) ([]Budget, error) {
 
 func (r *PostgresRepository) GetByYear(ctx context.Context, year int) (*Budget, error) {
 	query := `
-		SELECT id, year, initial_balance, emergency_reserve_target, created_at, updated_at
+		SELECT id, year, initial_balance, emergency_reserve_target, emergency_reserve_initial_balance, created_at, updated_at
 		FROM budget
 		WHERE year = $1
 	`
@@ -73,6 +74,7 @@ func (r *PostgresRepository) GetByYear(ctx context.Context, year int) (*Budget, 
 		&b.Year,
 		&b.InitialBalance,
 		&b.EmergencyReserveTarget,
+		&b.EmergencyReserveInitialBalance,
 		&b.CreatedAt,
 		&b.UpdatedAt,
 	)
@@ -96,18 +98,23 @@ func (r *PostgresRepository) Create(ctx context.Context, req CreateBudgetRequest
 	if req.EmergencyReserveTarget != nil {
 		reserveTarget = *req.EmergencyReserveTarget
 	}
+	reserveInit := 0.0
+	if req.EmergencyReserveInitialBalance != nil {
+		reserveInit = *req.EmergencyReserveInitialBalance
+	}
 
 	query := `
-		INSERT INTO budget (id, year, initial_balance, emergency_reserve_target)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, year, initial_balance, emergency_reserve_target, created_at, updated_at
+		INSERT INTO budget (id, year, initial_balance, emergency_reserve_target, emergency_reserve_initial_balance)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, year, initial_balance, emergency_reserve_target, emergency_reserve_initial_balance, created_at, updated_at
 	`
 	var b Budget
-	err := r.pool.QueryRow(ctx, query, id, req.Year, initBal, reserveTarget).Scan(
+	err := r.pool.QueryRow(ctx, query, id, req.Year, initBal, reserveTarget, reserveInit).Scan(
 		&b.ID,
 		&b.Year,
 		&b.InitialBalance,
 		&b.EmergencyReserveTarget,
+		&b.EmergencyReserveInitialBalance,
 		&b.CreatedAt,
 		&b.UpdatedAt,
 	)
@@ -131,6 +138,11 @@ func (r *PostgresRepository) Patch(ctx context.Context, year int, req PatchBudge
 	if req.EmergencyReserveTarget != nil {
 		setClauses = append(setClauses, "emergency_reserve_target = $"+strconv.Itoa(argID))
 		args = append(args, *req.EmergencyReserveTarget)
+		argID++
+	}
+	if req.EmergencyReserveInitialBalance != nil {
+		setClauses = append(setClauses, "emergency_reserve_initial_balance = $"+strconv.Itoa(argID))
+		args = append(args, *req.EmergencyReserveInitialBalance)
 		argID++
 	}
 

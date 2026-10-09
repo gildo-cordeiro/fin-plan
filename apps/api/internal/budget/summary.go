@@ -11,6 +11,7 @@ type BudgetSummaryMonth struct {
 	MonthBalance       float64 `json:"monthBalance"`
 	ReserveTransfers   float64 `json:"reserveTransfers"`
 	AccumulatedBalance float64 `json:"accumulatedBalance"`
+	ReserveBalance     float64 `json:"reserveBalance"`
 }
 
 type BudgetSummaryTotals struct {
@@ -22,13 +23,15 @@ type BudgetSummaryTotals struct {
 	TotalExpenses    float64 `json:"totalExpenses"`
 	NetBalance       float64 `json:"netBalance"`
 	ReserveTransfers float64 `json:"reserveTransfers"`
-	FinalAccumulated float64 `json:"finalAccumulated"`
+	FinalAccumulated    float64 `json:"finalAccumulated"`
+	FinalReserveBalance float64 `json:"finalReserveBalance"`
 }
 
 type BudgetSummary struct {
 	Year                   int                  `json:"year"`
-	InitialBalance         float64              `json:"initialBalance"`
-	EmergencyReserveTarget float64              `json:"emergencyReserveTarget"`
-	Months                 []BudgetSummaryMonth `json:"months"`
+	InitialBalance                 float64              `json:"initialBalance"`
+	EmergencyReserveTarget         float64              `json:"emergencyReserveTarget"`
+	EmergencyReserveInitialBalance float64              `json:"emergencyReserveInitialBalance"`
+	Months                         []BudgetSummaryMonth `json:"months"`
 	Totals                 BudgetSummaryTotals  `json:"totals"`
 }
