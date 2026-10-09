@@ -41,12 +41,14 @@ export const budgetApiService = {
   async createBudget(data: {
     year: number;
     initialBalance?: number;
+    emergencyReserveInitialBalance?: number;
     emergencyReserveTarget?: number;
   }): Promise<Budget> {
     const { data: res, error } = await client.POST('/api/v1/budgets', {
       body: {
         year: data.year,
         initialBalance: data.initialBalance || 0,
+        emergencyReserveInitialBalance: data.emergencyReserveInitialBalance || 0,
         emergencyReserveTarget: data.emergencyReserveTarget || 0,
       },
     });
@@ -58,6 +60,7 @@ export const budgetApiService = {
     year: number,
     patch: {
       initialBalance?: number;
+      emergencyReserveInitialBalance?: number;
       emergencyReserveTarget?: number;
     }
   ): Promise<Budget> {

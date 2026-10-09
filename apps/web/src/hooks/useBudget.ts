@@ -50,7 +50,7 @@ export const useBudget = () => {
   const createReserveMut = useCreateReserveMovementMutation(currentYear);
 
   const createYearMut = useMutation({
-    mutationFn: (year: number) => budgetApiService.createBudget({ year, initialBalance: 0, emergencyReserveTarget: 0 }),
+    mutationFn: (year: number) => budgetApiService.createBudget({ year, initialBalance: 0, emergencyReserveTarget: 0, emergencyReserveInitialBalance: 0 }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
     }

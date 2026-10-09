@@ -12,21 +12,25 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
   const { state, updateBudgetBalances } = useBudget();
   const initialBal = state.budget?.initialBalance ?? 0;
   const initialRes = state.budget?.emergencyReserveTarget ?? 0;
+  const initialResBal = state.budget?.emergencyReserveInitialBalance ?? 0;
 
   const [balance, setBalance] = useState(initialBal);
   const [reserve, setReserve] = useState(initialRes);
+  const [reserveBal, setReserveBal] = useState(initialResBal);
 
   useEffect(() => {
     if (isOpen) {
       setBalance(state.budget?.initialBalance ?? 0);
       setReserve(state.budget?.emergencyReserveTarget ?? 0);
+      setReserveBal(state.budget?.emergencyReserveInitialBalance ?? 0);
     }
-  }, [isOpen, state.budget?.initialBalance, state.budget?.emergencyReserveTarget]);
+  }, [isOpen, state.budget?.initialBalance, state.budget?.emergencyReserveTarget, state.budget?.emergencyReserveInitialBalance]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateBudgetBalances({
       initialBalance: balance,
+      emergencyReserveInitialBalance: reserveBal,
       emergencyReserveTarget: reserve,
     });
     onClose();
@@ -59,7 +63,23 @@ export const EditBalanceModal = ({ isOpen, onClose }: EditBalanceModalProps) => 
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Reserva que não quer mexer (R$)
+            Saldo Inicial da Reserva (R$)
+          </label>
+          <MoneyInput
+            value={reserveBal}
+            onChange={setReserveBal}
+            placeholder="0,00"
+            className="py-1 px-3 text-sm font-semibold"
+            ariaLabel="Saldo inicial da reserva"
+          />
+          <span className="text-[11px] text-slate-400 mt-1 block">
+            O valor que você já tinha guardado na sua reserva de emergência no início do ano.
+          </span>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Meta de Reserva (R$)
           </label>
           <MoneyInput
             value={reserve}

@@ -19,6 +19,11 @@ export function getCleanGoalIcon(name?: string): LucideIcon {
   return Target;
 }
 
+export function renderGoalIcon(name: string | undefined, className?: string) {
+  const Icon = getCleanGoalIcon(name);
+  return <Icon className={className} />;
+}
+
 const ContributionRow = ({
   contrib,
   onRemove,
@@ -75,8 +80,6 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
   const isDone = goal.status === 'concluida';
   const isPaused = goal.status === 'pausada';
 
-  const GoalIcon = getCleanGoalIcon(goal.name);
-
   return (
     <div
       className={`rounded-2xl border transition-all shadow-xs ${
@@ -90,7 +93,7 @@ const GoalCard = ({ goal, onOpenContribution }: GoalCardProps) => {
       <div className="p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 text-lg flex items-center justify-center shrink-0 select-none shadow-xs">
-            <GoalIcon className="w-5 h-5" />
+            {renderGoalIcon(goal.name, "w-5 h-5")}
           </div>
 
           <div className="flex-1 min-w-0">

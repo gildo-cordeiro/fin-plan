@@ -30,7 +30,7 @@ func TestBudgetUpdate(t *testing.T) {
 	b, _ := budget.NewBudget(2026, 1000.0, 5000.0)
 	newBalance := 2000.0
 	newReserve := 6000.0
-	b.Update(&newBalance, &newReserve)
+	b.Update(&newBalance, &newReserve, nil)
 	
 	if b.InitialBalance != 2000.0 {
 		t.Errorf("Initial balance not updated")
